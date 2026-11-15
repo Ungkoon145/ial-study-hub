@@ -117,6 +117,12 @@ details.dropped>summary{cursor:pointer;color:var(--muted);padding:6px 0}
 details.howto{display:inline}details.howto>summary{display:inline;cursor:pointer;color:var(--ink);text-decoration:underline;font-size:.9em}details.howto[open]{display:block;margin-top:6px}
 .pill.ust{background:var(--soft);color:var(--muted)}.pill.ust.resit{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
 @media (max-width:640px){ .li .meta.pp3 .btn.sm{flex:1 1 auto;min-width:auto;padding:7px 4px;font-size:.8rem;white-space:nowrap} .li .meta.pp3 .btn.primary{flex:1.5 1 0} .li .meta.pp3 .btn.planbtn{flex:0 0 auto;padding:7px 10px} }
+.frcode{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:12px;background:var(--soft)}
+.frbig{font-size:1.6rem;font-weight:800;letter-spacing:.12em}
+.frlist{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.frcard{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
+.frsubs{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.frwait{white-space:nowrap}
 .nxmore{margin-top:10px;display:inline-block}
 .askmodes{display:grid;grid-template-columns:repeat(3,1fr);width:100%}.askmodes button{padding:8px 6px;line-height:1.2}.seg2 button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .edlist{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
@@ -710,6 +716,7 @@ function commit(){
   saveLocal();
   scheduleSave();
   buddySchedule();
+  frSchedule();
   render();
 }
 function scheduleSave(delay = 1200){
@@ -756,6 +763,8 @@ async function connectCloud(){
       scheduleSave(0);
     } else setSync('synced');
     buddyStart();
+    frStart();
+    if (route() === 'prefs' || route() === 'today') render();
     ref.onSnapshot(s => {
       if (!s.exists || s.metadata.hasPendingWrites) return;
       const d = s.data(); const u = d.updatedAt || 0;
@@ -907,7 +916,7 @@ function viewToday(){
 
   return '<div class="stack today">' +
     '<div class="todayhead"><div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#prefs" class="avlink" aria-label="Your profile">' + avatar(44) + '</a>' : '') + '<div><p class="muted small">' + fmtDate(t, {weekday:'long', day:'numeric', month:'long'}) + '</p><h1>' + greet + (firstName() ? ', ' + esc(firstName()) : '') + '</h1></div></div>' + goalRing() + '</div>' + profileNudge() +
-    examTomorrowCard() + nextCard() + reviewCard(ui.showReview) + backupNudge() + planCard() + examsTimeline() + buddyCard() +
+    examTomorrowCard() + nextCard() + friendReqCard() + reviewCard(ui.showReview) + backupNudge() + planCard() + examsTimeline() + buddyCard() +
     '<div class="grid2">' + (ex.length ? '' : exHtml) +
       '<div class="card"><div class="card-h"><h2>Tasks</h2><a class="small muted" href="#planner">' + (openTasks.length > 5 ? 'All ' + openTasks.length : 'Planner') + '</a></div>' +
         '<form data-form="task-quick" class="row" style="margin-bottom:8px"><input type="text" id="tq" placeholder="Quick add, due today" aria-label="New task due today" style="flex:1;min-width:0"><button class="btn" type="submit">Add</button></form>' +
@@ -1935,7 +1944,7 @@ function dataCard(){
 function viewSettings(){
   return '<div class="stack">' +
     '<div><h1>Settings</h1><p class="muted">Your profile, subjects, study habits and how the app looks.</p></div>' +
-    profileCard() + mySubjectsCard() + habitsCard() + lookCard() + reminderCard() + buddySettings() + installCard() +
+    profileCard() + friendsCard() + mySubjectsCard() + habitsCard() + lookCard() + reminderCard() + buddySettings() + installCard() +
     ((state.linkReports || []).length ? '<div class="card stack"><div class="card-h"><h2>Broken links (' + state.linkReports.length + ')</h2></div><p class="small muted" style="margin:0">Links you reported. Copy the list and paste it to Claude, and they’ll be fixed in one go.</p><div class="list">' + state.linkReports.map(x => '<div class="li"><div class="grow"><div class="t">' + esc(x.where) + '</div><div class="small muted">Reported ' + fmtDate(x.at, {day:'numeric', month:'short'}) + '</div></div><button class="x" data-act="report-del" data-id="' + x.id + '" aria-label="Remove report">×</button></div>').join('') + '</div><div class="row"><button class="btn primary" data-act="report-copy">Copy list</button><button class="btn ghost" data-act="report-clear">Clear all</button></div><textarea readonly rows="3" aria-label="Broken links list">' + esc(reportsText()) + '</textarea></div>' : '') +
     dataCard() + '</div>';
 }
@@ -2988,6 +2997,164 @@ function buddyCard(){
     (others.length ? '' : '<p class="small muted" style="margin:0">No buddies yet. <a href="#prefs">Invite a friend</a>.</p>') + '</div>';
 }
 function fmtMin(m){ m = Math.round(+m || 0); return m >= 60 ? Math.floor(m / 60) + 'h' + (m % 60 ? ' ' + (m % 60) + 'm' : '') : m + 'm'; }
+/* ============================================================
+   Friends: add each other by code and see each other's profile.
+   Each student's card (cards/<id>) holds only a public key, a friend code and
+   sealed boxes. A box is their profile encrypted for one friend (ECDH P-256 +
+   AES-GCM), so only that friend can open it, and the box label is derived from
+   the pair's shared secret, so nobody else can tell who is friends with whom.
+   ============================================================ */
+const FR = { cards: [], unsub: null, status: 'idle', writeOk: true, pair: {}, peers: {}, sent: '', timer: null, priv: null, msg: '' };
+const FR_ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function frOn(){ return !!(state.fr && state.fr.on); }
+function frState(){ state.fr = Object.assign({ on: false, code: '', pub: null, priv: null, share: { school: true, subj: true, year: false, photo: false }, friends: {}, ignored: [] }, state.fr || {}); state.fr.share = Object.assign({ school: true, subj: true, year: false, photo: false }, state.fr.share || {}); return state.fr; }
+function frCode(){ let s = ''; const b = crypto.getRandomValues(new Uint8Array(6)); b.forEach(x => s += FR_ALPHA[x % FR_ALPHA.length]); return s; }
+function frFmt(c){ return c ? c.slice(0, 3) + ' ' + c.slice(3) : ''; }
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const hex = buf => [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2, '0')).join('');
+async function frKeys(){
+  const f = frState();
+  if (!f.priv || !f.pub){
+    const kp = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
+    const pj = await crypto.subtle.exportKey('jwk', kp.publicKey), sj = await crypto.subtle.exportKey('jwk', kp.privateKey);
+    f.pub = { kty: pj.kty, crv: pj.crv, x: pj.x, y: pj.y }; f.priv = sj;
+  }
+  if (!f.code) f.code = frCode();
+  if (!FR.priv) FR.priv = await crypto.subtle.importKey('jwk', f.priv, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
+  return FR.priv;
+}
+async function frPair(card){
+  const k = card.id + '|' + (card.pub && card.pub.x);
+  if (FR.pair[k]) return FR.pair[k];
+  const priv = await frKeys();
+  const pub = await crypto.subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x: card.pub.x, y: card.pub.y }, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+  const bits = await crypto.subtle.deriveBits({ name: 'ECDH', public: pub }, priv, 256);
+  const kb = await crypto.subtle.digest('SHA-256', new Uint8Array([...new TextEncoder().encode('ial-fr-key'), ...new Uint8Array(bits)]));
+  const tb = await crypto.subtle.digest('SHA-256', new Uint8Array([...new TextEncoder().encode('ial-fr-tag'), ...new Uint8Array(bits)]));
+  const key = await crypto.subtle.importKey('raw', kb, 'AES-GCM', false, ['encrypt', 'decrypt']);
+  return FR.pair[k] = { key, tag: hex(tb).slice(0, 24) };
+}
+function frMine(){
+  const f = frState(), p = prof(), sh = f.share, yl = (YEAR_OPTS.find(x => x[0] === p.year) || [, ''])[1];
+  const subj = SUBJECTS.filter(s => subjStatus(s.id) !== 'dropped' && s.units.some(u => takes(u.c))).map(s => s.name);
+  return { n: String(p.name || '').slice(0, 40), c: avatarColor(), s: sh.school ? String(p.school || '').slice(0, 60) : '', y: sh.year ? yl : '', sub: sh.subj ? subj : [], ph: sh.photo && p.photo && p.photo.length < 60000 ? p.photo : '' };
+}
+function frClean(o){
+  if (!o || typeof o !== 'object') return null;
+  const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
+  const ph = str(o.ph, 60000);
+  return { n: str(o.n, 40), c: /^#[0-9a-fA-F]{6}$/.test(o.c) ? o.c : '#4b5a70', s: str(o.s, 60), y: str(o.y, 40), sub: Array.isArray(o.sub) ? o.sub.filter(x => typeof x === 'string').slice(0, 12).map(x => x.slice(0, 30)) : [], ph: /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(ph) ? ph : '' };
+}
+function frSchedule(){ if (!frOn() || !cloud.db || !cloud.id) return; clearTimeout(FR.timer); FR.timer = setTimeout(frPublish, 1500); }
+async function frPublish(){
+  if (!frOn() || !cloud.db || !cloud.id || !FR.writeOk) return;
+  try {
+    const f = frState(); await frKeys();
+    const mine = JSON.stringify(frMine()), ids = Object.keys(f.friends).filter(id => !f.ignored.includes(id)).sort();
+    const known = ids.map(id => FR.cards.find(c => c.id === id)).filter(c => c && c.pub);
+    const sig = mine + '|' + f.code + '|' + known.map(c => c.id + c.pub.x).join(',');
+    if (sig === FR.sent) return;
+    const box = {};
+    for (const c of known){
+      const { key, tag } = await frPair(c), iv = crypto.getRandomValues(new Uint8Array(12));
+      box[tag] = { iv: b64(iv), ct: b64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(mine))) };
+    }
+    await cloud.db.doc('cards/' + cloud.id).set({ pub: f.pub, code: f.code, at: Date.now(), box });
+    FR.sent = sig;
+  } catch(e){ FR.sent = ''; if (e && e.code === 'invalid_argument'){ FR.writeOk = false; FR.status = 'readonly'; frRefresh(); } }
+}
+async function frOpen(card){
+  // returns this card's profile for me, or null if they haven't added me
+  try {
+    if (!card.pub || !card.box) return null;
+    const { key, tag } = await frPair(card), b = card.box[tag]; if (!b) return null;
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(b.iv) }, key, unb64(b.ct));
+    return frClean(JSON.parse(new TextDecoder().decode(pt)));
+  } catch(e){ return null; }
+}
+async function frScan(){
+  const out = {};
+  for (const c of FR.cards){ if (c.id === cloud.id) continue; const p = await frOpen(c); if (p) out[c.id] = p; }
+  FR.peers = out; frRefresh();
+}
+function frStart(){
+  if (!frOn() || !cloud.db || FR.unsub) return;
+  FR.status = 'loading';
+  const slow = setTimeout(() => { if (FR.status === 'loading'){ FR.status = 'slow'; frRefresh(); } }, 10000);
+  frKeys().then(() => { commit(); frPublish(); });
+  FR.unsub = cloud.db.collection('cards').onSnapshot(snap => {
+    FR.cards = snap.docs.filter(d => d.exists).map(d => Object.assign({ id: d.id }, d.data())).filter(c => c.pub && typeof c.pub.x === 'string');
+    if (!snap.metadata.fromCache){ clearTimeout(slow); if (FR.status !== 'readonly') FR.status = 'live'; }
+    frScan(); frPublish();
+  }, () => { clearTimeout(slow); FR.status = 'error'; FR.unsub = null; frRefresh(); });
+}
+async function frStop(){
+  if (FR.unsub){ try { FR.unsub(); } catch(e){} FR.unsub = null; }
+  FR.cards = []; FR.peers = {}; FR.sent = ''; FR.status = 'idle';
+  if (cloud.db && cloud.id){ try { await cloud.db.doc('cards/' + cloud.id).delete(); } catch(e){} }
+}
+function frRefresh(){ const r = route(), a = document.activeElement; if ((r === 'today' || r === 'prefs') && !(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName))) render(); }
+function frLists(){
+  const f = frState(), friends = [], requests = [], waiting = [];
+  Object.keys(f.friends).forEach(id => { if (f.ignored.includes(id)) return; if (FR.peers[id]) friends.push({ id, p: FR.peers[id] }); else waiting.push({ id, code: f.friends[id].code || '' }); });
+  Object.keys(FR.peers).forEach(id => { if (!f.friends[id] && !f.ignored.includes(id)) requests.push({ id, p: FR.peers[id] }); });
+  friends.sort((a, b) => a.p.n.localeCompare(b.p.n));
+  return { friends, requests, waiting };
+}
+function frAdd(code){
+  const f = frState(), c = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (c.length !== 6) return 'Friend codes have 6 letters and numbers.';
+  if (c === f.code) return 'That’s your own code. Ask your friend for theirs.';
+  const hits = FR.cards.filter(x => x.code === c && x.id !== cloud.id);
+  if (!hits.length) return FR.status === 'live' ? 'No one has that code. Check it with your friend, and make sure they’ve turned on Friends.' : 'Still connecting. Try again in a moment.';
+  if (hits.length > 1) return 'That code matches more than one person. Ask your friend to make a new code.';
+  const id = hits[0].id;
+  f.friends[id] = { code: c, at: Date.now() }; f.ignored = f.ignored.filter(x => x !== id);
+  commit(); frPublish(); return '';
+}
+function frAccept(id){ const f = frState(), card = FR.cards.find(c => c.id === id); f.friends[id] = { code: card ? card.code : '', at: Date.now() }; f.ignored = f.ignored.filter(x => x !== id); commit(); frPublish(); }
+function frDrop(id){ const f = frState(); delete f.friends[id]; if (!f.ignored.includes(id)) f.ignored.push(id); commit(); frPublish(); }
+function peerAvatar(p, s){
+  if (p.ph) return '<img class="avatar" src="' + esc(p.ph) + '" alt="" width="' + s + '" height="' + s + '" style="width:' + s + 'px;height:' + s + 'px">';
+  return '<span class="avatar" aria-hidden="true" style="width:' + s + 'px;height:' + s + 'px;background:' + esc(p.c) + ';font-size:' + Math.round(s * .4) + 'px">' + esc(initials(p.n) || '?') + '</span>';
+}
+function peerCard(x, kind){
+  const p = x.p;
+  return '<div class="frcard">' + peerAvatar(p, 48) + '<div class="grow" style="min-width:0"><div class="t"><b>' + esc(p.n || 'A friend') + '</b></div>' +
+    ((p.s || p.y) ? '<div class="small muted">' + esc([p.s, p.y].filter(Boolean).join(' · ')) + '</div>' : '') +
+    (p.sub.length ? '<div class="frsubs">' + p.sub.map(n => '<span class="pill">' + esc(n) + '</span>').join('') + '</div>' : '') +
+    (kind === 'req' ? '<div class="row" style="margin-top:8px"><button class="btn sm primary" data-act="fr-accept" data-id="' + esc(x.id) + '">Accept</button><button class="btn sm ghost" data-act="fr-ignore" data-id="' + esc(x.id) + '">Ignore</button></div>' : '') +
+    '</div>' + (kind === 'friend' ? '<button class="x" aria-label="Remove ' + esc(p.n || 'friend') + '" data-act="fr-remove" data-id="' + esc(x.id) + '">×</button>' : '') + '</div>';
+}
+function friendsCard(){
+  if (STANDALONE) return '';
+  const on = frOn(), f = frState();
+  const head = '<div class="card stack" id="friends"><div class="card-h"><h2>Friends</h2>' + (on ? '<span class="pill good">On</span>' : '') + '</div>';
+  if (!cloud.db) return head + '<p class="small muted" style="margin:0">Friends needs you to be signed in on claude.ai. Open the site there to add friends.</p></div>';
+  if (!on) return head + '<p class="small muted" style="margin:0">Add classmates with a friend code and see each other’s name, school and subjects. Only friends you’ve added can see your profile: it’s locked so that nobody else, not even the site owner, can read it.</p>' +
+    (hasProfile() ? '' : '<p class="small" style="margin:0">Add your name in Profile first so friends know it’s you.</p>') +
+    '<div class="row"><button class="btn primary" data-act="fr-on"' + (hasProfile() ? '' : ' disabled') + '>Turn on Friends</button></div></div>';
+  const L = frLists(), sh = f.share;
+  const chk = (k, l) => '<label class="chip pick"><input type="checkbox" data-frshare="' + k + '"' + (sh[k] ? ' checked' : '') + '><span>' + l + '</span></label>';
+  return head +
+    '<div class="frcode"><div><div class="small muted">Your friend code</div><div class="frbig">' + esc(frFmt(f.code)) + '</div></div><div class="row"><button class="btn sm" data-act="fr-copy">Copy</button><button class="btn sm ghost" data-act="fr-newcode">New code</button></div></div>' +
+    '<form data-form="fr-add" class="row" style="align-items:flex-end"><label class="f" style="flex:1;min-width:140px">Add a friend by their code<input id="fr-in" maxlength="8" autocomplete="off" autocapitalize="characters" placeholder="e.g. K7M 2QX"></label><button class="btn primary" type="submit">Add</button></form>' +
+    (FR.msg ? '<p class="small warnline" style="margin:0">' + esc(FR.msg) + '</p>' : '') +
+    (FR.status === 'readonly' ? '<p class="small muted" style="margin:0">Your access to this site is view-only, so you can’t add friends. Ask the owner to invite you as an editor.</p>' : '') +
+    (FR.status === 'slow' || FR.status === 'error' ? '<p class="small muted" style="margin:0">Can’t reach your friends right now.</p>' : '') +
+    (L.requests.length ? '<div><b>Friend requests</b><div class="frlist">' + L.requests.map(x => peerCard(x, 'req')).join('') + '</div></div>' : '') +
+    '<div><b>Your friends' + (L.friends.length ? ' (' + L.friends.length + ')' : '') + '</b>' + (L.friends.length ? '<div class="frlist">' + L.friends.map(x => peerCard(x, 'friend')).join('') + '</div>' : '<p class="small muted" style="margin:4px 0 0">' + (FR.status === 'loading' ? 'Loading…' : 'No friends yet. Swap codes with a classmate: you add theirs, they accept.') + '</p>') + '</div>' +
+    (L.waiting.length ? '<div class="small muted">Waiting for ' + L.waiting.map(x => '<span class="frwait">' + esc(frFmt(x.code) || 'a friend') + ' <button class="linkbtn small" data-act="fr-cancel" data-id="' + esc(x.id) + '">Cancel</button></span>').join(', ') + ' to accept.</div>' : '') +
+    '<details class="small"' + (ui.frShareOpen ? ' open' : '') + '><summary style="cursor:pointer;font-weight:700">What friends see</summary><p class="muted" style="margin:6px 0">Your name and avatar colour, plus anything you tick:</p><div class="chips">' + chk('school', 'School') + chk('subj', 'Subjects') + chk('year', 'Year') + chk('photo', 'Photo') + '</div>' +
+      '<p class="muted" style="margin:6px 0 0">Friends see your profile as it is now, and it updates when you change it. Your marks, mistakes and notes are never shared. Your friend needs access to this site too: the owner invites them with Share (as Editor).</p></details>' +
+    '<div class="row"><button class="btn ghost sm" data-act="fr-off">Turn off Friends</button></div></div>';
+}
+function friendReqCard(){
+  if (STANDALONE || !frOn()) return '';
+  const r = frLists().requests; if (!r.length) return '';
+  return '<div class="card stack"><div class="card-h"><h2>Friend request' + (r.length > 1 ? 's' : '') + '</h2></div><div class="frlist">' + r.slice(0, 3).map(x => peerCard(x, 'req')).join('') + '</div></div>';
+}
 function buddySettings(){
   if (STANDALONE) return '';
   const on = buddyOn(), b = state.buddy || {};
@@ -3357,6 +3524,14 @@ document.addEventListener('click', e => {
     case 'pp-filter': ui.papers.filter = v; render(); break;
     case 'sb-retry': SB_STATE = 'idle'; render(); break;
     case 'essay-del': state.essays = (state.essays || []).filter(e => e.id !== id); commit(); break;
+    case 'fr-on': { const f = frState(); f.on = true; FR.writeOk = true; FR.msg = ''; commit(); frStart(); toast('Friends is on. Share your code with a classmate.'); break; }
+    case 'fr-off': state.fr.on = false; FR.msg = ''; commit(); frStop().then(render); toast('Friends turned off. Your profile was removed from the site.'); break;
+    case 'fr-copy': { const c = frFmt(frState().code); try { navigator.clipboard.writeText(c).then(() => toast('Code copied: ' + c), () => toast('Your code is ' + c)); } catch(e){ toast('Your code is ' + c); } break; }
+    case 'fr-newcode': frState().code = frCode(); commit(); frPublish(); toast('New code made. Your old code no longer works; your friends stay.'); break;
+    case 'fr-accept': frAccept(id); toast('Friend added'); break;
+    case 'fr-ignore': frDrop(id); break;
+    case 'fr-remove': frDrop(id); toast('Removed. They can no longer see your profile.'); break;
+    case 'fr-cancel': delete frState().friends[id]; commit(); frPublish(); break;
     case 'nx-more': ui.nxMore = !ui.nxMore; render(); break;
     case 'ed-preview': ui.edPreview = true; render(); window.scrollTo(0, 0); break;
     case 'ed-close': ui.edPreview = false; render(); window.scrollTo(0, 0); break;
@@ -3566,6 +3741,7 @@ document.addEventListener('change', e => {
   else if (el.id === 't-subj'){ state.timerPrefs.subject = el.value; commit(); }
   else if (el.id === 't-len'){ const [f, b] = el.value.split('-').map(Number); state.timerPrefs.focus = f; state.timerPrefs.brk = b; if (!T.running){ T.remain = phaseLen(); saveT(); } commit(); }
   else if (el.id === 'pf-photo' && el.files && el.files[0]){ pfRead(); photoFromFile(el.files[0]).then(d => { prof().photo = d; commit(); toast('Photo added'); }, err => toast(err.message || 'That photo couldn’t be used')); }
+  else if (el.dataset && el.dataset.frshare){ frState().share[el.dataset.frshare] = el.checked; ui.frShareOpen = true; commit(); }
   else if (el.id === 'ask-u' && ui.ask){ askCapture(); ui.ask.u = el.value; const ms = askModesFor(el.value); if (!ms.some(m => m[0] === ui.ask.mode)) ui.ask.mode = ms[0][0] === 'essay' ? 'essay' : 'explain'; renderAsk(); }
   else if (el.id === 'ask-img' && el.files && el.files[0] && ui.ask){ const A = ui.ask, f = el.files[0], q = $('#ask-q'), w = $('#ask-w'); if (q) A.q = q.value; if (w) A.work = w.value;
     askShrink(f).then(bl => { if (ui.ask !== A) return; if (A.imgUrl) URL.revokeObjectURL(A.imgUrl); A.img = bl; A.imgUrl = URL.createObjectURL(bl); renderAsk(); }, () => toast('That photo couldn’t be used')); }
@@ -3627,6 +3803,7 @@ document.addEventListener('submit', e => {
   else if (kind === 'edit-task'){ const x = state.tasks.find(k => k.id === f.dataset.id); const t = $('#et-text').value.trim(); if (!x || !t) return; x.t = t; x.d = $('#et-date').value || ''; x.p = +$('#et-prio').value; x.s = $('#et-subj').value; ui.editTask = null; commit(); }
   else if (kind === 'add-exam'){ const u = $('#ex-unit').value, d = $('#ex-date').value; if (!u || !d) return; state.exams.push({ id: uid(), u, d }); commit(); toast('Exam added'); }
   else if (kind === 'rt-build'){ const n = rtBuild(+$('#rt-min').value, +$('#rt-rest').value); commit(); toast(n ? n + ' sessions planned. They’re in your tasks, by day.' : 'Nothing to plan: add exam dates first.'); }
+  else if (kind === 'fr-add'){ const err = frAdd($('#fr-in').value); FR.msg = err; if (!err){ toast('Request sent. You’ll see their profile once they add you back.'); } render(); }
   else if (kind === 'buddy'){ const nick = $('#bd-nick').value.trim().slice(0, 24); const was = buddyOn(); state.buddy = { on: true, nick }; BUD.writeOk = true; commit(); if (!was) buddyStart(); else { BUD.sent = ''; buddyPublish(); } toast(was ? 'Name saved.' : 'Study buddy is on.'); }
   else if (kind === 'add-card'){ const u = $('#nc-unit').value, fr = $('#nc-front').value.trim(), bk = $('#nc-back').value.trim(); if (!fr || !bk) return; state.custom.push({ id: 'u' + uid(), u, f: fr, b: bk, mine: true }); commit(); toast('Card saved. It will appear in your next review.'); }
 });
