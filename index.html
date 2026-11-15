@@ -99,6 +99,14 @@ main{padding:20px 0 120px}
 .pill.s-econ{background:color-mix(in srgb,var(--econ) 16%,transparent);color:var(--econ)}
 .pill.s-geog{background:color-mix(in srgb,var(--geog) 16%,transparent);color:var(--geog)}
 .pill.s-psych{background:color-mix(in srgb,var(--psych) 16%,transparent);color:var(--psych)}
+.rm *,.rm *::before,.rm *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+.warnline{color:var(--warn);font-weight:600}
+.subrow{align-items:center;flex-wrap:wrap;gap:10px}.subrow .dot{flex:none}
+.subrow select,.seditor select{padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:16px;max-width:100%}
+.seunit{flex-wrap:wrap;gap:8px;align-items:center}.seunit.off{opacity:.65}
+.grid2.tight{gap:10px}.grid2.tight .f span{font-size:.85rem;color:var(--muted)}
+details.dropped>summary{cursor:pointer;color:var(--muted);padding:6px 0}
+.chip .x{margin-left:4px;min-width:24px;min-height:24px}
 .pill.s-hist{background:color-mix(in srgb,var(--hist) 16%,transparent);color:var(--hist)}
 .pill.s-cs{background:color-mix(in srgb,var(--cs) 16%,transparent);color:var(--cs)}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
@@ -739,7 +747,7 @@ async function connectCloud(){
 /* ============================================================
    Derived data
    ============================================================ */
-const isHidden = c => state.hidden.includes(c);
+const isHidden = c => !UNIT_SUBJ[c] ? state.hidden.includes(c) : (!takes(c) || subjStatus(UNIT_SUBJ[c]) === 'finished' || unitStatus(c) === 'sat');
 function visibleUnits(sid){ return SUBJECTS.filter(s => !sid || sid === 'all' || s.id === sid).flatMap(s => s.units.filter(u => !isHidden(u.c))); }
 function allCards(){ return CARDS.concat(state.custom).filter(c => UNIT[c.u] && !isHidden(c.u)); }
 function cardStatus(c){ const st = state.cardState[c.id]; if (!st) return 'new'; return st.due <= todayStr() ? 'due' : 'later'; }
@@ -764,7 +772,7 @@ function streak(){
   while (set.has(d)){ n++; d = addDays(d, -1); }
   return n;
 }
-function upcomingExams(){ const t = todayStr(); return state.exams.filter(e => e.d >= t).sort((a, b) => a.d.localeCompare(b.d)); }
+function upcomingExams(){ const t = todayStr(); return state.exams.filter(e => e.d >= t && (!UNIT[e.u] || !isHidden(e.u))).sort((a, b) => a.d.localeCompare(b.d)); }
 function subjPill(sid, text){ return '<span class="pill s-' + sid + '">' + esc(text || SUBJ[sid].short) + '</span>'; }
 function unitPill(code){ const u = UNIT[code]; if (!u) return ''; return subjPill(UNIT_SUBJ[code], u.l + ' · ' + code); }
 
@@ -796,10 +804,11 @@ const ui = {
   syllabus: { subj:'math' },
   plan: { filter:'all' },
   editTask: null,
+  subEdit: null,
   confirm: null
 };
 let curRoute = null;
-function route(){ let h = curRoute; if (h == null){ try { h = (location.hash || '').slice(1); } catch(e){ h = ''; } } if (h === 'settings') h = 'prefs'; return ['today','cards','quiz','papers','mistakes','grades','syllabus','planner','prefs','setup','search'].includes(h) ? h : 'today'; }
+function route(){ let h = curRoute; if (h == null){ try { h = (location.hash || '').slice(1); } catch(e){ h = ''; } } if (h === 'settings') h = 'prefs'; return ['today','cards','quiz','papers','mistakes','grades','syllabus','planner','prefs','setup','search'].includes(h) ? h : (h === '' && ['today','syllabus','quiz','papers','grades','planner'].includes(prefs().start) ? prefs().start : 'today'); }
 // Navigate without relying on the host page delivering hashchange events (artifact viewers differ).
 function go(r){ const changed = route() !== r; setTimeout(() => { if (route() === 'search' && changed){ const i = $('#search-q'); if (i) i.focus(); } }, 30); curRoute = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch(e){} ui.confirm = null; ui.editTask = null; render(); if (changed) window.scrollTo({ top: 0 }); if (ui.scrollCp){ ui.scrollCp = false; const o = document.querySelector('details.cp[open]'); if (o) o.scrollIntoView({ block: 'center' }); } }
 
@@ -912,7 +921,7 @@ function taskRow(x){
       '<label class="f">Task<input type="text" id="et-text" required value="' + esc(x.t) + '"></label>' +
       '<div class="row"><label class="f">Deadline<input type="date" id="et-date" value="' + esc(x.d || '') + '"></label>' +
       '<label class="f">Priority<select id="et-prio">' + [1,2,3].map(p => '<option value="' + p + '"' + (prio(x) === p ? ' selected' : '') + '>' + PRIO_LABEL[p] + '</option>').join('') + '</select></label>' +
-      '<label class="f">Subject<select id="et-subj"><option value="">None</option>' + SUBJECTS.map(s => '<option value="' + s.id + '"' + (x.s === s.id ? ' selected' : '') + '>' + esc(s.short) + '</option>').join('') + '</select></label></div>' +
+      '<label class="f">Subject<select id="et-subj"><option value="">None</option>' + mySubjects().map(s => '<option value="' + s.id + '"' + (x.s === s.id ? ' selected' : '') + '>' + esc(s.short) + '</option>').join('') + '</select></label></div>' +
       '<div class="row"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-act="task-edit-cancel">Cancel</button><button class="btn danger" type="button" data-act="task-del" data-id="' + x.id + '">Delete</button></div>' +
       '</form></div>';
   }
@@ -975,7 +984,7 @@ function viewCards(){
   return '<div class="stack">' + sSeg('cards') +
     '<div><h1>Flashcards</h1><p class="muted">Flashcard decks from Physics &amp; Maths Tutor. Open a deck, go through it, then rate how well you knew it. The deck comes back for review just before you’d forget it.</p></div>' +
     (allDue.length ? '<div class="card"><div class="card-h"><h2>Due for review today</h2><span class="small muted">' + allDue.length + ' deck' + (allDue.length > 1 ? 's' : '') + '</span></div><div class="stack" style="gap:0">' + allDue.map(d => '<div style="margin-top:6px">' + unitPill(d.u) + '</div>' + deckRow(d)).join('') + '</div></div>' : '') +
-    '<div class="chips" role="group" aria-label="Subject">' + SUBJECTS.map(x => '<button class="chip" data-act="cards-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === c.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
+    '<div class="chips" role="group" aria-label="Subject">' + mySubjects().map(x => '<button class="chip" data-act="cards-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === c.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
     (units.length ? '<label class="f">Unit<select id="cards-unit">' + units.map(x => { const ds = unitDecks(x.c); const started = ds.filter(d => state.deckState[d.url]).length; return '<option value="' + x.c + '"' + (x.c === c.unit ? ' selected' : '') + '>' + esc(x.l + ' · ' + x.n) + (ds.length ? ' (' + started + '/' + ds.length + ' decks)' : ' (no PMT decks)') + '</option>'; }).join('') + '</select></label>' : '') +
     (u ? (decks.length
       ? '<div class="card"><div class="card-h"><h2>' + esc(u.l + ' ' + u.n) + '</h2><span class="small muted">' + decks.length + ' decks</span></div><div class="stack" style="gap:0">' + decks.map(deckRow).join('') + '</div></div>'
@@ -1081,7 +1090,7 @@ function viewQuiz(){
   return '<div class="stack">' +
     qSeg('quiz') +
     '<div><h1>Topic questions</h1><p class="muted">Real exam questions grouped by topic, from Physics &amp; Maths Tutor. Open a pack, answer the questions, mark them with the mark scheme, then tick the pack off.</p></div>' +
-    '<div class="chips" role="group" aria-label="Subject">' + SUBJECTS.map(x => '<button class="chip" data-act="tq-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === q.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
+    '<div class="chips" role="group" aria-label="Subject">' + mySubjects().map(x => '<button class="chip" data-act="tq-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === q.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
     '<label class="f">Unit<select id="tq-unit">' + units.map(x => { const st = hasPmt(x.c) ? unitPmtStats(x.c) : null; return '<option value="' + x.c + '"' + (x.c === q.unit ? ' selected' : '') + '>' + esc(x.l + ' · ' + x.n) + (st ? ' (' + st.d + '/' + st.n + ' packs)' : ' (practical: past papers)') + '</option>'; }).join('') + '</select></label>' +
     body +
     '<p class="small muted">Question packs © Pearson Education, compiled by Physics &amp; Maths Tutor. Maths and Physics packs come from the older Edexcel spec but match your units.</p>' +
@@ -1191,7 +1200,7 @@ function viewPapers(){
   }).join('');
   return '<div class="stack">' + qSeg('papers') + modeSeg('ial') +
     '<div><h1>Past papers</h1><p class="muted">Real Pearson Edexcel IAL papers. Each link opens the PDF directly from Physics &amp; Maths Tutor. The two newest papers for each unit are marked “Save for a mock”: keep them for timed practice close to your exam. Start a timed mock to sit a paper at the real exam length, mark it with the mark scheme, then log your mark. You’ll see the UMS and grade it would have got in that series, and it feeds your <a href="#grades">Grades</a>. The examiner report explains the most common mistakes on each question.</p></div>' +
-    '<div class="chips" role="group" aria-label="Subject">' + SUBJECTS.map(x => '<button class="chip" data-act="pp-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === p.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
+    '<div class="chips" role="group" aria-label="Subject">' + mySubjects().map(x => '<button class="chip" data-act="pp-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === p.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
     '<div class="row" style="align-items:flex-end"><label class="f" style="flex:2;min-width:220px">Unit<select id="pp-unit">' + units.map(x => { const n = papersFor(x.c).length; const d = n ? papersFor(x.c).filter(r => state.papers[paperKey(x.c, r[0])]).length : 0; return '<option value="' + x.c + '"' + (x.c === p.unit ? ' selected' : '') + '>' + esc(x.l + ' · ' + x.n) + ' (' + d + '/' + n + ' done)</option>'; }).join('') + '</select></label>' +
     '<div class="chips" role="group" aria-label="Show">' + [['all','All'],['todo','Not done'],['done','Done']].map(([v, l]) => '<button class="chip" data-act="pp-filter" data-v="' + v + '" aria-pressed="' + (p.filter === v) + '">' + l + '</button>').join('') + '</div></div>' +
     optPick + (u ? stats + '<div class="oldhint">' + oldHint(u.c) + '</div>' + tipsBlock(u.c, !!(MOCK && MOCK.key.split('|')[0] === u.c)) + '<div class="card"><div class="list">' + (rows || '<div class="empty">' + (p.filter === 'done' ? 'No papers logged yet for this unit.' : 'You’ve done every paper for this unit.') + '</div>') + '</div></div>' : '<div class="empty">All ' + esc(s.short) + ' units are hidden. <a href="#prefs">Choose your units</a>.</div>') +
@@ -1223,7 +1232,7 @@ function viewSyllabus(){
   const overall = units.length ? Math.round(units.reduce((a, u) => a + unitProgress(u), 0) / units.length * 100) : 0;
   return '<div class="stack">' + sSeg('syllabus') +
     '<div><h1>Revise</h1><p class="muted">Revision notes and flashcards for every topic, next to your progress. Tap a topic’s status to move it along: Not started → Learning → Revising → Confident. Ticking a topic pack or rating a flashcard deck “Well” moves topics up for you, and a new mistake moves a “Confident” topic back to Revising.</p></div>' +
-    '<div class="chips" role="group" aria-label="Subject">' + SUBJECTS.map(x => '<button class="chip" data-act="syl-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === sid) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
+    '<div class="chips" role="group" aria-label="Subject">' + mySubjects().map(x => '<button class="chip" data-act="syl-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === sid) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
     '<div class="card row" style="justify-content:space-between"><div><div style="font-family:var(--display);font-size:1.6rem;font-weight:800">' + overall + '%</div><div class="small muted">' + esc(s.name) + ' covered across ' + units.length + ' units</div></div><a class="btn" href="#prefs">Choose my units</a></div>' +
     (units.length ? units.map(u => {
       const p = Math.round(unitProgress(u) * 100);
@@ -1308,9 +1317,9 @@ function viewPlanner(){
       '<form data-form="add-task" class="row" style="align-items:flex-end;margin-bottom:12px"><label class="f" style="flex:3;min-width:220px">Task<input type="text" id="tk-text" required placeholder="e.g. WPH12 June 2023 past paper, then mark it"></label>' +
       '<label class="f">Deadline<input type="date" id="tk-date" value="' + t + '"></label>' +
       '<label class="f" style="min-width:110px">Priority' + prioSelect('tk-prio') + '</label>' +
-      '<label class="f" style="min-width:110px">Subject<select id="tk-subj"><option value="">None</option>' + SUBJECTS.map(s => '<option value="' + s.id + '">' + esc(s.short) + '</option>').join('') + '</select></label>' +
+      '<label class="f" style="min-width:110px">Subject<select id="tk-subj"><option value="">None</option>' + mySubjects().map(s => '<option value="' + s.id + '">' + esc(s.short) + '</option>').join('') + '</select></label>' +
       '<button class="btn primary" type="submit">Add task</button></form>' +
-      '<div class="chips" role="group" aria-label="Filter tasks">' + [['all','All'],['high','High priority']].concat(SUBJECTS.map(s => [s.id, s.short])).map(([v, l]) => '<button class="chip" data-act="plan-filter" data-v="' + v + '" aria-pressed="' + (f === v) + '">' + esc(l) + '</button>').join('') + '</div>' +
+      '<div class="chips" role="group" aria-label="Filter tasks">' + [['all','All'],['high','High priority']].concat(mySubjects().map(s => [s.id, s.short])).map(([v, l]) => '<button class="chip" data-act="plan-filter" data-v="' + v + '" aria-pressed="' + (f === v) + '">' + esc(l) + '</button>').join('') + '</div>' +
       (open.length ? groups.map(([label, test, cls]) => { const g = open.filter(test).sort((a, b) => prio(a) - prio(b) || (a.d || '').localeCompare(b.d || '')); return g.length ? '<div class="grouph ' + cls + '"><span>' + label + '</span><span>' + g.length + '</span></div><div class="list">' + g.map(taskRow).join('') + '</div>' : ''; }).join('')
         : '<div class="empty" style="margin-top:10px">' + (allOpen.length ? 'No tasks match this filter.' : 'No open tasks. Try one past paper per unit, each with a deadline a week before the exam.') + '</div>') +
       '<p class="small muted" style="margin-top:10px">Tap a task to edit it. Tap its priority to change High → Medium → Low.</p>' +
@@ -1330,7 +1339,7 @@ function viewPlanner(){
           '<button class="btn big" data-act="t-reset">Reset</button>' +
           (T.phase === 'focus' ? '<button class="btn big" data-act="t-stoplog"' + (ms < phaseLen() ? '' : ' disabled') + '>Stop &amp; log</button>' : '<button class="btn big" data-act="t-skip">Skip break</button>') + '</div>' +
         '<div class="row" style="width:100%">' +
-          '<label class="f">Subject<select id="t-subj">' + SUBJECTS.map(s => '<option value="' + s.id + '"' + (s.id === p.subject ? ' selected' : '') + '>' + esc(s.short) + '</option>').join('') + '</select></label>' +
+          '<label class="f">Subject<select id="t-subj">' + mySubjects().map(s => '<option value="' + s.id + '"' + (s.id === p.subject ? ' selected' : '') + '>' + esc(s.short) + '</option>').join('') + '</select></label>' +
           '<label class="f">Length<select id="t-len"' + (T.running ? ' disabled' : '') + '>' + [[25, 5], [45, 10], [50, 10], [15, 3]].map(([f, b]) => '<option value="' + f + '-' + b + '"' + (p.focus === f && p.brk === b ? ' selected' : '') + '>' + f + ' min focus / ' + b + ' break</option>').join('') + '</select></label></div>' +
         '<p class="small muted">Today: ' + (todays.length ? fmtMin(todays.reduce((a, s) => a + s.m, 0)) + ' in ' + todays.length + ' block' + (todays.length > 1 ? 's' : '') : 'no focus logged yet') +
           (Object.keys(bySubj).length ? ' · This week: ' + Object.keys(bySubj).map(k => esc(SUBJ[k] ? SUBJ[k].short : k) + ' ' + fmtMin(bySubj[k])).join(', ') : '') + '</p></div>' +
@@ -1342,24 +1351,260 @@ function viewPlanner(){
   '</div>';
 }
 
-function viewSettings(){
-  const c = ui.confirm;
-  return '<div class="stack">' +
-    '<div><h1>Settings</h1><p class="muted">Choose the units you’re taking so flashcards, quizzes and the tracker only show what matters to you.</p></div>' +
-    '<div class="card row" style="justify-content:space-between"><div><h2 style="margin:0">Units &amp; exam dates</h2><p class="small muted" style="margin:4px 0 0">Re-run setup to change units or switch exam series. Official dates fill in automatically.</p></div><a class="btn primary" href="#setup" data-act="su-open">Run setup</a></div>' +
-    buddySettings() + installCard() +
-    '<div class="grid2">' + SUBJECTS.map(s => '<div class="card"><div class="card-h"><h2><span class="dot" style="background:var(--' + s.id + ');margin-right:8px"></span>' + esc(s.name) + '</h2><button class="btn ghost small" data-act="unit-all" data-v="' + s.id + '">' + (s.units.every(u => !isHidden(u.c)) ? 'Hide all' : 'Show all') + '</button></div>' +
-      s.units.map(u => '<label class="toggle"><input type="checkbox" data-act="unit-toggle" data-id="' + u.c + '"' + (isHidden(u.c) ? '' : ' checked') + '><span class="code">' + u.c + '</span><span>' + esc(u.l + ' ' + u.n) + '</span></label>').join('') + '</div>').join('') + '</div>' +
-    ((state.linkReports || []).length ? '<div class="card stack"><div class="card-h"><h2>Broken links (' + state.linkReports.length + ')</h2></div><p class="small muted" style="margin:0">Links you reported. Copy the list and paste it to Claude, and they’ll be fixed in one go.</p><div class="list">' + state.linkReports.map(x => '<div class="li"><div class="grow"><div class="t">' + esc(x.where) + '</div><div class="small muted">Reported ' + fmtDate(x.at, {day:'numeric', month:'short'}) + '</div></div><button class="x" data-act="report-del" data-id="' + x.id + '" aria-label="Remove report">×</button></div>').join('') + '</div><div class="row"><button class="btn primary" data-act="report-copy">Copy list</button><button class="btn ghost" data-act="report-clear">Clear all</button></div><textarea readonly rows="3" aria-label="Broken links list">' + esc(reportsText()) + '</textarea></div>' : '') +
-    '<div class="card stack"><h2>Saving and sync</h2><p class="small">' + syncText() + '</p>' +
-      '<p class="small muted">Backup: copy your data and keep it somewhere safe. Paste it below to restore.</p>' +
-      '<div class="row"><button class="btn primary" data-act="backup-download">Download backup file</button><button class="btn" data-act="backup-copy">Copy backup</button></div>' + (state.lastBackup ? '<p class="small muted" style="margin:0">Last backup: ' + fmtDate(state.lastBackup) + '</p>' : '') +
-      '<label class="f">Restore from a backup file<input type="file" id="restore-file" accept=".json,application/json,text/plain"></label>' +
-      '<label class="f">Or paste backup text<textarea id="restore-text" placeholder="Paste backup text here"></textarea></label>' +
-      '<div class="row"><button class="btn" data-act="restore">' + (c === 'restore' ? 'Tap again to replace all data' : 'Restore') + '</button>' +
-      '<button class="btn danger" data-act="reset">' + (c === 'reset' ? 'Tap again to erase everything' : 'Reset all progress') + '</button></div></div>' +
-  '</div>';
+/* ============================================================
+   Settings: my subjects (add / switch / finish / drop), study habits,
+   look & accessibility, reminders, progress summary
+   ============================================================ */
+const PREF_DEF = { theme:'', text:1, motion:false, start:'today', defSubj:'', offDays:[], busy:[], mockKeep:2, remind:'19:00' };
+function prefs(){ state.prefs = Object.assign({}, PREF_DEF, state.prefs || {}); return state.prefs; }
+function subjStatus(sid){ return (state.subjStatus && state.subjStatus[sid]) || 'studying'; }
+function iasOnly(sid){ return !!(state.ias && state.ias[sid]); }
+function unitStatus(c){ return (state.unitStatus && state.unitStatus[c]) || 'studying'; }
+/* takes(): the student is doing this unit (shown in Grades, Settings) */
+function takes(c){ const sid = UNIT_SUBJ[c]; return !!sid && !state.hidden.includes(c) && subjStatus(sid) !== 'dropped' && !(iasOnly(sid) && !isASUnit(c)); }
+function subjTaken(sid){ return SUBJ[sid].units.some(u => !state.hidden.includes(u.c)); }
+/* subjects that appear in the subject chips across the app (studying only) */
+function mySubjects(){ const l = SUBJECTS.filter(s => s.units.some(u => !isHidden(u.c))); return l.length ? l : SUBJECTS; }
+function gradeSubjects(){ const l = SUBJECTS.filter(s => subjStatus(s.id) !== 'dropped' && s.units.some(u => takes(u.c))); return l.length ? l : SUBJECTS; }
+function ensureSubjects(){
+  const my = mySubjects().map(s => s.id), gr = gradeSubjects().map(s => s.id), p = prefs();
+  const first = my.includes(p.defSubj) ? p.defSubj : my[0];
+  if (!ui._subjInit){ ui._subjInit = true; ['quiz', 'papers', 'syllabus'].forEach(k => { ui[k].subj = first; }); if (my.includes(p.defSubj)){ ui.grades.subj = p.defSubj; ui.grades.picked = true; } }
+  ['quiz', 'papers', 'syllabus'].forEach(k => { if (!my.includes(ui[k].subj)) ui[k].subj = first; });
+  if (ui.cards.subj !== 'all' && !my.includes(ui.cards.subj)) ui.cards.subj = 'all';
+  if (ui.mk.subj !== 'all' && !my.includes(ui.mk.subj)) ui.mk.subj = 'all';
+  if (!gr.includes(ui.grades.subj)) ui.grades.subj = gr.includes(first) ? first : gr[0];
 }
+function applyPrefs(){
+  const p = prefs(), r = document.documentElement;
+  if (p.theme) r.setAttribute('data-theme', p.theme); else r.removeAttribute('data-theme');
+  r.style.zoom = p.text && p.text !== 1 ? String(p.text) : '';
+  r.classList.toggle('rm', !!p.motion);
+}
+function mockKeep(){ const k = +prefs().mockKeep; return isNaN(k) ? 2 : Math.max(0, Math.min(4, k)); }
+
+/* ---- unit status / exam series helpers ---- */
+const U_STATUS = [['notstarted', 'Not started'], ['studying', 'Studying'], ['sat', 'Sat (done)'], ['resit', 'Resitting']];
+function unitSeriesNow(c){
+  const e = state.exams.find(x => x.u === c && x.d >= todayStr());
+  if (!e) return 'later';
+  return TT_SERIES.find(s => ttDate(c, s) && ttDate(c, s)[0] === e.d) || 'keep';
+}
+function subEditInit(sid, adding){
+  const s = SUBJ[sid], taking = {}, st = {}, sr = {};
+  s.units.forEach(u => { taking[u.c] = adding ? true : !state.hidden.includes(u.c); st[u.c] = unitStatus(u.c); sr[u.c] = unitSeriesNow(u.c); if (adding && sr[u.c] === 'later'){ const d = (state.setup && state.setup.def) || TT_SERIES[TT_SERIES.length - 1]; if (ttDate(u.c, d)) sr[u.c] = d; } });
+  const opt = {}; s.units.forEach(u => { if (u.opts) opt[u.c] = histOpt(u.c); });
+  ui.subEdit = { sid, adding: !!adding, taking, st, sr, opt, ias: iasOnly(sid) };
+}
+function subEditSave(){
+  const E = ui.subEdit; if (!E) return; const s = SUBJ[E.sid], t = todayStr();
+  state.unitStatus = state.unitStatus || {}; state.ias = state.ias || {}; state.subjStatus = state.subjStatus || {}; state.histOpt = state.histOpt || {};
+  let n = 0, dates = 0;
+  s.units.forEach(u => {
+    const c = u.c, on = E.taking[c] && !(E.ias && !isASUnit(c));
+    state.hidden = state.hidden.filter(x => x !== c); if (!on){ state.hidden.push(c); return; }
+    n++;
+    if (E.st[c] === 'studying') delete state.unitStatus[c]; else state.unitStatus[c] = E.st[c];
+    if (u.opts){ if (E.opt[c]) state.histOpt[c] = E.opt[c]; else delete state.histOpt[c]; }
+    const sr = E.st[c] === 'sat' ? 'none' : E.sr[c];
+    if (sr === 'keep') return;
+    state.exams = state.exams.filter(e => !(e.u === c && e.d >= t));
+    const d = ttDate(c, sr); if (d){ state.exams.push({ id: uid(), u: c, d: d[0], sess: d[1], src: 'setup' }); dates++; }
+  });
+  if (E.ias) state.ias[E.sid] = true; else delete state.ias[E.sid];
+  if (n && subjStatus(E.sid) === 'dropped') delete state.subjStatus[E.sid];
+  if (!n) delete state.subjStatus[E.sid];
+  if (!setupDone()) state.setup = Object.assign({ def: TT_SERIES[0] || '', series: {} }, state.setup || {}, { done: true, at: t });
+  ui.subEdit = null; commit();
+  toast(n ? s.name + ' saved' + (dates ? ' · ' + dates + ' exam date' + (dates === 1 ? '' : 's') : '') : s.name + ' removed from your subjects');
+}
+function subjSetStatus(sid, v){
+  state.subjStatus = state.subjStatus || {};
+  if (v === 'studying') delete state.subjStatus[sid]; else state.subjStatus[sid] = v;
+  commit();
+  toast(v === 'dropped' ? SUBJ[sid].name + ' dropped. Your work on it is kept; restore it any time.' : v === 'finished' ? SUBJ[sid].name + ' marked finished. Its grade stays on the Grades page.' : SUBJ[sid].name + ' is back in your plan.');
+}
+function subjWipe(sid){
+  const codes = new Set(SUBJ[sid].units.map(u => u.c)), inU = k => codes.has(String(k).split('|')[0]);
+  Object.keys(state.papers).forEach(k => { if (inU(k)) delete state.papers[k]; });
+  codes.forEach(c => { delete state.results[c]; delete (state.unitStatus || {})[c]; delete (state.histOpt || {})[c]; });
+  Object.keys(state.topics).forEach(k => { if ([...codes].some(c => k.startsWith(c))) delete state.topics[k]; });
+  Object.keys(state.tq || {}).forEach(k => { if ([...codes].some(c => k.startsWith(c))) delete state.tq[k]; });
+  state.mistakes = state.mistakes.filter(m => !codes.has(m.u));
+  state.exams = state.exams.filter(e => !codes.has(e.u));
+  state.custom = state.custom.filter(k => !codes.has(k.u));
+  state.tasks = state.tasks.filter(x => !(x.u && codes.has(x.u)));
+  if (state.targets) delete state.targets[sid];
+  if (state.subjStatus) delete state.subjStatus[sid];
+  if (state.ias) delete state.ias[sid];
+  codes.forEach(c => { state.hidden = state.hidden.filter(x => x !== c); state.hidden.push(c); });
+  commit(); toast(SUBJ[sid].name + ': all data deleted');
+}
+
+/* ---- My subjects card ---- */
+function subjSummary(s){
+  const units = s.units.filter(u => takes(u.c)), sat = units.filter(u => unitStatus(u.c) === 'sat').length, rs = units.filter(u => unitStatus(u.c) === 'resit').length;
+  const nx = units.map(u => state.exams.find(e => e.u === u.c && e.d >= todayStr())).filter(Boolean).sort((a, b) => a.d.localeCompare(b.d))[0];
+  const bits = [units.length + ' unit' + (units.length === 1 ? '' : 's') + (iasOnly(s.id) ? ' · IAS only' : '')];
+  if (sat) bits.push(sat + ' sat'); if (rs) bits.push(rs + ' resit' + (rs === 1 ? '' : 's'));
+  if (targetFor(s.id)) bits.push('target ' + targetFor(s.id));
+  if (nx) bits.push('next exam ' + fmtDate(nx.d, {day:'numeric', month:'short'}));
+  const ho = s.units.filter(u => u.opts && takes(u.c) && histOpt(u.c)).map(u => histOpt(u.c));
+  if (ho.length) bits.push('options ' + ho.join(', '));
+  return bits.join(' · ');
+}
+function subjRow(s){
+  const st = subjStatus(s.id), c = ui.confirm;
+  const statusSel = '<select data-subst="' + s.id + '" aria-label="Status of ' + esc(s.name) + '">' + [['studying', 'Studying'], ['finished', 'Finished'], ['dropped', 'Dropped']].map(([v, l]) => '<option value="' + v + '"' + (st === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>';
+  return '<div class="li subrow"><span class="dot" style="background:var(--' + s.id + ')"></span><div class="grow"><div class="t"><b>' + esc(s.name) + '</b></div><div class="small muted">' + esc(subjSummary(s)) + '</div></div>' +
+    '<div class="row" style="gap:6px;flex-wrap:nowrap">' + (st === 'dropped'
+      ? '<button class="btn sm" data-act="sub-status" data-sid="' + s.id + '" data-v="studying">Restore</button><button class="btn sm danger" data-act="sub-wipe" data-v="' + s.id + '">' + (c === 'wipe-' + s.id ? 'Tap again: delete for good' : 'Delete data') + '</button>'
+      : statusSel + '<button class="btn sm" data-act="sub-edit" data-v="' + s.id + '">Edit</button>') + '</div></div>';
+}
+function subEditor(){
+  const E = ui.subEdit, s = SUBJ[E.sid];
+  const srOpts = (c, cur) => TT_SERIES.map(sr => { const d = ttDate(c, sr); return d ? '<option value="' + sr + '"' + (cur === sr ? ' selected' : '') + '>' + sr + ' (' + fmtDate(d[0], {day:'numeric', month:'short'}) + ')</option>' : ''; }).join('') +
+    (cur === 'keep' ? '<option value="keep" selected>Keep my date</option>' : '') + '<option value="later"' + (cur === 'later' ? ' selected' : '') + '>Later / not decided</option>';
+  const rows = s.units.map(u => {
+    const a2off = E.ias && !isASUnit(u.c), on = E.taking[u.c] && !a2off, st = E.st[u.c];
+    return '<div class="li seunit' + (on ? '' : ' off') + '"><label class="toggle" style="flex:1;min-width:200px"><input type="checkbox" data-se-take="' + u.c + '"' + (on ? ' checked' : '') + (a2off ? ' disabled' : '') + '><span><b>' + esc(u.l) + '</b> ' + esc(u.n) + (a2off ? ' <span class="small muted">(A2: not in IAS)</span>' : '') + '</span></label>' +
+      (on ? '<div class="row" style="gap:6px">' +
+        (u.opts ? '<select data-se-opt="' + u.c + '" aria-label="Option for ' + esc(u.l) + '"><option value="">Option: not chosen</option>' + Object.entries(u.opts).map(([k, n]) => '<option value="' + k + '"' + (E.opt[u.c] === k ? ' selected' : '') + '>' + k + ' ' + esc(n) + '</option>').join('') + '</select>' : '') +
+        '<select data-se-st="' + u.c + '" aria-label="Status of ' + esc(u.l) + '">' + U_STATUS.map(([v, l]) => '<option value="' + v + '"' + (st === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>' +
+        (st === 'sat' ? '' : '<select data-se-sr="' + u.c + '" aria-label="Exam series for ' + esc(u.l) + '">' + srOpts(u.c, E.sr[u.c]) + '</select>') + '</div>' : '') + '</div>';
+  }).join('');
+  const n = s.units.filter(u => E.taking[u.c] && !(E.ias && !isASUnit(u.c))).length;
+  return '<div class="card stack seditor"><div class="card-h"><h2><span class="dot" style="background:var(--' + s.id + ');margin-right:8px"></span>' + (E.adding ? 'Add ' : 'Edit ') + esc(s.name) + '</h2></div>' +
+    '<p class="small muted" style="margin:0">Tick the units you’re taking. “Sat” takes a unit out of your daily plan but keeps its result; “Resitting” keeps the old result and plans for the new exam.' + (s.id === 'math' ? ' Change your applied units (M1, S1, D1, M2, S2) here: the grade calculator picks the best legal combination.' : '') + '</p>' +
+    '<label class="toggle"><input type="checkbox" data-se-ias="1"' + (E.ias ? ' checked' : '') + '><span>IAS only: I’m taking just the first half (' + (s.id === 'math' || s.id === 'fm' ? 'AS units' : 'Units 1–' + (s.units.length / 2)) + ')</span></label>' +
+    '<div class="list">' + rows + '</div>' +
+    '<div class="row tpicks">' + targetPicker(s.id, '') + '</div>' +
+    '<div class="row"><button class="btn primary" data-act="sub-save">' + (n ? 'Save ' + n + ' unit' + (n === 1 ? '' : 's') : 'Remove subject') + '</button><button class="btn" data-act="sub-cancel">Cancel</button></div></div>';
+}
+function mySubjectsCard(){
+  if (ui.subEdit) return subEditor();
+  const taken = SUBJECTS.filter(s => subjTaken(s.id) && (setupDone() || subjStatus(s.id) !== 'studying'));
+  const by = st => taken.filter(s => subjStatus(s.id) === st);
+  const studying = setupDone() ? by('studying') : [], fin = by('finished'), drop = by('dropped');
+  const notTaken = SUBJECTS.filter(s => !taken.includes(s) || (!setupDone() && subjStatus(s.id) === 'studying'));
+  return '<div class="card stack"><div class="card-h"><h2>My subjects</h2>' + (setupDone() ? '' : '<a class="btn sm primary" href="#setup" data-act="su-open">Run setup</a>') + '</div>' +
+    (setupDone() ? '' : '<p class="small muted" style="margin:0">You haven’t picked your subjects yet, so everything is shown. Run setup, or add subjects one by one below.</p>') +
+    (studying.length ? '<div class="list">' + studying.map(subjRow).join('') + '</div>' : '') +
+    (fin.length ? '<div class="grouph">Finished</div><div class="list">' + fin.map(subjRow).join('') + '</div>' : '') +
+    (drop.length ? '<details class="dropped"><summary class="small">Dropped (' + drop.length + ') · your work is kept</summary><div class="list">' + drop.map(subjRow).join('') + '</div></details>' : '') +
+    (notTaken.length ? '<div class="stack" style="gap:6px"><div class="small muted">Add a subject</div><div class="chips">' + notTaken.map(s => '<button class="chip" data-act="sub-add" data-v="' + s.id + '"><span class="dot" style="background:var(--' + s.id + ')"></span>+ ' + esc(s.short) + '</button>').join('') + '</div></div>' : '') +
+    '<p class="small muted" style="margin:0">Dropped and finished subjects leave Today, Planner, flashcards and suggestions. Finished subjects keep their grade on the Grades page.' + (setupDone() ? ' To change every subject and exam series at once, <a href="#setup" data-act="su-open">re-run full setup</a>.' : '') + '</p></div>';
+}
+
+/* ---- Study habits ---- */
+const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function habitsCard(){
+  const p = prefs(), tp = state.timerPrefs, my = mySubjects();
+  const sel = (k, opts, cur, label) => '<label class="f"><span>' + label + '</span><select data-pref="' + k + '">' + opts.map(([v, l]) => '<option value="' + v + '"' + (String(cur) === String(v) ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label>';
+  const busy = (p.busy || []).filter(d => d >= todayStr()).sort();
+  return '<div class="card stack"><h2>Study habits</h2>' +
+    '<div class="grid2 tight">' +
+      sel('goal', [30, 45, 60, 90, 120, 180, 240].map(m => [m, fmtMin(m) + ' a day']), goalMin(), 'Daily study goal') +
+      sel('timer', [[25, 5], [45, 10], [50, 10], [15, 3]].map(([f, b]) => [f + '-' + b, f + ' min focus / ' + b + ' break']), tp.focus + '-' + tp.brk, 'Focus timer') +
+      sel('mockKeep', [[0, 'Don’t keep any'], [1, 'Newest 1 paper'], [2, 'Newest 2 papers'], [3, 'Newest 3 papers'], [4, 'Newest 4 papers']], mockKeep(), 'Save for timed mocks') +
+      sel('start', [['today', 'Today'], ['syllabus', 'Study'], ['quiz', 'Questions'], ['papers', 'Past papers'], ['grades', 'Grades'], ['planner', 'Planner']], p.start, 'Open the app on') +
+      sel('defSubj', [['', 'First of my subjects']].concat(my.map(s => [s.id, s.name])), p.defSubj, 'Main subject') +
+    '</div>' +
+    '<div class="stack" style="gap:6px"><div class="small muted">Days off: the revision timetable won’t plan anything on these days</div><div class="chips" role="group" aria-label="Days off">' + [1, 2, 3, 4, 5, 6, 0].map(d => '<button class="chip" data-act="offday" data-v="' + d + '" aria-pressed="' + p.offDays.includes(d) + '">' + DAY_SHORT[d] + '</button>').join('') + '</div></div>' +
+    '<form data-form="busy-add" class="stack" style="gap:6px"><div class="small muted">Busy dates (school trips, events): also skipped by the timetable</div><div class="row" style="align-items:flex-end"><label class="f" style="max-width:200px">Date<input type="date" id="busy-d" min="' + todayStr() + '" required></label><button class="btn" type="submit">Add busy day</button></div>' +
+      (busy.length ? '<div class="chips">' + busy.map(d => '<span class="chip">' + fmtDate(d, {weekday:'short', day:'numeric', month:'short'}) + '<button type="button" class="x" data-act="busy-del" data-v="' + d + '" aria-label="Remove ' + d + '">×</button></span>').join('') + '</div>' : '') + '</form>' +
+    '<p class="small muted" style="margin:0">After changing days off, rebuild your revision timetable on the Planner page.</p></div>';
+}
+/* ---- Look & accessibility ---- */
+function lookCard(){
+  const p = prefs(), seg = (k, opts, cur) => '<div class="seg2" role="group">' + opts.map(([v, l]) => '<button type="button" data-act="pref-set" data-k="' + k + '" data-v="' + v + '" aria-pressed="' + (String(cur) === String(v)) + '">' + l + '</button>').join('') + '</div>';
+  return '<div class="card stack"><h2>Look &amp; accessibility</h2>' +
+    '<div class="stack" style="gap:6px"><div class="small muted">Theme</div>' + seg('theme', [['', 'Match device'], ['light', 'Light'], ['dark', 'Dark']], p.theme) + '</div>' +
+    '<div class="stack" style="gap:6px"><div class="small muted">Text size</div>' + seg('text', [[1, 'Normal'], [1.12, 'Large'], [1.25, 'Extra large']], p.text) + '</div>' +
+    '<label class="toggle"><input type="checkbox" data-pref-motion="1"' + (p.motion ? ' checked' : '') + '><span>Reduce motion (no animations)</span></label></div>';
+}
+/* ---- Daily reminder as a calendar event (works on every phone) ---- */
+function reminderCard(){
+  const p = prefs();
+  return '<div class="card stack"><h2>Daily study reminder</h2><p class="small muted" style="margin:0">Adds a repeating event to your phone’s calendar, so you get a reminder every day even when this app is closed.</p>' +
+    '<div class="row" style="align-items:flex-end"><label class="f" style="max-width:160px">Time<input type="time" data-pref-time="1" value="' + esc(p.remind) + '"></label><button class="btn primary" data-act="cal-reminder">Add to my calendar</button></div>' +
+    (p.offDays.length ? '<p class="small muted" style="margin:0">Skips your days off (' + p.offDays.map(d => DAY_SHORT[d]).join(', ') + ').</p>' : '') + '</div>';
+}
+function icsText(){
+  const p = prefs(), [h, m] = (p.remind || '19:00').split(':'), t = todayStr().replace(/-/g, ''), stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const days = ['SU','MO','TU','WE','TH','FR','SA'].filter((d, i) => !p.offDays.includes(i));
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//IAL Study Hub//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:ial-study-reminder-' + uid() + '@ialstudyhub','DTSTAMP:' + stamp,
+    'DTSTART:' + t + 'T' + h + m + '00', 'DURATION:PT' + Math.min(goalMin(), 240) + 'M', 'RRULE:FREQ=WEEKLY;BYDAY=' + (days.length ? days : ['MO']).join(','),
+    'SUMMARY:Study time (IAL Study Hub)', 'DESCRIPTION:Open IAL Study Hub and do today’s plan. Goal: ' + fmtMin(goalMin()) + '.',
+    'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Study time','TRIGGER:PT0M','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
+}
+async function saveFile(name, text, type, okMsg){
+  if (DL){
+    try { await DL.save({ filename: name, data: text }); toast(okMsg); return true; }
+    catch(e){ if (e && /declin|cancel|abort/i.test(String(e.code || e.message || e))){ toast('Not saved.'); return false; } try { await DL.save({ filename: name, data: new Blob([text], { type }) }); toast(okMsg); return true; } catch(e2){ toast('Download blocked here. Try the copy button instead.'); return false; } }
+  }
+  try {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast(okMsg); return true;
+  } catch(e){ toast('Download blocked here. Try the copy button instead.'); return false; }
+}
+
+/* ---- Progress summary for a teacher or counsellor ---- */
+function summaryData(){
+  const saved = ui.grades.whatif; ui.grades.whatif = {};
+  const out = SUBJECTS.filter(s => subjStatus(s.id) !== 'dropped' && s.units.some(u => takes(u.c)) && (setupDone() || s.units.some(u => (state.results[u.c] || []).length || Object.keys(state.papers).some(k => k.startsWith(u.c + '|'))))).map(s => {
+    let grade = null;
+    if (s.id === 'math' || s.id === 'fm'){ const a = mathAward(), q = s.id === 'math' ? (a.m || a.asM) : (a.f || a.asF); if (q) grade = { g: q.grade, t: q.total, max: q.max, proj: false }; }
+    else { const a = sciAward(s.id); if (iasOnly(s.id) && a.as) grade = { g: a.as.grade, t: a.as.total, max: a.as.max, proj: false }; else if (a.grade) grade = { g: a.grade, t: a.total, max: a.max, proj: !a.complete }; }
+    const units = s.units.filter(u => takes(u.c)).map(u => {
+      const recs = Object.entries(state.papers).filter(([k]) => k.startsWith(u.c + '|')).map(([, r]) => r);
+      const avg = recs.length ? Math.round(recs.reduce((a, r) => a + paperPct(r), 0) / recs.length * 100) : null;
+      const v = unitValue(u.c), ex = state.exams.find(e => e.u === u.c && e.d >= todayStr());
+      const weak = u.t.map((n, i) => ({ n, lost: topicMistakes(u.c, i).reduce((a, m) => a + m.lost, 0), st: state.topics[topicId(u.c, i)] || 0 })).filter(x => x.lost > 0 || x.st === 1).sort((a, b) => b.lost - a.lost).slice(0, 3).map(x => x.n);
+      return { c: u.c, l: u.l, n: u.n, st: unitStatus(u.c), ums: v ? v.ums : null, umsSrc: v ? v.src : null, max: umsMax(u.c), papers: recs.length, avg, exam: ex ? ex.d : null, weak, opt: u.opts ? histOpt(u.c) : '' };
+    });
+    return { s, status: subjStatus(s.id), target: targetFor(s.id), grade, units, open: state.mistakes.filter(m => !m.fixed && UNIT_SUBJ[m.u] === s.id).length };
+  });
+  ui.grades.whatif = saved; return out;
+}
+function summaryText(){
+  const D = summaryData(), wk = (() => { const t = todayStr(); return state.sessions.filter(x => daysBetween(x.d, t) < 28).reduce((a, x) => a + x.m, 0); })();
+  const lines = ['IAL progress summary · ' + fmtDate(todayStr()), 'Study time in the last 4 weeks: ' + fmtMin(wk), ''];
+  D.forEach(x => {
+    lines.push(x.s.name.toUpperCase() + (x.status === 'finished' ? ' (finished)' : '') + (x.grade ? ' · ' + (x.grade.proj ? 'projected ' : '') + x.grade.g + ' (' + x.grade.t + '/' + x.grade.max + ' UMS)' : '') + (x.target ? ' · target ' + x.target : ''));
+    x.units.forEach(u => lines.push('  ' + u.l + ' ' + u.n + (u.opt ? ' [' + u.opt + ']' : '') + ': ' + (u.ums !== null ? u.ums + '/' + u.max + ' UMS' + (u.umsSrc === 'mock' ? ' (from past papers)' : '') : 'no marks yet') + ' · ' + u.papers + ' paper' + (u.papers === 1 ? '' : 's') + (u.avg !== null ? ', avg ' + u.avg + '%' : '') + (u.st === 'sat' ? ' · sat' : u.st === 'resit' ? ' · resitting' : '') + (u.exam ? ' · exam ' + fmtDate(u.exam, {day:'numeric', month:'short', year:'numeric'}) : '') + (u.weak.length ? ' · work on: ' + u.weak.join('; ') : '')));
+    lines.push('  Open mistakes: ' + x.open, '');
+  });
+  lines.push('Made with IAL Study Hub. UMS from results slips where entered, otherwise estimated from past papers with official Pearson grade boundaries.');
+  return lines.join('\n');
+}
+function summaryHtml(){
+  const D = summaryData(), e = esc;
+  const body = D.map(x => '<section><h2>' + e(x.s.name) + (x.status === 'finished' ? ' <small>(finished)</small>' : '') + '</h2><p>' + (x.grade ? '<b>' + (x.grade.proj ? 'Projected ' : '') + e(x.grade.g) + '</b> · ' + x.grade.t + '/' + x.grade.max + ' UMS' : 'No grade yet') + (x.target ? ' · target ' + e(x.target) : '') + ' · open mistakes: ' + x.open + '</p>' +
+    '<table><tr><th>Unit</th><th>UMS</th><th>Papers</th><th>Avg</th><th>Exam</th><th>Work on</th></tr>' + x.units.map(u => '<tr><td>' + e(u.l + ' ' + u.n) + (u.opt ? ' [' + e(u.opt) + ']' : '') + (u.st === 'sat' ? ' <small>sat</small>' : u.st === 'resit' ? ' <small>resit</small>' : '') + '</td><td>' + (u.ums !== null ? u.ums + '/' + u.max + (u.umsSrc === 'mock' ? '*' : '') : '–') + '</td><td>' + u.papers + '</td><td>' + (u.avg !== null ? u.avg + '%' : '–') + '</td><td>' + (u.exam ? e(fmtDate(u.exam, {day:'numeric', month:'short', year:'numeric'})) : '–') + '</td><td>' + e(u.weak.join('; ')) + '</td></tr>').join('') + '</table></section>').join('');
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IAL progress summary</title><style>body{font-family:"Gill Sans","Gill Sans MT",Calibri,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;color:#14213a}h1{margin:0}h2{margin:22px 0 4px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dde3ec;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f3f5f8}small{color:#5a6880}footer{margin-top:24px;font-size:12px;color:#5a6880}</style></head><body><h1>IAL progress summary</h1><p>' + e(fmtDate(todayStr())) + '</p>' + (body || '<p>No subjects yet.</p>') + '<footer>* estimated from past papers using official Pearson grade boundaries; other UMS from results slips. Made with IAL Study Hub.</footer><\/body><\/html>';
+}
+function dataCard(){
+  const c = ui.confirm, lb = state.lastBackup, since = lb ? daysBetween(lb, todayStr()) : null;
+  return '<div class="card stack"><h2>Your data</h2><p class="small">' + syncText() + '</p>' +
+    (since === null || since > 14 ? '<p class="small warnline" style="margin:0">' + (since === null ? 'You haven’t made a backup yet.' : 'Your last backup was ' + since + ' days ago.') + ' A backup file lets you restore everything on any device.</p>' : '<p class="small muted" style="margin:0">Last backup: ' + fmtDate(lb) + '</p>') +
+    '<div class="row"><button class="btn primary" data-act="backup-download">Download backup file</button><button class="btn" data-act="backup-copy">Copy backup</button></div>' +
+    '<div class="stack" style="gap:6px"><div class="small muted">Progress summary for a teacher or counsellor: grades, papers, exam dates and weak topics on one page</div><div class="row"><button class="btn" data-act="summary-download">Download summary</button><button class="btn" data-act="summary-copy">Copy as text</button></div></div>' +
+    '<label class="f">Restore from a backup file<input type="file" id="restore-file" accept=".json,application/json,text/plain"></label>' +
+    '<label class="f">Or paste backup text<textarea id="restore-text" placeholder="Paste backup text here"></textarea></label>' +
+    '<div class="row"><button class="btn" data-act="restore">' + (c === 'restore' ? 'Tap again to replace all data' : 'Restore') + '</button>' +
+    '<button class="btn danger" data-act="reset">' + (c === 'reset' ? 'Tap again to erase everything' : 'Reset all progress') + '</button></div>' +
+    '<p class="small muted" style="margin:0">To delete one subject only, set it to Dropped above, then tap Delete data.</p></div>';
+}
+function viewSettings(){
+  return '<div class="stack">' +
+    '<div><h1>Settings</h1><p class="muted">Your subjects, study habits and how the app looks. Everything here saves automatically.</p></div>' +
+    mySubjectsCard() + habitsCard() + lookCard() + reminderCard() + buddySettings() + installCard() +
+    ((state.linkReports || []).length ? '<div class="card stack"><div class="card-h"><h2>Broken links (' + state.linkReports.length + ')</h2></div><p class="small muted" style="margin:0">Links you reported. Copy the list and paste it to Claude, and they’ll be fixed in one go.</p><div class="list">' + state.linkReports.map(x => '<div class="li"><div class="grow"><div class="t">' + esc(x.where) + '</div><div class="small muted">Reported ' + fmtDate(x.at, {day:'numeric', month:'short'}) + '</div></div><button class="x" data-act="report-del" data-id="' + x.id + '" aria-label="Remove report">×</button></div>').join('') + '</div><div class="row"><button class="btn primary" data-act="report-copy">Copy list</button><button class="btn ghost" data-act="report-clear">Clear all</button></div><textarea readonly rows="3" aria-label="Broken links list">' + esc(reportsText()) + '</textarea></div>' : '') +
+    dataCard() + '</div>';
+}
+
 
 /* ============================================================
    Render + events
@@ -1548,18 +1793,18 @@ function gradeSubjHasData(sid){ return SUBJ[sid].units.some(u => (state.results[
 function todayGrades(){
   const saved = ui.grades.whatif; ui.grades.whatif = {};
   const items = [];
-  SUBJECTS.forEach(x => {
+  gradeSubjects().forEach(x => {
     if (x.id === 'fm') return;
     if (!(gradeSubjHasData(x.id) || (x.id === 'math' && gradeSubjHasData('fm')))) return;
     if (x.id === 'math'){ const a = mathAward(); [['Maths', a.m || a.asM], ['Further Maths', a.f || a.asF]].forEach(([n, q]) => { if (q) items.push([n === 'Maths' ? 'math' : 'fm', (q.max === 300 ? 'AS ' : '') + n, q.grade, targetFor(n === 'Maths' ? 'math' : 'fm')]); }); }
-    else { const a = sciAward(x.id); if (a.grade) items.push([x.id, x.short + (a.complete ? '' : ' (projected)'), a.grade, targetFor(x.id)]); }
+    else { const a = sciAward(x.id); if (iasOnly(x.id)){ if (a.as) items.push([x.id, 'IAS ' + x.short, a.as.grade, targetFor(x.id)]); } else if (a.grade) items.push([x.id, x.short + (a.complete ? '' : ' (projected)'), a.grade, targetFor(x.id)]); }
   });
   ui.grades.whatif = saved;
   if (!items.length) return '';
   return '<div class="card"><div class="card-h"><h2>On track for</h2><a class="small muted" href="#grades">Grades</a></div><div class="row">' + items.map(([sid, n, gr, tg]) => '<a class="tgr" href="#grades" data-act="gr-subj" data-v="' + sid + '">' + gradePill(gr) + '<span>' + esc(n) + (tg ? ' <span class="small ' + (gIdx(gr) >= gIdx(tg) ? 'muted' : 'below') + '">target ' + esc(tg) + '</span>' : '') + '</span></a>').join('') + '</div></div>';
 }
 function viewGrades(){
-  const g = ui.grades; if (!g.picked){ g.picked = true; g.subj = (SUBJECTS.find(x => gradeSubjHasData(x.id)) || SUBJECTS[0]).id; } const s = SUBJ[g.subj];
+  const g = ui.grades; if (!g.picked){ g.picked = true; g.subj = (gradeSubjects().find(x => gradeSubjHasData(x.id)) || gradeSubjects()[0]).id; } const s = SUBJ[g.subj];
   let body = '';
   if (g.subj === 'math' || g.subj === 'fm'){
     const a = mathAward(); ui.grades.lastVals = a.vals;
@@ -1572,19 +1817,20 @@ function viewGrades(){
       (isF ? targetLine(a.f || a.asF, 'fm', 'Further Maths') + plannerHtml(a.f || a.asF, (a.f ? '' : 'AS ') + 'Further Maths', targetFor('fm'))
            : targetLine(a.m || a.asM, 'math', 'Maths') + plannerHtml(a.m || a.asM, (a.m ? '' : 'AS ') + 'Maths', targetFor('math'))) +
       '<p class="small muted" style="margin:0">Maths and Further Maths share M1, M2, S1, S2 and D1, so both grades are worked out together: Pearson picks the units that give you the best Maths grade, then uses the rest for Further Maths. A unit can’t count twice.</p></div>' +
-      '<div class="card"><div class="list">' + units.filter(u => !isHidden(u.c)).map(unitRow).join('') + '</div></div>';
+      '<div class="card"><div class="list">' + units.filter(u => takes(u.c)).map(unitRow).join('') + '</div></div>';
   } else {
     const a = sciAward(g.subj); ui.grades.lastVals = a.vals;
-    const shown = s.units.filter(u => !isHidden(u.c));
+    const shown = s.units.filter(u => takes(u.c)), ias = iasOnly(g.subj);
     let head;
     if (!a.have.length) head = '<div class="empty" style="padding:8px 0">No marks yet. Add a result from your results slip, or log a past paper and the app will estimate your UMS from it.</div>';
+    else if (ias) head = '<div class="awards">' + awardCard('IAS ' + s.name, a.as, 'Units 1–' + (a.codes.length / 2) + ' · you’re taking IAS only') + '</div>' + (a.as ? '' : '<p class="small muted" style="margin:0">Add marks for all your IAS units to see the IAS grade.</p>');
     else head = '<div class="awards">' + awardCard((a.complete ? '' : 'Projected ') + 'IAL ' + s.name, a, a.complete ? 'All ' + a.codes.length + ' units' : 'Based on ' + a.have.length + ' of ' + a.codes.length + ' units, assuming you keep the same average (' + Math.round(a.pct * 100) + '%)') + awardCard('IAS ' + s.name, a.as, 'Units 1–' + (a.codes.length / 2)) + '</div>' +
       targetLine(a, g.subj, s.short) + plannerHtml(Object.assign({}, a, { units: a.codes }), s.short, targetFor(g.subj));
     body = '<div class="card stack"><div class="row tpicks">' + targetPicker(g.subj, '') + '</div>' + head + '</div><div class="card"><div class="list">' + shown.map(unitRow).join('') + '</div></div>';
   }
   const anyWi = Object.keys(g.whatif).length;
   return '<div class="stack"><div><h1>Grades</h1><p class="muted">Your unit results and past-paper marks turned into UMS and an overall grade, using Pearson’s rules. Try “what if” marks to plan resits.</p></div>' +
-    '<div class="chips" role="group" aria-label="Subject">' + SUBJECTS.map(x => '<button class="chip" data-act="gr-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === g.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') +
+    '<div class="chips" role="group" aria-label="Subject">' + gradeSubjects().map(x => '<button class="chip" data-act="gr-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === g.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') +
     (anyWi ? '<button class="chip" data-act="wi-clear">Clear what-ifs</button>' : '') + '</div>' + body +
     '<p class="small muted">Estimates from past papers use the official grade boundaries for that paper’s series (or the nearest series if none were published) and assume the main paper, not the time-zone variant. Real UMS comes from your results slip. Grade boundaries © Pearson Education.</p></div>';
 }
@@ -1704,7 +1950,7 @@ function viewMistakes(){
   return '<div class="stack">' + qSeg('mistakes') +
     '<div><h1>Mistakes</h1><p class="muted">After marking a paper or topic pack, log each question you dropped marks on and why. Each one comes back for review until you’d get it right, and the patterns show where your marks really go.</p></div>' +
     (k.form ? mkForm() : '<div class="row"><button class="btn primary" data-act="mk-new">+ Log a mistake</button>' + (due.length ? '<button class="btn" data-act="mk-review">Review ' + due.length + ' due</button>' : '') + '</div>') +
-    '<div class="chips" role="group" aria-label="Subject"><button class="chip" data-act="mk-subj" data-v="all" aria-pressed="' + (sid === 'all') + '">All</button>' + SUBJECTS.map(x => '<button class="chip" data-act="mk-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === sid) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
+    '<div class="chips" role="group" aria-label="Subject"><button class="chip" data-act="mk-subj" data-v="all" aria-pressed="' + (sid === 'all') + '">All</button>' + mySubjects().map(x => '<button class="chip" data-act="mk-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === sid) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
     insights +
     '<div class="card"><div class="card-h"><h2>Your mistakes</h2><div class="chips" role="group" aria-label="Show">' + [['open','Open'],['due','Due'],['fixed','Fixed'],['all','All']].map(([v, l]) => '<button class="chip" data-act="mk-filter" data-v="' + v + '" aria-pressed="' + (k.filter === v) + '">' + l + '</button>').join('') + '</div></div>' +
       '<div class="list">' + (shown.length ? shown.map(mkRow).join('') : '<div class="empty">' + (list.length ? 'Nothing here.' : 'No mistakes logged yet. Mark a past paper, then tap “Log mistakes” on it, or use the button above.') + '</div>') + '</div></div>' +
@@ -1719,7 +1965,7 @@ function mkReadForm(){ const f = ui.mk.form; if (!f) return; const g = id => { c
 const MOCK_KEEP = 2;
 function reservedPapers(c){
   if (typeof PAPERS === 'undefined' || !PAPERS[c]) return [];
-  return papersFor(c).filter(r => /^\w+ \d{4}$/.test(srBase(r[0]))).sort((a, b) => seriesSortKey(b[0]) - seriesSortKey(a[0])).slice(0, MOCK_KEEP).map(r => r[0]);
+  return papersFor(c).filter(r => /^\w+ \d{4}$/.test(srBase(r[0]))).sort((a, b) => seriesSortKey(b[0]) - seriesSortKey(a[0])).slice(0, mockKeep()).map(r => r[0]);
 }
 function isReserved(c, sr){ return reservedPapers(c).includes(sr) && !state.papers[paperKey(c, sr)]; }
 function pickPaper(c, examDays){
@@ -2459,6 +2705,7 @@ function rtBuild(min, rest){
   const last = ex[ex.length - 1].d, out = [];
   for (let d = t; d < last && out.length < 600; d = addDays(d, 1)){
     if (rest >= 0 && new Date(d + 'T12:00:00').getDay() === rest) continue;
+    if (prefs().offDays.includes(new Date(d + 'T12:00:00').getDay()) || prefs().busy.includes(d)) continue;
     let left = min; const used = new Set();
     let guard = 0;
     while (left >= 25 && guard++ < 12){
@@ -2638,6 +2885,7 @@ function renderRet(){
 }
 
 function render(){
+  applyPrefs(); ensureSubjects();
   const r = route(); setHdr();
   $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && r === 'cards') ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
   $('#nav-settings').setAttribute('aria-current', r === 'prefs' ? 'page' : 'false'); { const ns = $('#nav-search'); if (ns) ns.setAttribute('aria-current', r === 'search' ? 'page' : 'false'); } fsSync();
@@ -2696,7 +2944,7 @@ document.addEventListener('click', e => {
   if (b.closest('#retsheet') && ui.ret){ ui.ret = null; setTimeout(renderRet, 0); }
   const act = b.dataset.act, v = b.dataset.v, id = b.dataset.id;
   if (b.tagName === 'INPUT') return;
-  if (act !== 'restore' && act !== 'reset') ui.confirm = null;
+  if (act !== 'restore' && act !== 'reset' && act !== 'sub-wipe') ui.confirm = null;
   switch (act){
     case 'cards-subj': ui.cards.subj = v; ui.cards.unit = 'all'; render(); break;
     case 'quiz-subj': ui.quiz.subj = v; ui.quiz.unit = 'all'; render(); break;
@@ -2718,6 +2966,18 @@ document.addEventListener('click', e => {
     case 'card-del': state.custom = state.custom.filter(k => k.id !== id); delete state.cardState[id]; commit(); break;
     case 'pp-subj': ui.papers.subj = v; ui.papers.unit = null; ui.papers.log = null; render(); break;
     case 'pp-filter': ui.papers.filter = v; render(); break;
+    case 'sub-add': subEditInit(v, true); render(); window.scrollTo({ top: 0 }); break;
+    case 'sub-edit': subEditInit(v, false); render(); window.scrollTo({ top: 0 }); break;
+    case 'sub-cancel': ui.subEdit = null; render(); break;
+    case 'sub-save': subEditSave(); break;
+    case 'sub-status': subjSetStatus(b.dataset.sid, v); break;
+    case 'sub-wipe': if (ui.confirm === 'wipe-' + v){ ui.confirm = null; subjWipe(v); } else { ui.confirm = 'wipe-' + v; render(); } break;
+    case 'offday': { const p = prefs(), d = +v; p.offDays = p.offDays.includes(d) ? p.offDays.filter(x => x !== d) : p.offDays.concat(d); commit(); break; }
+    case 'busy-del': prefs().busy = prefs().busy.filter(x => x !== v); commit(); break;
+    case 'pref-set': { const k = b.dataset.k; prefs()[k] = k === 'text' ? +v : v; commit(); break; }
+    case 'cal-reminder': saveFile('study-reminder.ics', icsText(), 'text/calendar', 'Reminder saved. Open the file to add it to your calendar.'); break;
+    case 'summary-download': saveFile('ial-progress-summary-' + todayStr() + '.html', summaryHtml(), 'text/html', 'Summary saved. Open it to view or print.'); break;
+    case 'summary-copy': { const txt = summaryText(); try { navigator.clipboard.writeText(txt).then(() => toast('Summary copied'), () => toast('Copy blocked here')); } catch(e){ toast('Copy blocked here'); } break; }
     case 'hist-opt': state.histOpt = Object.assign({}, state.histOpt || {}, { [b.dataset.u]: v }); commit(); break;
     case 'goto-papers': ui.papers.subj = UNIT_SUBJ[b.dataset.u]; ui.papers.unit = b.dataset.u; ui.papers.log = null; if (route() === 'papers') render(); else go('papers'); break;
     case 'paper-log': ui.papers.log = b.dataset.key; ui.papers.qmode = !!(state.papers[b.dataset.key] && state.papers[b.dataset.key].qs); ui.papers.qrows = ui.papers.qmode ? pqDefault(b.dataset.key) : null; render(); { const el = $('#pl-s'); if (el) el.focus(); } break;
@@ -2894,11 +3154,27 @@ document.addEventListener('change', e => {
   else if (el.id === 'mk-u'){ mkReadForm(); const f = ui.mk.form; f.u = el.value; f.sr = mkSources(f.u)[0]; f.t = ''; render(); }
   else if (el.id === 't-subj'){ state.timerPrefs.subject = el.value; commit(); }
   else if (el.id === 't-len'){ const [f, b] = el.value.split('-').map(Number); state.timerPrefs.focus = f; state.timerPrefs.brk = b; if (!T.running){ T.remain = phaseLen(); saveT(); } commit(); }
+  else if (el.dataset && el.dataset.subst){ subjSetStatus(el.dataset.subst, el.value); }
+  else if (el.dataset && el.dataset.seTake){ ui.subEdit.taking[el.dataset.seTake] = el.checked; render(); }
+  else if (el.dataset && el.dataset.seSt){ ui.subEdit.st[el.dataset.seSt] = el.value; render(); }
+  else if (el.dataset && el.dataset.seSr){ ui.subEdit.sr[el.dataset.seSr] = el.value; render(); }
+  else if (el.dataset && el.dataset.seOpt !== undefined && el.dataset.seOpt){ ui.subEdit.opt[el.dataset.seOpt] = el.value; render(); }
+  else if (el.dataset && el.dataset.seIas){ ui.subEdit.ias = el.checked; render(); }
+  else if (el.dataset && el.dataset.pref){ const k = el.dataset.pref, v = el.value;
+    if (k === 'goal') state.goal = { min: +v };
+    else if (k === 'timer'){ const [f, b2] = v.split('-').map(Number); state.timerPrefs.focus = f; state.timerPrefs.brk = b2; if (!T.running){ T.remain = phaseLen(); saveT(); } }
+    else if (k === 'mockKeep') prefs().mockKeep = +v;
+    else prefs()[k] = v;
+    if (k === 'defSubj' && v){ ['quiz', 'papers', 'syllabus', 'grades'].forEach(x => { ui[x].subj = v; }); }
+    commit(); toast('Saved'); }
+  else if (el.dataset && el.dataset.prefMotion){ prefs().motion = el.checked; commit(); }
+  else if (el.dataset && el.dataset.prefTime){ prefs().remind = el.value || '19:00'; commit(); }
   else if (el.dataset.act === 'unit-toggle'){ const c = el.dataset.id; state.hidden = state.hidden.filter(x => x !== c); if (!el.checked) state.hidden.push(c); commit(); }
 });
 document.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details.cp')){ if (d.open) ui.cpOpen = d.dataset.cp; else if (ui.cpOpen === d.dataset.cp) ui.cpOpen = null; return; } if (d.matches && d.matches('details.pmtq')){ if (d.open) ui.quiz.openPmt = d.dataset.k; else if (ui.quiz.openPmt === d.dataset.k) ui.quiz.openPmt = null; return; } if (d.matches && d.matches('details.unit')){ if (d.open) ui.syllabus.open = d.dataset.unit; else if (ui.syllabus.open === d.dataset.unit) ui.syllabus.open = null; } }, true);
 document.addEventListener('submit', e => {
   const f = e.target.closest('form[data-form]'); if (!f) return;
+  if (f.dataset.form === 'busy-add'){ e.preventDefault(); const d = $('#busy-d').value; if (d && !prefs().busy.includes(d)){ prefs().busy.push(d); commit(); toast('Busy day added'); } return; }
   e.preventDefault();
   const kind = f.dataset.form;
   if (kind === 'task-quick'){ const t = $('#tq').value.trim(); if (!t) return; state.tasks.push({ id: uid(), t, d: todayStr(), s: '', p: 2, done: false }); commit(); }
