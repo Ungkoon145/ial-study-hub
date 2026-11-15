@@ -221,5 +221,117 @@ const UNIT_TIPS = {
   'Bar charts: y-axis from zero, labelled “mean …” with units.',
   'Treat both halves or samples the same way, as a fair comparison.'
  ]
+ ,WEC11: [
+  'If a question only asks for a diagram, the diagram earns all the marks: draw it big, fully labelled, and don’t waste time writing.',
+  'Indirect tax diagrams: a fixed amount per unit (specific tax) shifts supply in parallel; a percentage (ad valorem) tax makes it pivot.',
+  'Define the key term first (e.g. producer surplus, opportunity cost). The definition is usually a free knowledge mark.',
+  'In data questions, quote and use the actual numbers from the tables, not just “it increased”.',
+  'Mixed economy vs free market: a big private sector alone doesn’t make a free market. Sketch the diagram for tricky multiple choice.'
+ ],
+ WEC12: [
+  'Read every part of the question: missing the depth or the second half of a question was the main reason for low marks.',
+  'Diagram and calculation questions earn their marks from the diagram or the answer alone; keep the writing for questions that need it.',
+  'Draw accurate, labelled AD/AS diagrams even when not required. They add depth to analysis.',
+  'In longer questions and essays, evaluation must be a developed chain of reasoning linked to the context, not a one-line “however”.',
+  'Practise the quantitative skills (index numbers, multiplier, percentage change) so they are quick marks.'
+ ],
+ WEC13: [
+  'Read the whole extract before answering so your points use its context and numbers.',
+  'Know the difference between competition (how many firms) and contestability (how easy it is to enter or leave).',
+  '8- and 14-mark questions need evaluation of the specific point you made, not a generic list of “depends on” factors.',
+  'If costs rise, think about which curves move: a rise in ingredient costs shifts both AC and MC.',
+  'In essays, go deeper on fewer points, add a relevant diagram when asked, and use specific real examples (e.g. bulk-buying discounts as an economy of scale).'
+ ],
+ WEC14: [
+  'Use the extracts, but don’t copy them: a short quotation is fine, copied sentences don’t reach the higher levels.',
+  '4- and 6-mark questions don’t need evaluation. Spend that time on the bigger questions.',
+  'For 8 marks and above, evaluation is essential: develop it and tie it to the country or context in the question.',
+  'Check calculations such as index numbers and inflation rates carefully; many lost easy marks here.',
+  'Give essays a clear structure (define, analyse with a diagram, evaluate, judge) and answer every part of the question.'
+ ],
+ WGE01: [
+  'Keep short-answer questions short: they are low-tariff, so a few precise sentences beat a mini essay.',
+  'Every essay must be supported by evidence: named places, data and case-study facts.',
+  '“Compare” means similarities and differences side by side, not two separate descriptions.',
+  'Be specific: name countries, gases, processes and dates rather than writing in general terms.',
+  'Cover every part of a multi-part question; the marks are split across the parts.'
+ ],
+ WGE02: [
+  'Be clear about physical processes (e.g. mass movement such as cliff falls and landslides) and how geology shapes coasts.',
+  '“Identify” only needs the idea named: don’t explain it, just give the required number of clear points.',
+  'Know the difference between primary and secondary data, and refer to the right type when asked.',
+  'Fieldwork questions: describe your own investigation’s route to enquiry, methods and data accurately.',
+  'In essays on coasts or cities, include management and people, not just processes.'
+ ],
+ WGE03: [
+  'There are no marks for just describing a Figure: explain the reasons behind what it shows.',
+  'Be selective with case studies in 15- and 20-mark essays: only use the facts that answer the question.',
+  'The 5-mark data questions fit in the space given, but you must refer to data from the Figure.',
+  'Start essays by defining the key terms, then keep checking you are still answering the question.',
+  'Support every argument with evidence: examples, case-study facts and data, especially in the long essays.'
+ ],
+ WGE04: [
+  'Open with a clear focus on the question’s key contention in your introduction.',
+  'Write in report form: introduction, research methods, analysis, conclusion and evaluation.',
+  'Reference and source your own research consistently; it boosts both credibility and marks.',
+  'Keep research (what you found) separate from analysis (what it means for the question).',
+  'Plan your time so the conclusion and evaluation are fully developed, not rushed.'
+ ],
+ WPS01: [
+  'Use the scenario: link every point to the details given in the question.',
+  'Learn the classic and contemporary studies in detail (e.g. Moscovici’s sample and procedure).',
+  'Match your depth to the marks available, and know what each command word asks for.',
+  'For your practical investigations, give specific details, not generic answers.',
+  'Strengths, weaknesses and improvements need a justification of why, not just a statement. Distinguish clearly between memory models.'
+ ],
+ WPS02: [
+  'In scenario questions, quote details from the scenario to earn the application (AO2) marks.',
+  'Strengths and weaknesses of a named study must be about that study, not generic points.',
+  'An improvement must explain how it makes the study better, not restate the weakness.',
+  'Know which assessment objectives each type of extended question rewards.',
+  'Learn the biological and learning-theory studies in detail so you can use accurate evidence.'
+ ],
+ WPS03: [
+  'Generic answers score zero in scenario questions: always link concepts and studies to the context.',
+  'If a question asks you to compare, make a two-sided comparison to access all the marks.',
+  '“Describe” questions need a full description for each point; naming a feature alone isn’t enough.',
+  'An improvement changes the existing study; suggesting a completely different method doesn’t count.',
+  'Revisit inferential statistics and the named studies in each topic.'
+ ],
+ WPS04: [
+  'Know the difference between “describe” and “explain” in short questions.',
+  'Extended answers need balance, examples and a judgement or conclusion where appropriate.',
+  'Evaluation (AO3) is still the weakest part: practise it on past papers.',
+  'In the key-question essay, apply psychology to the scenario rather than repeating the scenario.',
+  'Write in full sentences; bullet points rarely reach the top levels. Avoid generic answers.'
+ ],
+ WHI01: [
+  'Focus on the exact issue in the question (e.g. a specific consequence or time period), not the whole topic.',
+  'Back every judgement with criteria: say why one factor matters more than another.',
+  'Stick to the dates in the question; don’t assume earlier events or methods still apply.',
+  'In Section B, explain how the two historians’ interpretations differ and use your own knowledge to test them.',
+  'Write analysis, not narrative: every paragraph should argue towards your answer.'
+ ],
+ WHI02: [
+  'Source value: make inferences from the source, don’t paraphrase it.',
+  'Keep inferences and context focused on the enquiry in the question, and add knowledge from beyond the source.',
+  'Look at the specific purpose, audience and stance of the author, not stock comments about the type of source.',
+  'For value questions, don’t write about the source’s limitations.',
+  'For weight, think about who the author was writing for, and use your own knowledge to test the source’s claims.'
+ ],
+ WHI03: [
+  'Use the two sources together, not one after the other.',
+  'Learn key dates: Section B questions can cover the same period from different angles.',
+  'Avoid narrative and generalisation. Analyse, with a wide range of precise supporting detail.',
+  'Make clear judgements throughout and in your conclusion.',
+  'Keep your introduction short and focused on the question.'
+ ],
+ WHI04: [
+  'Interpret both extracts: analyse the arguments each historian makes, and refer to them by name.',
+  'Extracts are judged on their views, not as sources; don’t discuss provenance or that they are secondary sources.',
+  'Use your own knowledge of the specification content to test the interpretations.',
+  'Reach an overall judgement on the view in the question; summarising the extracts isn’t enough.',
+  'In Section B essays, stay analytical and support each point with precise evidence.'
+ ]
 };
 const UNIT_TIPS_SRC = 'Pearson examiners’ reports, Oct 2024–June 2025';
