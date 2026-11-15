@@ -117,6 +117,13 @@ details.dropped>summary{cursor:pointer;color:var(--muted);padding:6px 0}
 details.howto{display:inline}details.howto>summary{display:inline;cursor:pointer;color:var(--ink);text-decoration:underline;font-size:.9em}details.howto[open]{display:block;margin-top:6px}
 .pill.ust{background:var(--soft);color:var(--muted)}.pill.ust.resit{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
 @media (max-width:640px){ .li .meta.pp3 .btn.sm{flex:1 1 auto;min-width:auto;padding:7px 4px;font-size:.8rem;white-space:nowrap} .li .meta.pp3 .btn.primary{flex:1.5 1 0} .li .meta.pp3 .btn.planbtn{flex:0 0 auto;padding:7px 10px} }
+.gbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:48px;padding:10px 16px;border-radius:12px;border:1px solid #dadce0;background:#fff;color:#1f1f1f;font:inherit;font-weight:700;cursor:pointer}
+.gbtn:hover{background:#f8f9fa}.gbtn:disabled{opacity:.6;cursor:default}
+.login{max-width:440px;margin:24px auto 0}
+.loginbrand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.25rem}
+.loginperks{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.btn.danger{color:var(--bad)}
+body.gate #tabs,body.gate #nav-search,body.gate #nav-settings,body.gate #fs-btn,body.gate #ret{display:none !important}
 .frcode{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:12px;background:var(--soft)}
 .frbig{font-size:1.6rem;font-weight:800;letter-spacing:.12em}
 .frlist{display:flex;flex-direction:column;gap:8px;margin-top:6px}
@@ -544,8 +551,11 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
    CONTENT: Pearson Edexcel International A Level units
    ============================================================ */
 const STANDALONE = !!window.__STANDALONE__;
+const FB_CONFIG = (STANDALONE && window.__FB_CONFIG__ && window.__FB_CONFIG__.apiKey) ? window.__FB_CONFIG__ : null;
+const ACCT = !!FB_CONFIG;            /* GitHub version with Google sign-in */
+const LOCAL_ONLY = STANDALONE && !ACCT;
 const IS_INSTALLED = (() => { try { return !!(window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || (window.matchMedia && matchMedia('(display-mode: fullscreen)').matches)); } catch(e){ return false; } })();
-if (STANDALONE) document.addEventListener('DOMContentLoaded', () => { const f = document.getElementById('foot'); if (f) f.hidden = false; });
+if (STANDALONE) document.addEventListener('DOMContentLoaded', () => { const f = document.getElementById('foot'); if (f){ f.hidden = false; if (ACCT){ const p = f.querySelector('p'); if (p) p.innerHTML = p.innerHTML.replace('Your progress stays in your browser.', 'Your progress stays in your browser, or in your account if you sign in. <a href="privacy.html">Privacy</a>'); } } });
 const SUBJECTS = [
  {id:'math', name:'Maths', short:'Maths', units:[
   {c:'WMA11', l:'P1', n:'Pure Mathematics 1', t:['Algebraic expressions, indices and surds','Quadratics and the discriminant','Equations and inequalities','Graphs and transformations','Straight-line graphs','Trigonometric ratios, sine and cosine rules','Radians, arc length and sector area','Differentiation','Integration']},
@@ -700,6 +710,7 @@ const cloud = { ref:null, status:'local', db:null, id:null, user:null };
 let saveTimer = null, saving = false, dirty = false;
 
 function syncText(){
+  if (ACCT && cloud.ref) return 'Your progress is saved to your account, privately. Sign in on another device and it carries over.';
   if (STANDALONE) return 'Your progress is saved in this browser on this device, and stays private to you. Download a backup now and then; you can restore it on another device or browser.';
   return (cloud.status === 'synced' || cloud.ref) ? 'Your progress is saved to your Claude account, privately. Open this page signed in on another device and it carries over.' : 'Progress is saved in this browser. Open the page while signed in to Claude to sync it across devices.';
 }
@@ -707,7 +718,7 @@ function setSync(s){
   cloud.status = s;
   const el = $('#sync'); if (!el) return;
   el.dataset.s = s;
-  el.hidden = STANDALONE || s === 'local' || s === 'slow';
+  el.hidden = LOCAL_ONLY || s === 'local' || s === 'slow';
   $('#sync-text').textContent = ({synced:'Synced', saving:'Saving…', pending:'Saving…', connecting:'Connecting…', local:'This device', slow:'This device'})[s] || 'This device';
   el.title = s === 'synced' ? 'Progress is saved to your account and syncs across devices' : 'Progress is saved in this browser';
 }
@@ -762,7 +773,7 @@ async function connectCloud(){
     } else if ((state.updatedAt || 0) > rU){
       scheduleSave(0);
     } else setSync('synced');
-    buddyStart();
+    if (!STANDALONE) buddyStart();
     frStart();
     if (route() === 'prefs' || route() === 'today') render();
     ref.onSnapshot(s => {
@@ -1944,7 +1955,7 @@ function dataCard(){
 function viewSettings(){
   return '<div class="stack">' +
     '<div><h1>Settings</h1><p class="muted">Your profile, subjects, study habits and how the app looks.</p></div>' +
-    profileCard() + friendsCard() + mySubjectsCard() + habitsCard() + lookCard() + reminderCard() + buddySettings() + installCard() +
+    accountCard() + profileCard() + friendsCard() + mySubjectsCard() + habitsCard() + lookCard() + reminderCard() + buddySettings() + installCard() +
     ((state.linkReports || []).length ? '<div class="card stack"><div class="card-h"><h2>Broken links (' + state.linkReports.length + ')</h2></div><p class="small muted" style="margin:0">Links you reported. Copy the list and paste it to Claude, and they’ll be fixed in one go.</p><div class="list">' + state.linkReports.map(x => '<div class="li"><div class="grow"><div class="t">' + esc(x.where) + '</div><div class="small muted">Reported ' + fmtDate(x.at, {day:'numeric', month:'short'}) + '</div></div><button class="x" data-act="report-del" data-id="' + x.id + '" aria-label="Remove report">×</button></div>').join('') + '</div><div class="row"><button class="btn primary" data-act="report-copy">Copy list</button><button class="btn ghost" data-act="report-clear">Clear all</button></div><textarea readonly rows="3" aria-label="Broken links list">' + esc(reportsText()) + '</textarea></div>' : '') +
     dataCard() + '</div>';
 }
@@ -3127,11 +3138,124 @@ function peerCard(x, kind){
     (kind === 'req' ? '<div class="row" style="margin-top:8px"><button class="btn sm primary" data-act="fr-accept" data-id="' + esc(x.id) + '">Accept</button><button class="btn sm ghost" data-act="fr-ignore" data-id="' + esc(x.id) + '">Ignore</button></div>' : '') +
     '</div>' + (kind === 'friend' ? '<button class="x" aria-label="Remove ' + esc(p.n || 'friend') + '" data-act="fr-remove" data-id="' + esc(x.id) + '">×</button>' : '') + '</div>';
 }
+/* ============================================================
+   Accounts for the GitHub version (Firebase: Google sign-in + Firestore).
+   Only active when the standalone build carries window.__FB_CONFIG__.
+   Signed in, it gives the rest of the app the same db/user interface the
+   claude.ai version has, so sync, Friends and Study buddies all work.
+   ============================================================ */
+const FB_V = '13.3.0';
+const FB = { ready: false, user: null, auth: null, A: null, F: null, fs: null, busy: false, err: '' };
+function fbHint(){ try { return localStorage.getItem('ial-fb-in') === '1'; } catch(e){ return false; } }
+function fbSkipped(){ try { return localStorage.getItem('ial-fb-skip') === '1'; } catch(e){ return false; } }
+function needLogin(){ return ACCT && !FB.user && !fbSkipped() && !(fbHint() && !FB.ready); }
+function fbErr(e){ const c = String(e && e.code || '').replace(/^firestore\//, '').replace(/-/g, '_'); const x = new Error(e && e.message || c); x.code = c; return x; }
+function fbWrapDoc(s){ return { id: s.id, exists: s.exists(), data: () => s.data(), metadata: s.metadata }; }
+function fbDb(){
+  const F = FB.F, db = FB.fs;
+  const doc = p => { const r = F.doc(db, p); return {
+    get: () => F.getDoc(r).then(fbWrapDoc, e => { throw fbErr(e); }),
+    set: d => F.setDoc(r, d).catch(e => { throw fbErr(e); }),
+    delete: () => F.deleteDoc(r).catch(e => { throw fbErr(e); }),
+    onSnapshot: (cb, err) => F.onSnapshot(r, s => cb(fbWrapDoc(s)), e => err && err(fbErr(e)))
+  }; };
+  const collection = p => ({
+    onSnapshot: (cb, err) => F.onSnapshot(F.collection(db, p), s => cb({ docs: s.docs.map(fbWrapDoc), metadata: s.metadata }), e => err && err(fbErr(e)))
+  });
+  return { doc, collection };
+}
+async function fbInit(){
+  if (!ACCT) return;
+  try {
+    const base = 'https://www.gstatic.com/firebasejs/' + FB_V + '/';
+    const [app, A, F] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+    const a = app.initializeApp(FB_CONFIG);
+    FB.A = A; FB.F = F; FB.auth = A.getAuth(a); FB.fs = F.getFirestore(a);
+    try { await A.getRedirectResult(FB.auth); } catch(e){ FB.err = fbMsg(e); }
+    A.onAuthStateChanged(FB.auth, u => {
+      const was = FB.user && FB.user.uid;
+      FB.user = u; FB.ready = true;
+      try { if (u) localStorage.setItem('ial-fb-in', '1'); else localStorage.removeItem('ial-fb-in'); } catch(e){}
+      if (u && u.uid !== was){
+        const pr = prof();
+        if (!pr.name && u.displayName){ pr.name = u.displayName.slice(0, 40); saveLocal(); }
+        const user = { id: async () => u.uid, profiles: async () => ({}) };
+        window.claude = { use: async n => n === 'db' ? fbDb() : n === 'user' ? user : null };
+        connectCloud();
+      }
+      render();
+    });
+  } catch(e){ FB.ready = true; FB.err = 'Couldn’t load sign-in. Check your internet connection and refresh.'; render(); }
+}
+function fbMsg(e){
+  const c = String(e && e.code || '');
+  if (/popup-closed|cancelled-popup|user-cancelled/.test(c)) return '';
+  if (/network/.test(c)) return 'No internet connection. Try again when you’re online.';
+  if (/unauthorized-domain/.test(c)) return 'Sign-in isn’t set up for this web address yet.';
+  if (/account-exists-with-different-credential/.test(c)) return 'You already have an account with that email using a different sign-in. Use that one.';
+  return 'Sign-in didn’t work. Please try again.';
+}
+async function fbSignIn(){
+  if (!FB.auth || FB.busy) return;
+  FB.busy = true; FB.err = ''; render();
+  const p = new FB.A.GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' });
+  try { await FB.A.signInWithPopup(FB.auth, p); try { localStorage.removeItem('ial-fb-skip'); } catch(e){} }
+  catch(e){
+    if (/popup-blocked|operation-not-supported/.test(String(e && e.code))){ try { await FB.A.signInWithRedirect(FB.auth, p); return; } catch(e2){ FB.err = fbMsg(e2); } }
+    else FB.err = fbMsg(e);
+  }
+  FB.busy = false; render();
+}
+function fbForgetDevice(){
+  try { localStorage.removeItem(LS_KEY); localStorage.removeItem('ial-fb-in'); } catch(e){}
+}
+async function fbSignOut(){
+  if (!FB.auth) return;
+  clearTimeout(saveTimer); if (dirty) { try { await flush(); } catch(e){} }
+  if (FR.unsub){ try { FR.unsub(); } catch(e){} FR.unsub = null; }
+  await FB.A.signOut(FB.auth);
+  fbForgetDevice(); location.hash = ''; location.reload();
+}
+async function fbDelete(){
+  const u = FB.user; if (!u) return;
+  if (!confirm('Delete your account? This permanently removes your saved progress, profile and friends from IAL Revise, on every device. It can’t be undone.')) return;
+  const db = fbDb();
+  try {
+    await Promise.all(['data/users/' + u.uid + '/state', 'cards/' + u.uid, 'buddies/' + u.uid].map(p => db.doc(p).delete().catch(() => {})));
+    try { await u.delete(); }
+    catch(e){
+      if (/requires-recent-login/.test(String(e && e.code))){ await FB.A.reauthenticateWithPopup(u, new FB.A.GoogleAuthProvider()); await u.delete(); }
+      else throw e;
+    }
+    fbForgetDevice(); location.hash = ''; location.reload();
+  } catch(e){ toast('Couldn’t delete the account. Try again, or sign out and back in first.'); }
+}
+const G_LOGO = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+function gButton(label){ return '<button class="gbtn" data-act="fb-in"' + (!FB.ready || FB.busy ? ' disabled' : '') + '>' + G_LOGO + '<span>' + (FB.busy ? 'Signing in…' : !FB.ready ? 'Loading…' : (label || 'Continue with Google')) + '</span></button>'; }
+function viewLogin(){
+  return '<div class="login stack">' +
+    '<div><h1>Sign in to IAL Revise</h1><p class="muted" style="margin:6px 0 0">Past papers, notes, flashcards, a planner and grade tracking for Pearson Edexcel International A Level.</p></div>' +
+    '<ul class="loginperks"><li>Your progress follows you to any phone, tablet or computer</li><li>Add friends and see each other’s subjects</li><li>Nothing lost if you clear your browser</li></ul>' +
+    gButton() +
+    (FB.err ? '<p class="small warnline" role="alert" style="margin:0">' + esc(FB.err) + '</p>' : '') +
+    '<button class="linkbtn" data-act="fb-skip">Continue without an account</button>' +
+    '<p class="small muted" style="margin:0">Without an account, progress stays in this browser only. Signing in saves your email, name and study progress so they can sync. We never sell or share it, and you can delete it any time in Settings. <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>' +
+  '</div>';
+}
+function accountCard(){
+  if (!ACCT) return '';
+  const u = FB.user;
+  if (!u) return '<div class="card stack"><div class="card-h"><h2>Account</h2></div><p class="small muted" style="margin:0">Sign in to keep your progress safe and use it on any device. Your progress on this device moves into your account.</p>' + gButton() + (FB.err ? '<p class="small warnline" style="margin:0">' + esc(FB.err) + '</p>' : '') + '</div>';
+  return '<div class="card stack"><div class="card-h"><h2>Account</h2><span class="pill good">' + (cloud.status === 'synced' ? 'Synced' : cloud.status === 'saving' || cloud.status === 'pending' ? 'Saving…' : 'Signed in') + '</span></div>' +
+    '<div class="row" style="gap:10px;align-items:center">' + G_LOGO + '<div class="grow" style="min-width:0"><div class="small muted">Signed in with Google</div><div style="overflow-wrap:anywhere"><b>' + esc(u.email || u.displayName || '') + '</b></div></div></div>' +
+    '<div class="row"><button class="btn" data-act="fb-out">Sign out</button><button class="btn ghost danger" data-act="fb-del">Delete account</button></div>' +
+    '<p class="small muted" style="margin:0">Signing out also removes your progress from this browser (it stays safe in your account). Use this on shared computers.</p></div>';
+}
 function friendsCard(){
-  if (STANDALONE) return '';
+  if (LOCAL_ONLY) return '';
   const on = frOn(), f = frState();
   const head = '<div class="card stack" id="friends"><div class="card-h"><h2>Friends</h2>' + (on ? '<span class="pill good">On</span>' : '') + '</div>';
-  if (!cloud.db) return head + '<p class="small muted" style="margin:0">Friends needs you to be signed in on claude.ai. Open the site there to add friends.</p></div>';
+  if (!cloud.db) return head + '<p class="small muted" style="margin:0">' + (ACCT ? 'Sign in under Account (above) to add friends.' : 'Friends needs you to be signed in on claude.ai. Open the site there to add friends.') + '</p></div>';
   if (!on) return head + '<p class="small muted" style="margin:0">Add classmates with a friend code and see each other’s name, school and subjects. Only friends you’ve added can see your profile: it’s locked so that nobody else, not even the site owner, can read it.</p>' +
     (hasProfile() ? '' : '<p class="small" style="margin:0">Add your name in Profile first so friends know it’s you.</p>') +
     '<div class="row"><button class="btn primary" data-act="fr-on"' + (hasProfile() ? '' : ' disabled') + '>Turn on Friends</button></div></div>';
@@ -3147,11 +3271,11 @@ function friendsCard(){
     '<div><b>Your friends' + (L.friends.length ? ' (' + L.friends.length + ')' : '') + '</b>' + (L.friends.length ? '<div class="frlist">' + L.friends.map(x => peerCard(x, 'friend')).join('') + '</div>' : '<p class="small muted" style="margin:4px 0 0">' + (FR.status === 'loading' ? 'Loading…' : 'No friends yet. Swap codes with a classmate: you add theirs, they accept.') + '</p>') + '</div>' +
     (L.waiting.length ? '<div class="small muted">Waiting for ' + L.waiting.map(x => '<span class="frwait">' + esc(frFmt(x.code) || 'a friend') + ' <button class="linkbtn small" data-act="fr-cancel" data-id="' + esc(x.id) + '">Cancel</button></span>').join(', ') + ' to accept.</div>' : '') +
     '<details class="small"' + (ui.frShareOpen ? ' open' : '') + '><summary style="cursor:pointer;font-weight:700">What friends see</summary><p class="muted" style="margin:6px 0">Your name and avatar colour, plus anything you tick:</p><div class="chips">' + chk('school', 'School') + chk('subj', 'Subjects') + chk('year', 'Year') + chk('photo', 'Photo') + '</div>' +
-      '<p class="muted" style="margin:6px 0 0">Friends see your profile as it is now, and it updates when you change it. Your marks, mistakes and notes are never shared. Your friend needs access to this site too: the owner invites them with Share (as Editor).</p></details>' +
+      '<p class="muted" style="margin:6px 0 0">Friends see your profile as it is now, and it updates when you change it. Your marks, mistakes and notes are never shared. ' + (ACCT ? 'Your friend needs to sign in too.' : 'Your friend needs access to this site too: the owner invites them with Share (as Editor).') + '</p></details>' +
     '<div class="row"><button class="btn ghost sm" data-act="fr-off">Turn off Friends</button></div></div>';
 }
 function friendReqCard(){
-  if (STANDALONE || !frOn()) return '';
+  if (LOCAL_ONLY || !frOn()) return '';
   const r = frLists().requests; if (!r.length) return '';
   return '<div class="card stack"><div class="card-h"><h2>Friend request' + (r.length > 1 ? 's' : '') + '</h2></div><div class="frlist">' + r.slice(0, 3).map(x => peerCard(x, 'req')).join('') + '</div></div>';
 }
@@ -3446,7 +3570,8 @@ function render(){
   $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && r === 'cards') ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
   $('#nav-settings').setAttribute('aria-current', r === 'prefs' ? 'page' : 'false'); { const ns = $('#nav-search'); if (ns) ns.setAttribute('aria-current', r === 'search' ? 'page' : 'false'); } fsSync();
   const v = { today:viewToday, cards:viewCards, quiz:viewQuiz, papers:viewPapers, syllabus:viewSyllabus, planner:viewPlanner, prefs:viewSettings, search:viewSearch, grades:viewGrades, mistakes:viewMistakes, setup:viewSetup }[r];
-  try { $('#view').innerHTML = mockBar() + (route() === 'today' && shouldWelcome() ? viewWelcome() : v()); }
+  const gate = needLogin(); document.body.classList.toggle('gate', gate);
+  try { $('#view').innerHTML = gate ? viewLogin() : mockBar() + (route() === 'today' && shouldWelcome() ? viewWelcome() : v()); }
   catch(err){ console.error(err); $('#view').innerHTML = '<div class="card" role="alert"><h2>Something went wrong on this page</h2><p class="muted">' + esc(String(err && err.message || err)) + '</p><div class="row"><button class="btn primary" data-act="err-reload">Reload</button></div></div>'; }
   try { tick(true); } catch(err){ console.error(err); }
   try { renderRet(); } catch(err){}
@@ -3532,6 +3657,10 @@ document.addEventListener('click', e => {
     case 'fr-ignore': frDrop(id); break;
     case 'fr-remove': frDrop(id); toast('Removed. They can no longer see your profile.'); break;
     case 'fr-cancel': delete frState().friends[id]; commit(); frPublish(); break;
+    case 'fb-in': fbSignIn(); break;
+    case 'fb-skip': try { localStorage.setItem('ial-fb-skip', '1'); } catch(e){} FB.err = ''; render(); window.scrollTo(0, 0); break;
+    case 'fb-out': fbSignOut(); break;
+    case 'fb-del': fbDelete(); break;
     case 'nx-more': ui.nxMore = !ui.nxMore; render(); break;
     case 'ed-preview': ui.edPreview = true; render(); window.scrollTo(0, 0); break;
     case 'ed-close': ui.edPreview = false; render(); window.scrollTo(0, 0); break;
@@ -3813,6 +3942,7 @@ document.addEventListener('click', e => { const a = e.target.closest && e.target
 
 render();
 connectCloud();
+fbInit();
 </script>
 <script>
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
