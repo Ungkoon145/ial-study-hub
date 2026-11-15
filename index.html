@@ -125,6 +125,13 @@ details.howto{display:inline}details.howto>summary{display:inline;cursor:pointer
 .loginperks{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .btn.danger{color:var(--bad)}
 body.gate #tabs,body.gate #nav-search,body.gate #nav-settings,body.gate #fs-btn,body.gate #ret{display:none !important}
+.schoolpick{position:relative}
+div.f.schoolpick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted);font-weight:500;flex:1;min-width:140px}
+.sclist .t{color:var(--ink);font-size:.95rem;font-weight:600}.grid2.tight .sclist span.small{font-size:.8rem}
+.sclist{position:absolute;left:0;right:0;top:100%;z-index:30;margin:4px 0 0;padding:4px;list-style:none;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:300px;overflow:auto}
+.sclist li{display:flex;flex-direction:column;gap:1px;padding:8px 10px;border-radius:8px;cursor:pointer}
+.sclist li[aria-selected="true"],.sclist li[data-sc]:hover{background:var(--soft)}
+.sclist .scnone{cursor:default;color:var(--muted);font-size:.85rem}
 .frcode{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:12px;background:var(--soft)}
 .frbig{font-size:1.6rem;font-weight:800;letter-spacing:.12em}
 .frlist{display:flex;flex-direction:column;gap:8px;margin-top:6px}
@@ -547,6 +554,7 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 <script src="tips.js"></script>
 <script src="practicals.js"></script>
 <script src="keyphrases.js"></script>
+<script src="schools.js"></script>
 <script>
 /* ============================================================
    CONTENT: Pearson Edexcel International A Level units
@@ -1676,14 +1684,56 @@ function profileForm(where){
       (p.photo ? '' : '<div class="chips avcols" role="group" aria-label="Avatar colour">' + AV_COLORS.map(c => '<button type="button" class="avc" data-act="pf-color" data-v="' + c + '" style="background:' + c + '" aria-label="Colour" aria-pressed="' + (avatarColor() === c) + '"></button>').join('') + '</div>') + '</div></div>' +
     '<div class="grid2 tight">' +
       '<label class="f"><span>Name or nickname</span><input type="text" id="pf-name" maxlength="40" value="' + esc(p.name) + '" placeholder="e.g. Ploy"></label>' +
-      '<label class="f"><span>School <span class="muted">(optional)</span></span><input type="text" id="pf-school" maxlength="80" value="' + esc(p.school) + '" placeholder="e.g. Bangkok International School"></label>' +
+      '<div class="f schoolpick"><label for="pf-school">School <span class="muted">(optional)</span></label><input type="text" id="pf-school" maxlength="80" value="' + esc(p.school) + '" placeholder="Start typing, in English or Thai" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pf-school-list" autocomplete="off"><ul id="pf-school-list" class="sclist" role="listbox" hidden></ul></div>' +
       '<label class="f"><span>Year</span><select id="pf-year"><option value="">Choose…</option>' + YEAR_OPTS.map(([v, l]) => '<option value="' + v + '"' + (p.year === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label>' +
       '<label class="f"><span>Main exam session</span><select id="pf-session"><option value="">Not decided</option>' + sess.map(s => '<option' + (p.session === s ? ' selected' : '') + '>' + s + '</option>').join('') + (p.session && !sess.includes(p.session) ? '<option selected>' + esc(p.session) + '</option>' : '') + '</select></label>' +
     '</div>' +
     '<label class="f"><span>University or career goal <span class="muted">(optional)</span></span><input type="text" id="pf-goal" maxlength="100" value="' + esc(p.goal) + '" placeholder="e.g. Medicine, needs A*AA"></label>' +
-    '<p class="small muted" style="margin:0">Saved only for you, with the rest of your progress. It’s never shared, and your photo isn’t shown to study buddies.</p>' +
+    '<p class="small muted" style="margin:0">Saved privately with your progress. Only friends you add can see your name and school, and you choose what they see in Friends.</p>' +
     '<div class="row">' + (where === 'welcome' ? '<button class="btn primary" type="submit">Next</button><button class="btn ghost" type="button" data-act="wel-skip0">Skip for now</button>' : '<button class="btn primary" type="submit">Save profile</button>' + (where === 'nudge' ? '<button class="btn ghost" type="button" data-act="pf-later">Not now</button>' : '') + (where === 'settings' && hasProfile() ? '<button class="btn ghost danger" type="button" data-act="pf-clear">' + (ui.confirm === 'pf-clear' ? 'Tap again to clear' : 'Clear profile') + '</button>' : '')) + '</div></form>';
 }
+/* ---- School picker (profile): search SCHOOLS by English or Thai name, or keep typing your own ---- */
+const SC = { hits: [], idx: -1 };
+function scNorm(t){ return String(t || '').toLowerCase().replace(/[.,'’()\-–]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function scSearch(q){
+  if (typeof SCHOOLS === 'undefined') return [];
+  const n = scNorm(q); if (n.length < 2) return [];
+  const toks = n.split(' ');
+  const scored = [];
+  SCHOOLS.forEach(x => {
+    const hay = scNorm(x[0] + ' ' + x[1] + ' ' + x[2]);
+    if (!toks.every(t => hay.includes(t))) return;
+    const en = scNorm(x[0]), th = scNorm(x[1]);
+    scored.push([en.startsWith(n) || th.startsWith(n) || th.replace(/^โรงเรียน/, '').startsWith(n) ? 0 : 1, x]);
+  });
+  return scored.sort((a, b) => a[0] - b[0] || a[1][0].length - b[1][0].length || a[1][0].localeCompare(b[1][0])).slice(0, 8).map(a => a[1]);
+}
+function scRender(){
+  const ul = $('#pf-school-list'), inp = $('#pf-school'); if (!ul || !inp) return;
+  const q = inp.value.trim();
+  if (!SC.hits.length){
+    const show = scNorm(q).length >= 2 && !SCHOOLS.some(x => x[0] === q);
+    ul.hidden = !show; inp.setAttribute('aria-expanded', String(show));
+    ul.innerHTML = show ? '<li class="scnone">Not in the list? That’s fine: what you type is saved as your school.</li>' : '';
+    return;
+  }
+  ul.hidden = false; inp.setAttribute('aria-expanded', 'true');
+  ul.innerHTML = SC.hits.map((x, i) => '<li role="option" id="sc-' + i + '" data-sc="' + i + '" aria-selected="' + (i === SC.idx) + '"><span class="t">' + esc(x[0]) + '</span>' + (x[1] || x[2] ? '<span class="small muted">' + esc([x[1], x[2]].filter(Boolean).join(' · ')) + '</span>' : '') + '</li>').join('');
+  if (SC.idx >= 0) inp.setAttribute('aria-activedescendant', 'sc-' + SC.idx); else inp.removeAttribute('aria-activedescendant');
+}
+function scClose(){ SC.hits = []; SC.idx = -1; const ul = $('#pf-school-list'), inp = $('#pf-school'); if (ul){ ul.hidden = true; ul.innerHTML = ''; } if (inp) inp.setAttribute('aria-expanded', 'false'); }
+function scPick(i){ const x = SC.hits[i], inp = $('#pf-school'); if (!x || !inp) return; inp.value = x[0]; scClose(); }
+document.addEventListener('input', e => { if (e.target && e.target.id === 'pf-school'){ SC.hits = scSearch(e.target.value); SC.idx = -1; scRender(); } });
+document.addEventListener('keydown', e => {
+  if (!e.target || e.target.id !== 'pf-school') return;
+  const open = SC.hits.length > 0;
+  if (e.key === 'ArrowDown' && open){ e.preventDefault(); SC.idx = (SC.idx + 1) % SC.hits.length; scRender(); }
+  else if (e.key === 'ArrowUp' && open){ e.preventDefault(); SC.idx = (SC.idx - 1 + SC.hits.length) % SC.hits.length; scRender(); }
+  else if (e.key === 'Enter' && open && SC.idx >= 0){ e.preventDefault(); scPick(SC.idx); }
+  else if (e.key === 'Escape'){ scClose(); }
+});
+document.addEventListener('mousedown', e => { const li = e.target.closest && e.target.closest('#pf-school-list [data-sc]'); if (li){ e.preventDefault(); scPick(+li.dataset.sc); } else if (!(e.target.closest && e.target.closest('.schoolpick'))) scClose(); });
+document.addEventListener('focusout', e => { if (e.target && e.target.id === 'pf-school') setTimeout(scClose, 150); });
 function pfRead(){ const p = prof(), g = id => $('#' + id); if (!g('pf-name')) return; p.name = g('pf-name').value.trim().slice(0, 40); p.school = g('pf-school').value.trim().slice(0, 80); p.year = g('pf-year').value; p.session = g('pf-session').value; p.goal = g('pf-goal').value.trim().slice(0, 100); }
 function profileSave(f){
   const p = prof(), v = id => ($('#' + id) || {}).value || '';
