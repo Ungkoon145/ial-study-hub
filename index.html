@@ -20,7 +20,7 @@
   --bg:#f3f5f8; --surface:#ffffff; --ink:#14213a; --muted:#5a6880; --line:#dde3ec;
   --primary:#19325c; --on-primary:#ffffff; --hi:#f0b429; --soft:#e9eef6;
   --good:#2b8a3e; --warn:#d9480f; --bad:#c2255c;
-  --math:#4058e0; --fm:#8a3fd1; --phys:#e0702a; --chem:#0e9384; --bio:#3f8f2f;
+  --math:#4058e0; --fm:#8a3fd1; --phys:#e0702a; --chem:#0e9384; --bio:#3f8f2f; --econ:#c0392b; --geog:#8a6a2e; --psych:#c2367f; --cs:#4b5a70;
   --display:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
   --body:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
   --mono:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
@@ -32,7 +32,7 @@
     --bg:#0d1320; --surface:#151d2c; --ink:#e7ecf4; --muted:#95a3b9; --line:#253149;
     --primary:#f0b429; --on-primary:#141a26; --hi:#f0b429; --soft:#1c2638;
     --good:#51cf66; --warn:#ff922b; --bad:#f06595;
-    --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f;
+    --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f; --econ:#f07b6e; --geog:#d1ad6c; --psych:#f07fbb; --cs:#a3b2c7;
     color-scheme: dark;
   }
 }
@@ -40,7 +40,7 @@
   --bg:#0d1320; --surface:#151d2c; --ink:#e7ecf4; --muted:#95a3b9; --line:#253149;
   --primary:#f0b429; --on-primary:#141a26; --hi:#f0b429; --soft:#1c2638;
   --good:#51cf66; --warn:#ff922b; --bad:#f06595;
-  --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f;
+  --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f; --econ:#f07b6e; --geog:#d1ad6c; --psych:#f07fbb; --cs:#a3b2c7;
   color-scheme: dark;
 }
 *{box-sizing:border-box}
@@ -96,6 +96,10 @@ main{padding:20px 0 120px}
 .pill.s-phys{background:color-mix(in srgb,var(--phys) 16%,transparent);color:var(--phys)}
 .pill.s-chem{background:color-mix(in srgb,var(--chem) 16%,transparent);color:var(--chem)}
 .pill.s-bio{background:color-mix(in srgb,var(--bio) 16%,transparent);color:var(--bio)}
+.pill.s-econ{background:color-mix(in srgb,var(--econ) 16%,transparent);color:var(--econ)}
+.pill.s-geog{background:color-mix(in srgb,var(--geog) 16%,transparent);color:var(--geog)}
+.pill.s-psych{background:color-mix(in srgb,var(--psych) 16%,transparent);color:var(--psych)}
+.pill.s-cs{background:color-mix(in srgb,var(--cs) 16%,transparent);color:var(--cs)}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:600;font-size:.92rem;text-decoration:none;color:var(--ink);min-height:40px}
 .btn:hover{border-color:var(--muted)}
@@ -544,6 +548,30 @@ const SUBJECTS = [
   {c:'WBI14', l:'Unit 4', n:'Energy, Environment, Microbiology and Immunity', t:['Photosynthesis','Energy transfer in ecosystems','Ecology and succession','Climate change','Evolution and speciation','Microbiology and growth curves','Immune response','Antibiotics and resistance','Forensics: DNA profiling and time of death']},
   {c:'WBI15', l:'Unit 5', n:'Respiration, Internal Environment, Coordination and Gene Technology', t:['Aerobic and anaerobic respiration','Muscles and movement','Control of heart rate and ventilation','Homeostasis: thermoregulation and the kidney','Nervous transmission and action potentials','Synapses and drugs','The brain and imaging','Plant responses','Gene technology and epigenetics']},
   {c:'WBI16', l:'Unit 6', n:'Practical Skills in Biology II', t:['Core practicals, Units 4–5','Statistical tests','Planning investigations','Evaluating methods']}
+ ]},
+ {id:'econ', name:'Economics', short:'Economics', units:[
+  {c:'WEC11', l:'Unit 1', n:'Markets in Action', t:['Introductory concepts: scarcity, PPFs, specialisation','Consumer behaviour, demand and elasticities','Supply and price elasticity of supply','Price determination and the price mechanism','Market failure: externalities, public goods, information gaps','Government intervention and government failure']},
+  {c:'WEC12', l:'Unit 2', n:'Macroeconomic Performance and Policy', t:['Measures of economic performance','Aggregate demand','Aggregate supply','National income and the multiplier','Economic growth and the economic cycle','Macroeconomic objectives and policies']},
+  {c:'WEC13', l:'Unit 3', n:'Business Behaviour', t:['Types and sizes of businesses, growth and objectives','Revenue, costs and profits','Market structures: perfect competition to monopoly','Oligopoly, contestability and efficiency','Labour markets','Government intervention: competition policy and regulation']},
+  {c:'WEC14', l:'Unit 4', n:'Developments in the Global Economy', t:['Causes and effects of globalisation','Trade and the global economy','Balance of payments, exchange rates and competitiveness','Poverty and inequality','The role of the state in the macroeconomy','Growth and development in developing, emerging and developed economies']}
+ ]},
+ {id:'geog', name:'Geography', short:'Geography', units:[
+  {c:'WGE01', l:'Unit 1', n:'Global Challenges', t:['World at Risk: global hazards and their causes','World at Risk: hazard distribution and trends','World at Risk: climate change, causes and impacts','World at Risk: managing hazard and climate risk','Going Global: globalisation and global organisations','Going Global: winners and losers, population and resources','Going Global: migration and urbanisation']},
+  {c:'WGE02', l:'Unit 2', n:'Geographical Investigations', t:['Crowded Coasts: the coastal zone and coastal processes','Crowded Coasts: landforms, ecosystems and managing coastal change','Urban Problems: environmental and social problems in cities','Urban Problems: transport, housing and urban regeneration','Fieldwork and research methods']},
+  {c:'WGE03', l:'Unit 3', n:'Contested Planet', t:['Atmosphere and Weather Systems','Biodiversity Under Threat','Option: Energy Security or Water Conflicts','Option: Superpower Geographies or Bridging the Development Gap','Synoptic and essay skills']},
+  {c:'WGE04', l:'Unit 4', n:'Researching Geography', t:['Your chosen option: Tectonic Activity and Hazards, Feeding the World’s People, Cultural Diversity, or Human Health and Disease','Planning the research question','Sources and research methods','Evaluating evidence and writing the report']}
+ ]},
+ {id:'psych', name:'Psychology', short:'Psychology', units:[
+  {c:'WPS01', l:'Unit 1', n:'Social and Cognitive Psychology', t:['Social: obedience and agency theory','Social: prejudice and social identity theory','Social: classic and contemporary studies','Cognitive: models of memory','Cognitive: classic and contemporary studies','Research methods: questionnaires, interviews, experiments','Social and cognitive practical investigations']},
+  {c:'WPS02', l:'Unit 2', n:'Biological Psychology, Learning Theories and Development', t:['Biological: the brain, neurotransmitters and aggression','Biological: genes, evolution and hormones','Biological: classic and contemporary studies','Learning: classical and operant conditioning','Learning: social learning theory and therapies','Research methods: correlations, observations, statistics','Biological and learning practical investigations']},
+  {c:'WPS03', l:'Unit 3', n:'Applications of Psychology', t:['Developmental psychology: attachment and deprivation','Developmental psychology: studies, methods and practical','Option: criminological psychology','Option: health psychology','Issues and debates in developmental psychology']},
+  {c:'WPS04', l:'Unit 4', n:'Clinical Psychology and Psychological Skills', t:['Diagnosing mental disorders','Schizophrenia: explanations and treatments','A second disorder: explanations and treatments','Clinical studies and research methods','Psychological skills: methods and data analysis','Issues and debates (synoptic)']}
+ ]},
+ {id:'cs', name:'Computer Science', short:'Comp Sci', units:[
+  {c:'WCP01', l:'Unit 1', n:'Principles of Computer Science', t:['Computer systems','Data representation','Networks and encryption','Structuring data','Problem solving','Enabling technologies']},
+  {c:'WCP02', l:'Unit 2', n:'Practical Programming and Problem-solving', t:['Programming in Python 3','Organising and handling data','Best practice','Computational thinking and algorithms']},
+  {c:'WCP03', l:'Unit 3', n:'Advanced Principles of Computer Science', t:['Computer systems and data representation','Networks and cybersecurity','Programming languages','Structuring data','Problem solving','Emerging technologies and professional practice']},
+  {c:'WCP04', l:'Unit 4', n:'Advanced Practical Programming and Problem-solving', t:['Programming','Representing and handling data','Best practice','Additional programming paradigms','Algorithms']}
  ]}
 ];
 
@@ -557,6 +585,10 @@ const RES = (() => {
   [['phys','WPH1','a-level-physics','physics-revision'], ['chem','WCH1','a-level-chemistry','chemistry-revision'], ['bio','WBI1','a-level-biology','biology-revision']].forEach(([, pre, papers, rev]) => {
     for (let n = 1; n <= 6; n++) r[pre + n] = { papers: PMT + 'past-papers/' + papers + '/edexcel-unit-' + n + '/', notes: PMT + rev + '/a-level-edexcel-ial/' };
   });
+  [['WEC1', 'a-level-economics/edexcel-unit-'], ['WGE0', 'a-level-geography/edexcel-unit-'], ['WPS0', 'a-level-psychology/edexcel-ial-paper-']].forEach(([pre, path]) => {
+    for (let n = 1; n <= 4; n++) r[pre + n] = { papers: PMT + 'past-papers/' + path + n + '/' };
+  });
+  for (let n = 1; n <= 4; n++) r['WCP0' + n] = { papers: 'https://qualifications.pearson.com/en/qualifications/edexcel-international-advanced-levels/computer-science-2026.html' };
   return r;
 })();
 function resLinks(code, compact){
@@ -564,7 +596,7 @@ function resLinks(code, compact){
   return '<div class="row res">' +
     (typeof PAPERS !== 'undefined' && PAPERS[code] ? '<button class="btn' + (compact ? ' sm' : '') + '" data-act="goto-papers" data-u="' + code + '">Past papers (' + PAPERS[code].length + ')</button>' : '') +
     '<a class="btn' + (compact ? ' sm' : '') + '" href="#syllabus" data-act="goto-rev" data-u="' + code + '">Notes &amp; questions</a>' + bookletBtn(code, compact) +
-    (compact ? '' : '<span class="small muted">PDFs from Physics &amp; Maths Tutor</span>') + '</div>';
+    (compact ? '' : '<span class="small muted">' + (/^WCP/.test(code) ? 'New course: first exams 2027. Sample papers from Pearson' : 'PDFs from Physics &amp; Maths Tutor') + '</span>') + '</div>';
 }
 
 const CARDS = typeof KEY_CARDS !== 'undefined' ? KEY_CARDS : []; // mark-scheme phrase cards (keyphrases.js); decks come from PMT
@@ -1328,11 +1360,14 @@ function viewSettings(){
    ============================================================ */
 const GBS = typeof GB !== 'undefined' ? GB : {};
 const GB_SERIES = Object.keys(GBS).sort((a, b) => seriesSortKey(a) - seriesSortKey(b));
-const A2 = new Set(['WMA13','WMA14','WFM02','WFM03','WME02','WME03','WST02','WST03','WPH14','WPH15','WPH16','WCH14','WCH15','WCH16','WBI14','WBI15','WBI16']);
+const A2 = new Set(['WMA13','WMA14','WFM02','WFM03','WME02','WME03','WST02','WST03','WPH14','WPH15','WPH16','WCH14','WCH15','WCH16','WBI14','WBI15','WBI16','WEC13','WEC14','WGE03','WGE04','WPS03','WPS04','WCP03','WCP04']);
 const PAPER_MIN = {};
 SUBJECTS.forEach(s => s.units.forEach(u => { const n = +u.c.slice(-1); PAPER_MIN[u.c] = (s.id === 'math' || s.id === 'fm') ? 90 : (n === 3 || n === 6) ? 80 : (n === 4 || n === 5) ? 105 : 90; }));
+/* 4-unit subjects: exam length (min) and maximum UMS, from the Pearson specifications */
+const UNIT4_INFO = { WEC11:[105,100], WEC12:[105,100], WEC13:[120,100], WEC14:[120,100], WGE01:[105,120], WGE02:[90,80], WGE03:[120,120], WGE04:[90,80], WPS01:[90,80], WPS02:[120,120], WPS03:[90,80], WPS04:[120,120], WCP01:[90,100], WCP02:[180,100], WCP03:[90,100], WCP04:[180,100] };
+Object.entries(UNIT4_INFO).forEach(([c, [m]]) => { PAPER_MIN[c] = m; });
 function isMathsUnit(c){ return UNIT_SUBJ[c] === 'math' || UNIT_SUBJ[c] === 'fm'; }
-function umsMax(c){ if (isMathsUnit(c)) return 100; const n = +c.slice(-1); return (n === 3 || n === 6) ? 60 : 120; }
+function umsMax(c){ if (isMathsUnit(c)) return 100; if (UNIT4_INFO[c]) return UNIT4_INFO[c][1]; const n = +c.slice(-1); return (n === 3 || n === 6) ? 60 : 120; }
 function fmtDur(m){ return Math.floor(m / 60) + 'h' + (m % 60 ? ' ' + (m % 60) + 'm' : ''); }
 function boundsFor(c, sr){
   if (GBS[sr] && GBS[sr][c]) return { b: GBS[sr][c], sr, est: false };
@@ -1375,14 +1410,14 @@ function unitValue(c){
 }
 function valsFor(codes){ const v = {}; codes.forEach(c => { const x = unitValue(c); if (x) v[c] = x.ums; }); return v; }
 
-/* ---------- Sciences: one fixed 6-unit qualification ---------- */
+/* ---------- Sciences (6 units) and 4-unit subjects: one fixed qualification ---------- */
 function sciAward(sid){
-  const codes = SUBJ[sid].units.map(u => u.c), vals = valsFor(codes);
-  const have = codes.filter(c => vals[c] !== undefined), max = 600;
-  const a2 = codes.slice(3), a2max = a2.reduce((a, c) => a + umsMax(c), 0);
+  const codes = SUBJ[sid].units.map(u => u.c), vals = valsFor(codes), half = codes.length / 2;
+  const have = codes.filter(c => vals[c] !== undefined), max = codes.reduce((a, c) => a + umsMax(c), 0);
+  const a2 = codes.slice(half), a2max = a2.reduce((a, c) => a + umsMax(c), 0);
   const res = { codes, vals, have, max };
-  const asC = codes.slice(0, 3);
-  if (asC.every(c => vals[c] !== undefined)) res.as = { total: sum(asC, vals), max: 300, grade: qualGrade(sum(asC, vals), 300) };
+  const asC = codes.slice(0, half), asMax = max - a2max;
+  if (asC.every(c => vals[c] !== undefined)) res.as = { total: sum(asC, vals), max: asMax, grade: qualGrade(sum(asC, vals), asMax) };
   if (!have.length) return res;
   const got = sum(have, vals), gotMax = have.reduce((a, c) => a + umsMax(c), 0);
   const complete = have.length === codes.length;
@@ -1530,7 +1565,7 @@ function viewGrades(){
     const shown = s.units.filter(u => !isHidden(u.c));
     let head;
     if (!a.have.length) head = '<div class="empty" style="padding:8px 0">No marks yet. Add a result from your results slip, or log a past paper and the app will estimate your UMS from it.</div>';
-    else head = '<div class="awards">' + awardCard((a.complete ? '' : 'Projected ') + 'IAL ' + s.name, a, a.complete ? 'All 6 units' : 'Based on ' + a.have.length + ' of 6 units, assuming you keep the same average (' + Math.round(a.pct * 100) + '%)') + awardCard('IAS ' + s.name, a.as, 'Units 1–3') + '</div>' +
+    else head = '<div class="awards">' + awardCard((a.complete ? '' : 'Projected ') + 'IAL ' + s.name, a, a.complete ? 'All ' + a.codes.length + ' units' : 'Based on ' + a.have.length + ' of ' + a.codes.length + ' units, assuming you keep the same average (' + Math.round(a.pct * 100) + '%)') + awardCard('IAS ' + s.name, a.as, 'Units 1–' + (a.codes.length / 2)) + '</div>' +
       targetLine(a, g.subj, s.short) + plannerHtml(Object.assign({}, a, { units: a.codes }), s.short, targetFor(g.subj));
     body = '<div class="card stack"><div class="row tpicks">' + targetPicker(g.subj, '') + '</div>' + head + '</div><div class="card"><div class="list">' + shown.map(unitRow).join('') + '</div></div>';
   }
@@ -1805,7 +1840,7 @@ function setupSave(){
 /* ============================================================
    Target grades · automatic topic progress · data protection
    ============================================================ */
-const TARGET_KEYS = [['math','Maths'],['fm','Further Maths'],['phys','Physics'],['chem','Chemistry'],['bio','Biology']];
+const TARGET_KEYS = [['math','Maths'],['fm','Further Maths'],['phys','Physics'],['chem','Chemistry'],['bio','Biology'],['econ','Economics'],['geog','Geography'],['psych','Psychology'],['cs','Computer Science']];
 function targetFor(k){ return (state.targets && state.targets[k]) || ''; }
 function targetLine(q, k, label){
   const tg = targetFor(k); if (!tg || !q) return '';
@@ -2134,9 +2169,13 @@ const QUICK_UNITS = {
   fm:   ['WFM01','WFM02','WFM03','WME02','WST02','WME03'],
   phys: ['WPH11','WPH12','WPH13','WPH14','WPH15','WPH16'],
   chem: ['WCH11','WCH12','WCH13','WCH14','WCH15','WCH16'],
-  bio:  ['WBI11','WBI12','WBI13','WBI14','WBI15','WBI16']
+  bio:  ['WBI11','WBI12','WBI13','WBI14','WBI15','WBI16'],
+  econ: ['WEC11','WEC12','WEC13','WEC14'],
+  geog: ['WGE01','WGE02','WGE03','WGE04'],
+  psych:['WPS01','WPS02','WPS03','WPS04'],
+  cs:   ['WCP01','WCP02','WCP03','WCP04']
 };
-function isASUnit(c){ return /^(WMA1[12]|WME01|WST01|WDM11|WFM01|W(PH|CH|BI)1[123])$/.test(c); }
+function isASUnit(c){ return /^(WMA1[12]|WME01|WST01|WDM11|WFM01|W(PH|CH|BI)1[123]|WEC1[12]|W(GE|PS|CP)0[12])$/.test(c); }
 function quickInit(){
   if (ui.quick) return ui.quick;
   const prevSubj = SUBJECTS.filter(s => s.units.some(u => !isHidden(u.c) && setupDone())).map(s => s.id);
