@@ -117,6 +117,16 @@ details.dropped>summary{cursor:pointer;color:var(--muted);padding:6px 0}
 details.howto{display:inline}details.howto>summary{display:inline;cursor:pointer;color:var(--ink);text-decoration:underline;font-size:.9em}details.howto[open]{display:block;margin-top:6px}
 .pill.ust{background:var(--soft);color:var(--muted)}.pill.ust.resit{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
 @media (max-width:640px){ .li .meta.pp3 .btn.sm{flex:1 1 auto;min-width:auto;padding:7px 4px;font-size:.8rem;white-space:nowrap} .li .meta.pp3 .btn.primary{flex:1.5 1 0} .li .meta.pp3 .btn.planbtn{flex:0 0 auto;padding:7px 10px} }
+#asksheet{position:fixed;inset:0;z-index:60;background:color-mix(in srgb,#000 45%,transparent);display:flex;align-items:flex-end;justify-content:center}
+#asksheet .askbox{background:var(--surface);color:var(--ink);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+@media (min-width:700px){ #asksheet{align-items:center} #asksheet .askbox{border-radius:18px} }
+body.asking{overflow:hidden}
+.askme{align-self:flex-end;max-width:90%;background:var(--soft);border-radius:14px 14px 4px 14px;padding:8px 12px;white-space:pre-wrap;font-size:.95rem}
+.askout{line-height:1.55;font-size:.98rem;overflow-wrap:anywhere}
+.askthumb{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.askbtn{border-color:color-mix(in srgb,var(--primary) 40%,var(--line))}
+.askrow{gap:8px;align-items:center}
+.sbch{margin:6px 0 10px}
 .pill.s-hist{background:color-mix(in srgb,var(--hist) 16%,transparent);color:var(--hist)}
 .pill.s-cs{background:color-mix(in srgb,var(--cs) 16%,transparent);color:var(--cs)}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
@@ -1177,7 +1187,7 @@ function viewPapers(){
     const avg = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length * 100) : null;
     const best = pcts.length ? Math.round(Math.max(...pcts) * 100) : null;
     const byDate = logged.slice().sort((a, b) => (a[1].d || '').localeCompare(b[1].d || '')).slice(-10);
-    stats = '<div class="card stack" style="gap:12px"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="code muted">' + u.c + '</div><h2>' + esc(u.l + ' ' + u.n) + '</h2></div>' + resLinks(u.c, true).replace(/<button[^>]*goto-papers[^>]*>[^<]*<\/button>/, '') + '</div>' +
+    stats = '<div class="card stack" style="gap:12px"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="code muted">' + u.c + '</div><h2>' + esc(u.l + ' ' + u.n) + '</h2></div>' + resLinks(u.c, true).replace(/<button[^>]*goto-papers[^>]*>[^<]*<\/button>/, '').replace(/<\/div>$/, askBtn(u.c, true) + '</div>') + '</div>' +
       '<div class="tiles" style="grid-template-columns:repeat(3,1fr)"><div class="tile"><b>' + logged.length + '<span style="font-size:1rem;color:var(--muted)"> / ' + all.length + '</span></b><span>papers done</span></div>' +
       '<div class="tile"><b>' + (avg === null ? '–' : avg + '%') + '</b><span>average</span></div><div class="tile"><b>' + (best === null ? '–' : best + '%') + '</b><span>best</span></div></div>' +
       (byDate.length >= 2 ? '<div><div class="small muted" style="margin-bottom:4px">Your scores over time</div><div class="bars" style="height:90px;grid-template-columns:repeat(' + byDate.length + ',1fr)">' + byDate.map(x => { const pc = Math.round(paperPct(x[1]) * 100); return '<div class="bar"><em>' + pc + '%</em><div style="height:' + pc + '%;background:var(--' + scoreColor(pc / 100) + ')"></div></div>'; }).join('') + '</div>' +
@@ -1249,7 +1259,7 @@ function viewSyllabus(){
       const p = Math.round(unitProgress(u) * 100);
       const q = qs[u.c];
       return '<details class="unit"' + (ui.syllabus.open === u.c ? ' open' : '') + ' data-unit="' + u.c + '"><summary><span class="code">' + u.c + '</span><span><b>' + esc(u.l) + '</b> ' + esc(u.n) + '</span><span class="small muted">' + p + '%' + (q ? ' · quiz ' + Math.round(q[0] / q[1] * 100) + '%' : '') + '</span><div class="meter"><i style="width:' + p + '%;background:var(--' + sid + ')"></i></div></summary>' +
-        '<div style="padding:12px 16px;border-bottom:1px solid var(--line)" class="stack">' + unitNotesBlock(u.c) + (bookletFor(u.c) && bookletFor(u.c).url ? '<div class="row">' + bookletBtn(u.c, true) + '</div>' : '') + tipsBlock(u.c, false) + '<div class="row" style="gap:8px">' + (hasPmt(u.c) ? '<button class="btn sm" data-act="goto-tq" data-u="' + u.c + '">Topic questions</button>' : '') + (typeof PAPERS !== 'undefined' && PAPERS[u.c] ? '<button class="btn sm" data-act="goto-papers" data-u="' + u.c + '">Past papers (' + PAPERS[u.c].length + ')</button>' : '') + '</div></div>' +
+        '<div style="padding:12px 16px;border-bottom:1px solid var(--line)" class="stack">' + unitNotesBlock(u.c) + solbankBlock(u.c) + (bookletFor(u.c) && bookletFor(u.c).url ? '<div class="row">' + bookletBtn(u.c, true) + '</div>' : '') + tipsBlock(u.c, false) + (ASK ? '<div class="row askrow"><span class="small muted">Stuck on a question?</span>' + askBtn(u.c, true) + '</div>' : '') + '<div class="row" style="gap:8px">' + (hasPmt(u.c) ? '<button class="btn sm" data-act="goto-tq" data-u="' + u.c + '">Topic questions</button>' : '') + (typeof PAPERS !== 'undefined' && PAPERS[u.c] ? '<button class="btn sm" data-act="goto-papers" data-u="' + u.c + '">Past papers (' + PAPERS[u.c].length + ')</button>' : '') + '</div></div>' +
         '<div>' + u.t.map((t, i) => { const v = state.topics[topicId(u.c, i)] || 0; const tm = topicMistakes(u.c, i), tl = tm.reduce((a, m) => a + m.lost, 0); return '<div class="topic"><div class="grow"><div>' + esc(t) + (tl ? ' <a class="pill mkpill" href="#mistakes" title="Open mistakes on this topic">−' + tl + ' mark' + (tl === 1 ? '' : 's') + ' in mistakes</a>' : '') + '</div>' + topicNotes(u.c, i) + '</div><button class="status" data-v="' + v + '" data-act="topic" data-id="' + topicId(u.c, i) + '" aria-label="' + esc(t) + ': ' + labels[v] + '. Tap to change">' + labels[v] + '</button></div>'; }).join('') + '</div></details>';
     }).join('') : '<div class="empty">All ' + esc(s.short) + ' units are hidden. <a href="#prefs">Choose your units</a>.</div>') +
     practicalsBlock(sid) +
@@ -1360,6 +1370,127 @@ function viewPlanner(){
         '<div class="list">' + (ex.length ? ex.map(e => { const n = daysBetween(t, e.d); const u = UNIT[e.u]; return '<div class="li' + (n < 0 ? ' done' : '') + '"><div class="grow"><div class="t">' + esc(u ? u.l + ' ' + u.n : e.u) + '</div><div class="small muted">' + fmtDate(e.d) + (e.sess ? ' · ' + (e.sess === 'AM' ? 'Morning' : 'Afternoon') : '') + '</div></div>' + '<span class="pill"' + (n >= 0 && n <= 14 ? ' style="background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)"' : '') + '>' + (n < 0 ? 'Sat' : n === 0 ? 'Today' : n + 'd') + '</span>' + unitPill(e.u) + '<button class="x" aria-label="Remove exam" data-act="exam-del" data-id="' + e.id + '">×</button></div>'; }).join('') : '<div class="empty">No exams added yet.</div>') + '</div></div>' +
     '</div>' +
   '</div>';
+}
+
+/* ============================================================
+   Worked solutions (PMT solution banks) · Ask Claude (claude.ai only)
+   ============================================================ */
+let SB_STATE = typeof SOLBANK !== 'undefined' ? 'ready' : 'idle';
+function sbLoad(){
+  if (SB_STATE !== 'idle') return;
+  SB_STATE = 'loading';
+  const sc = document.createElement('script'); sc.src = 'solutions.js';
+  sc.onload = () => { SB_STATE = 'ready'; render(); };
+  sc.onerror = () => { SB_STATE = 'error'; render(); };
+  document.head.appendChild(sc);
+}
+const SB_UNITS = new Set(['WMA11','WMA12','WMA13','WMA14','WST01','WST02','WST03','WME01','WME02','WME03','WDM11','WFM01','WFM02','WFM03']);
+function solbankBlock(c){
+  if (!SB_UNITS.has(c)) return '';
+  if (SB_STATE !== 'ready'){
+    if (SB_STATE === 'idle') setTimeout(sbLoad, 0);
+    return '<details class="pmtq sb"><summary>Worked solutions: textbook exercises</summary><p class="small muted" style="margin:0 0 8px">' + (SB_STATE === 'error' ? 'Couldn’t load the list. <button class="linkbtn" data-act="sb-retry">Try again</button>' : 'Loading…') + '</p></details>';
+  }
+  const B = SOLBANK[c]; if (!B) return '';
+  const n = B.ch.reduce((a, ch) => a + ch.x.length, 0) + B.ex.length;
+  return '<details class="pmtq sb"' + (ui.sbOpen === c ? ' open' : '') + ' data-sb="' + c + '"><summary>Worked solutions: textbook exercises <span class="small muted">(' + n + ')</span></summary>' +
+    '<p class="small muted" style="margin:0 0 8px">Full worked solutions to every exercise in Pearson’s <i>' + esc(B.b) + '</i> textbook, by chapter. PDFs from Physics &amp; Maths Tutor. Try the question first, then check your method.</p>' +
+    B.ch.map(ch => '<div class="sbch"><div class="small" style="font-weight:600">Ch. ' + ch.n + ' ' + esc(ch.t) + '</div><div class="notes">' + ch.x.map(([l, u]) => '<a class="note k-pdf" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(l.replace(/^Exercise /, 'Ex ')) + '</a>').join('') + '</div></div>').join('') +
+    (B.ex.length ? '<div class="sbch"><div class="small" style="font-weight:600">Review and practice</div><div class="notes">' + B.ex.map(([l, u]) => '<a class="note k-pdf" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(l) + '</a>').join('') + '</div></div>' : '') +
+    '</details>';
+}
+
+/* ---- Ask Claude: a tutor for one question at a time ---- */
+let ASK = null;          // the sample namespace, or null when this view can't ask Claude
+let ASK_IMG = false;
+try { if (!STANDALONE && window.claude && claude.use) claude.use('sample').then(ns => { ASK = ns || null; if (ASK && ASK.limits) ASK.limits().then(l => { ASK_IMG = !!(l && l.images); }, () => {}); if (ASK) render(); }, () => {}); } catch(e){}
+function askBtn(c, small){ return ASK ? '<button class="btn' + (small ? ' sm' : '') + ' askbtn" data-act="ask-open" data-u="' + (c || '') + '">✦ Ask Claude</button>' : ''; }
+const ASK_MODES = [['explain', 'Explain step by step'], ['hint', 'Just a hint'], ['check', 'Check my answer']];
+/* photos are shrunk to at most 1600 px so they upload quickly */
+function askShrink(file){
+  return new Promise((res, rej) => {
+    if (!file || !/^image\//.test(file.type)) return rej(new Error('not an image'));
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); c.toBlob(b => b ? res(b) : rej(new Error('blob')), 'image/jpeg', 0.85); };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('load')); };
+    img.src = url;
+  });
+}
+document.addEventListener('keydown', e => { if (!ui.ask) return; if (e.key === 'Escape') askClose(); else if (e.key === 'Enter' && e.target && e.target.id === 'ask-f'){ e.preventDefault(); askSend(true); } });
+function askOpen(c){
+  ui.ask = { u: c || '', mode: 'explain', q: '', work: '', img: null, imgUrl: '', msgs: [], busy: false, out: '', err: '', follow: '' };
+  renderAsk();
+  setTimeout(() => { const t = $('#ask-q'); if (t) t.focus(); }, 50);
+}
+function askClose(){ if (ui.ask && ui.ask.ctrl) try { ui.ask.ctrl.abort(); } catch(e){} if (ui.ask && ui.ask.imgUrl) URL.revokeObjectURL(ui.ask.imgUrl); ui.ask = null; renderAsk(); }
+function askFmt(t){
+  // safe, light formatting: escape, then **bold**, line breaks and simple lists
+  return esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/^#{1,4} ?(.+)$/gm, '<b>$1</b>').replace(/^\s*[-•] (.+)$/gm, '• $1').replace(/\n/g, '<br>');
+}
+function askSystem(){
+  const A = ui.ask, u = UNIT[A.u], sid = u ? UNIT_SUBJ[A.u] : '';
+  const where = u ? 'Pearson Edexcel International A Level ' + SUBJ[sid].name + ', ' + u.l + ' ' + u.n + ' (' + A.u + ')' : 'Pearson Edexcel International A Level';
+  const how = A.mode === 'hint'
+    ? 'Give ONE short hint that points the student to the next step. Do not solve the question or give the final answer. End by asking what they think the next step is.'
+    : A.mode === 'check'
+      ? 'The student has shared their working or answer. Say clearly whether it is right. If not, point to the first line that goes wrong and explain why, then show the correct step. Mention any lines a mark scheme would expect but they left out.'
+      : 'Explain how to answer it step by step, the way a mark scheme would credit it: show each step on its own line with a short reason, and finish with the answer.';
+  return 'You are a friendly, precise tutor helping a student revise ' + where + '. ' + how +
+    ' Use UK spelling and the exam board\'s terms. For essay subjects, explain what the examiner wants (knowledge, application, analysis, evaluation) and outline a strong answer rather than writing a full essay. Keep it short and clear for a phone screen: plain text, short lines, **bold** for key words, no tables, no LaTeX (write maths like x^2, sqrt(x), pi). If the request isn\'t about studying, gently steer back to revision.';
+}
+async function askSend(follow){
+  const A = ui.ask; if (!A || A.busy || !ASK) return;
+  if (!follow){
+    const q = (($('#ask-q') || {}).value || '').trim(), w = (($('#ask-w') || {}).value || '').trim();
+    A.q = q; A.work = w;
+    if (!q && !A.img){ A.err = 'Type the question or add a photo of it first.'; renderAsk(); return; }
+    A.msgs = [{ role: 'user', content: askSystem() + '\n\nQuestion:\n' + (q || '(see the attached photo)') + (A.mode === 'check' && w ? '\n\nMy working / answer:\n' + w : '') }];
+  } else {
+    const f = (($('#ask-f') || {}).value || '').trim(); if (!f) return;
+    A.msgs.push({ role: 'user', content: f }); A.follow = '';
+  }
+  A.busy = true; A.err = ''; A.out = ''; A.ctrl = new AbortController(); renderAsk();
+  try {
+    const opts = { signal: A.ctrl.signal, cache: false, onText: ({ text }) => { if (ui.ask === A){ A.out = text; askPaint(); } } };
+    if (A.img && ASK_IMG && A.msgs.length === 1) opts.images = [A.img];
+    const r = await ASK(A.msgs.slice(), opts);
+    if (ui.ask !== A) return;
+    A.out = r.text || A.out; A.msgs.push({ role: 'assistant', content: A.out });
+    if (r.truncated) A.err = 'The answer was cut short. Ask a follow-up to continue.';
+  } catch(e){
+    if (ui.ask !== A) return;
+    if (e && e.code === 'not_granted'){ ASK = null; A.err = 'Ask Claude isn’t available here.'; }
+    else if (e && e.code === 'rate_limited') A.err = 'Too many questions just now. Wait a minute and try again.';
+    else if (e && e.name === 'AbortError') A.err = '';
+    else A.err = 'Something went wrong. Try again.';
+    if (e && e.text) A.out = e.text;
+  }
+  A.busy = false; renderAsk();
+}
+function askPaint(){ const o = $('#ask-out'); if (o && ui.ask) o.innerHTML = ui.ask.out ? askFmt(ui.ask.out) : '<span class="muted">Thinking…</span>'; }
+function renderAsk(){
+  let el = $('#asksheet');
+  if (!ui.ask){ if (el) el.remove(); document.body.classList.remove('asking'); return; }
+  if (!el){ el = document.createElement('div'); el.id = 'asksheet'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Ask Claude'); document.body.appendChild(el); }
+  document.body.classList.add('asking');
+  const A = ui.ask, u = UNIT[A.u], started = A.msgs.length > 0;
+  const unitOpts = '<option value="">Any subject</option>' + mySubjects().flatMap(s => s.units.filter(x => !isHidden(x.c)).map(x => '<option value="' + x.c + '"' + (x.c === A.u ? ' selected' : '') + '>' + esc(s.short + ' · ' + x.l + ' ' + x.n) + '</option>')).join('');
+  const thread = A.msgs.slice(1).map((m, i) => m.role === 'assistant' ? '' : '<div class="askme">' + esc(m.content) + '</div>');
+  el.innerHTML = '<div class="askbox"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">✦ Ask Claude</h2><button class="x" data-act="ask-close" aria-label="Close">×</button></div>' +
+    (!started ? '<label class="f"><span>Unit</span><select id="ask-u">' + unitOpts + '</select></label>' +
+      '<div class="seg2" role="group" aria-label="What do you want?">' + ASK_MODES.map(([v, l]) => '<button type="button" data-act="ask-mode" data-v="' + v + '" aria-pressed="' + (A.mode === v) + '">' + l + '</button>').join('') + '</div>' +
+      '<label class="f"><span>The question you’re stuck on</span><textarea id="ask-q" rows="4" placeholder="Type or paste the question, e.g. Show that d/dx(sec x) = sec x tan x">' + esc(A.q) + '</textarea></label>' +
+      (ASK_IMG ? '<div class="row" style="gap:8px;align-items:center"><label class="btn sm" for="ask-img">' + (A.img ? 'Change photo' : '📷 Add a photo of the question') + '</label><input type="file" id="ask-img" accept="image/*" hidden>' + (A.imgUrl ? '<img src="' + A.imgUrl + '" alt="Your photo" class="askthumb"><button class="linkbtn small" data-act="ask-img-del">Remove</button>' : '') + '</div>' : '') +
+      (A.mode === 'check' ? '<label class="f"><span>Your working or answer</span><textarea id="ask-w" rows="4" placeholder="Type your steps and answer">' + esc(A.work) + '</textarea></label>' : '') +
+      '<div class="row"><button class="btn primary" data-act="ask-send"' + (A.busy ? ' disabled' : '') + '>Ask</button><span class="small muted">Answers can contain mistakes: check them against the mark scheme.</span></div>'
+    : '<div class="small muted">' + esc((u ? u.l + ' ' + u.n + ' · ' : '') + (ASK_MODES.find(m => m[0] === A.mode) || [, ''])[1]) + '</div>' +
+      '<div class="askme">' + esc(A.q || 'Photo of the question') + '</div>' + thread.join('') +
+      '<div id="ask-out" class="askout" aria-live="polite">' + (A.out ? askFmt(A.out) : A.busy ? '<span class="muted">Thinking…</span>' : '') + '</div>' +
+      (A.busy ? '<div class="row"><button class="btn sm" data-act="ask-stop">Stop</button></div>'
+        : '<div class="row" style="align-items:flex-end;flex-wrap:nowrap"><label class="f" style="flex:1"><span>Follow-up</span><input type="text" id="ask-f" placeholder="e.g. Why did you use the chain rule there?"></label><button class="btn primary" data-act="ask-follow">Send</button></div>' +
+          '<div class="row"><button class="btn sm ghost" data-act="ask-new">New question</button>' + (A.u ? '<button class="btn sm ghost" data-act="ask-mistake">Add to mistake log</button>' : '') + '</div>')) +
+    (A.err ? '<p class="small warnline" style="margin:0">' + esc(A.err) + '</p>' : '') + '</div>';
+  if (started){ const o = $('#ask-out'); if (o && A.busy) o.scrollIntoView({ block: 'nearest' }); }
 }
 
 /* ============================================================
@@ -3099,6 +3230,16 @@ document.addEventListener('click', e => {
     case 'card-del': state.custom = state.custom.filter(k => k.id !== id); delete state.cardState[id]; commit(); break;
     case 'pp-subj': ui.papers.subj = v; ui.papers.unit = null; ui.papers.log = null; render(); break;
     case 'pp-filter': ui.papers.filter = v; render(); break;
+    case 'sb-retry': SB_STATE = 'idle'; render(); break;
+    case 'ask-open': askOpen(b.dataset.u); break;
+    case 'ask-close': askClose(); break;
+    case 'ask-mode': if (ui.ask){ const q = $('#ask-q'), w = $('#ask-w'); if (q) ui.ask.q = q.value; if (w) ui.ask.work = w.value; ui.ask.mode = v; renderAsk(); } break;
+    case 'ask-send': askSend(false); break;
+    case 'ask-follow': askSend(true); break;
+    case 'ask-stop': if (ui.ask && ui.ask.ctrl) ui.ask.ctrl.abort(); break;
+    case 'ask-new': { const u = ui.ask ? ui.ask.u : ''; askClose(); askOpen(u); break; }
+    case 'ask-img-del': if (ui.ask){ if (ui.ask.imgUrl) URL.revokeObjectURL(ui.ask.imgUrl); ui.ask.img = null; ui.ask.imgUrl = ''; const q = $('#ask-q'); if (q) ui.ask.q = q.value; renderAsk(); } break;
+    case 'ask-mistake': { const u = ui.ask ? ui.ask.u : null; askClose(); ui.mk.subj = 'all'; mkStartForm(u); go('mistakes'); break; }
     case 'pf-edit': ui.pfEdit = true; render(); break;
     case 'pf-later': state.pfNudged = true; commit(); break;
     case 'pf-color': pfRead(); prof().color = v; commit(); break;
@@ -3294,6 +3435,9 @@ document.addEventListener('change', e => {
   else if (el.id === 't-subj'){ state.timerPrefs.subject = el.value; commit(); }
   else if (el.id === 't-len'){ const [f, b] = el.value.split('-').map(Number); state.timerPrefs.focus = f; state.timerPrefs.brk = b; if (!T.running){ T.remain = phaseLen(); saveT(); } commit(); }
   else if (el.id === 'pf-photo' && el.files && el.files[0]){ pfRead(); photoFromFile(el.files[0]).then(d => { prof().photo = d; commit(); toast('Photo added'); }, err => toast(err.message || 'That photo couldn’t be used')); }
+  else if (el.id === 'ask-u' && ui.ask){ const q = $('#ask-q'), w = $('#ask-w'); if (q) ui.ask.q = q.value; if (w) ui.ask.work = w.value; ui.ask.u = el.value; renderAsk(); }
+  else if (el.id === 'ask-img' && el.files && el.files[0] && ui.ask){ const A = ui.ask, f = el.files[0], q = $('#ask-q'), w = $('#ask-w'); if (q) A.q = q.value; if (w) A.work = w.value;
+    askShrink(f).then(bl => { if (ui.ask !== A) return; if (A.imgUrl) URL.revokeObjectURL(A.imgUrl); A.img = bl; A.imgUrl = URL.createObjectURL(bl); renderAsk(); }, () => toast('That photo couldn’t be used')); }
   else if (el.dataset && el.dataset.subst){ subjSetStatus(el.dataset.subst, el.value); }
   else if (el.dataset && el.dataset.seTake){ ui.subEdit.taking[el.dataset.seTake] = el.checked; render(); }
   else if (el.dataset && el.dataset.seSt){ ui.subEdit.st[el.dataset.seSt] = el.value; render(); }
