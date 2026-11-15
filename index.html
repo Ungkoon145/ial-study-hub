@@ -16,15 +16,20 @@
 <meta name="apple-mobile-web-app-title" content="IAL Revise">
 <title>IAL Revise</title>
 <style>
+/* Thai text uses Sarabun (the open web version of the TH Sarabun typeface, SIL OFL); Latin text keeps Gill Sans */
+@font-face{font-family:"IAL Thai";font-style:normal;font-weight:300 499;font-display:swap;src:url(fonts/sarabun-thai-400-normal.woff2) format("woff2");unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
+@font-face{font-family:"IAL Thai";font-style:normal;font-weight:500 649;font-display:swap;src:url(fonts/sarabun-thai-600-normal.woff2) format("woff2");unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
+@font-face{font-family:"IAL Thai";font-style:normal;font-weight:650 749;font-display:swap;src:url(fonts/sarabun-thai-700-normal.woff2) format("woff2");unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
+@font-face{font-family:"IAL Thai";font-style:normal;font-weight:750 900;font-display:swap;src:url(fonts/sarabun-thai-800-normal.woff2) format("woff2");unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
 :root{
   /* Layout: one centered column, top tabs on desktop, bottom tab bar on phones */
   --bg:#f3f5f8; --surface:#ffffff; --ink:#14213a; --muted:#5a6880; --line:#dde3ec;
   --primary:#19325c; --on-primary:#ffffff; --hi:#f0b429; --soft:#e9eef6;
   --good:#2b8a3e; --warn:#d9480f; --bad:#c2255c;
   --math:#4058e0; --fm:#8a3fd1; --phys:#e0702a; --chem:#0e9384; --bio:#3f8f2f; --econ:#c0392b; --geog:#8a6a2e; --psych:#c2367f; --cs:#4b5a70; --hist:#7a4b2a;
-  --display:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
-  --body:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", "Leelawadee UI", Thonburi, "Noto Sans Thai", Sarabun, sans-serif;
-  --mono:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
+  --display:"IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
+  --body:"IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", "Leelawadee UI", Thonburi, "Noto Sans Thai", Sarabun, sans-serif;
+  --mono:"IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
   --r:14px;
   color-scheme: light;
 }
