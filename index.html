@@ -23,7 +23,7 @@
   --good:#2b8a3e; --warn:#d9480f; --bad:#c2255c;
   --math:#4058e0; --fm:#8a3fd1; --phys:#e0702a; --chem:#0e9384; --bio:#3f8f2f; --econ:#c0392b; --geog:#8a6a2e; --psych:#c2367f; --cs:#4b5a70; --hist:#7a4b2a;
   --display:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
-  --body:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
+  --body:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", "Leelawadee UI", Thonburi, "Noto Sans Thai", Sarabun, sans-serif;
   --mono:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
   --r:14px;
   color-scheme: light;
@@ -138,7 +138,7 @@ div.f.schoolpick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;col
 .frcard{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
 .frsubs{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .frwait{white-space:nowrap}
-.nxmore{margin-top:10px;display:inline-block}
+.nxmore{margin-top:6px;display:inline-block;min-height:40px;padding:10px 2px}.langsw{min-height:40px;padding:10px 6px}
 .askmodes{display:grid;grid-template-columns:repeat(3,1fr);width:100%}.askmodes button{padding:8px 6px;line-height:1.2}.seg2 button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .edlist{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
 .examday .edexam{border-left:4px solid var(--primary)}
@@ -529,7 +529,7 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 <body>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="#today"><span class="brand-mark">IAL</span>Revise</a>
+    <a class="brand notr" href="#today"><span class="brand-mark">IAL</span>Revise</a>
     <span class="sync" id="sync" data-s="local" hidden><i></i><span id="sync-text">This device</span></span>
     <a class="iconbtn" href="#search" id="nav-search" aria-label="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></a>
     <button class="iconbtn" id="fs-btn" type="button" data-act="fullscreen" aria-label="Full screen" title="Full screen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
@@ -555,6 +555,7 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 <script src="practicals.js"></script>
 <script src="keyphrases.js"></script>
 <script src="schools.js"></script>
+<script src="i18n.js"></script>
 <script>
 /* ============================================================
    CONTENT: Pearson Edexcel International A Level units
@@ -745,12 +746,32 @@ function scheduleSave(delay = 1200){
   saveTimer = setTimeout(flush, delay);
   if (!saving) setSync('pending');
 }
+/* Progress is one record while small. Past ~400k characters it is split into parts
+   (each well under the 1 MB per-record limit), so heavy long-term users never hit the cap. */
+const CLOUD_INLINE_MAX = 400000, CLOUD_CHUNK = 250000;
+function cloudBase(){ return 'data/users/' + cloud.id; }
+async function cloudPut(){
+  const json = JSON.stringify(state);
+  if (json.length <= CLOUD_INLINE_MAX){ await cloud.ref.set({ v:1, updatedAt: state.updatedAt, state: JSON.parse(json) }); return; }
+  const gen = uid(), n = Math.ceil(json.length / CLOUD_CHUNK);
+  for (let i = 0; i < n; i++) await cloud.db.doc(cloudBase() + '/part' + i).set({ gen, i, s: json.slice(i * CLOUD_CHUNK, (i + 1) * CLOUD_CHUNK) });
+  await cloud.ref.set({ v:2, updatedAt: state.updatedAt, gen, parts: n });
+}
+async function cloudState(d){
+  if (!d) return null;
+  if (d.v !== 2) return d.state ? JSON.parse(JSON.stringify(d.state)) : null;
+  try {
+    const snaps = await Promise.all(Array.from({ length: d.parts }, (_, i) => cloud.db.doc(cloudBase() + '/part' + i).get()));
+    if (snaps.some(x => !x.exists || x.data().gen !== d.gen)) return null;   // a save is still in progress; the next update will bring it
+    return JSON.parse(snaps.map(x => x.data().s).join(''));
+  } catch(e){ return null; }
+}
 async function flush(){
   if (!cloud.ref || !dirty) return;
   if (saving){ saveTimer = setTimeout(flush, 600); return; }
   dirty = false; saving = true; setSync('saving');
   try {
-    await cloud.ref.set({ v:1, updatedAt: state.updatedAt, state: JSON.parse(JSON.stringify(state)) });
+    await cloudPut();
     setSync(dirty ? 'pending' : 'synced');
   } catch(e){
     const code = e && e.code;
@@ -776,8 +797,9 @@ async function connectCloud(){
     cloud.ref = ref;
     const remote = snap.exists ? snap.data() : null;
     const rU = remote ? (remote.updatedAt || 0) : 0;
-    if (remote && rU > (state.updatedAt || 0)){
-      state = normalize(JSON.parse(JSON.stringify(remote.state)));
+    const rState = remote && rU > (state.updatedAt || 0) ? await cloudState(remote) : null;
+    if (rState){
+      state = normalize(rState);
       saveLocal(); render(); setSync('synced');
     } else if ((state.updatedAt || 0) > rU){
       scheduleSave(0);
@@ -785,12 +807,12 @@ async function connectCloud(){
     if (!STANDALONE) buddyStart();
     frStart();
     if (route() === 'prefs' || route() === 'today') render();
-    ref.onSnapshot(s => {
+    ref.onSnapshot(async s => {
       if (!s.exists || s.metadata.hasPendingWrites) return;
       const d = s.data(); const u = d.updatedAt || 0;
       if (u > (state.updatedAt || 0) && !dirty){
-        state = normalize(JSON.parse(JSON.stringify(d.state)));
-        saveLocal(); render();
+        const rs = await cloudState(d);
+        if (rs && u > (state.updatedAt || 0) && !dirty){ state = normalize(rs); saveLocal(); render(); }
       }
     }, () => { cloud.ref = null; setSync('local'); });
   } catch(e){
@@ -1495,7 +1517,7 @@ function askSystem(){
     : A.mode === 'check'
       ? 'The student has shared their working or answer. Say clearly whether it is right. If not, point to the first line that goes wrong and explain why, then show the correct step. Mention any lines a mark scheme would expect but they left out.'
       : 'Explain how to answer it step by step, the way a mark scheme would credit it: show each step on its own line with a short reason, and finish with the answer.';
-  return 'You are a friendly, precise tutor helping a student revise ' + where + '. ' + how +
+  return 'You are a friendly, precise tutor helping a student revise ' + where + '. ' + how + (uiLang() === 'th' ? ' Reply in Thai, but keep subject terms, formulas, units and exam command words in English as they appear in the exam.' : '') +
     ' Use UK spelling and the exam board\'s terms. For essay subjects, explain what the examiner wants (knowledge, application, analysis, evaluation) and outline a strong answer rather than writing a full essay. Keep it short and clear for a phone screen: plain text, short lines, **bold** for key words, no tables, no LaTeX (write maths like x^2, sqrt(x), pi). If the request isn\'t about studying, gently steer back to revision.';
 }
 async function askSend(follow){
@@ -1533,6 +1555,7 @@ async function askSend(follow){
   }
   A.busy = false; renderAsk();
 }
+function askTH(){ if (isTH()) try { thApply($('#asksheet')); } catch(e){} }
 function askPaint(){ const o = $('#ask-out'); if (o && ui.ask) o.innerHTML = ui.ask.out ? askFmt(ui.ask.out) : '<span class="muted">Thinking…</span>'; }
 function renderAsk(){
   let el = $('#asksheet');
@@ -1759,7 +1782,9 @@ function profileNudge(){
    Settings: my subjects (add / switch / finish / drop), study habits,
    look & accessibility, reminders, progress summary
    ============================================================ */
-const PREF_DEF = { theme:'', text:1, motion:false, start:'today', defSubj:'', offDays:[], busy:[], mockKeep:2, remind:'19:00' };
+const PREF_DEF = { lang:'', theme:'', text:1, motion:false, start:'today', defSubj:'', offDays:[], busy:[], mockKeep:2, remind:'19:00' };
+function uiLang(){ const l = prefs().lang; if (l) return l; try { return /^th\b/i.test(navigator.language || '') ? 'th' : 'en'; } catch(e){ return 'en'; } }
+function isTH(){ return typeof thApply === 'function' && uiLang() === 'th'; }
 function prefs(){ state.prefs = Object.assign({}, PREF_DEF, state.prefs || {}); return state.prefs; }
 function subjStatus(sid){ return (state.subjStatus && state.subjStatus[sid]) || 'studying'; }
 function iasOnly(sid){ return !!(state.ias && state.ias[sid]); }
@@ -1924,6 +1949,7 @@ function habitsCard(){
 function lookCard(){
   const p = prefs(), seg = (k, opts, cur) => '<div class="seg2" role="group">' + opts.map(([v, l]) => '<button type="button" data-act="pref-set" data-k="' + k + '" data-v="' + v + '" aria-pressed="' + (String(cur) === String(v)) + '">' + l + '</button>').join('') + '</div>';
   return '<div class="card stack"><h2>Look &amp; accessibility</h2>' +
+    '<div class="stack" style="gap:6px"><div class="small muted">Language</div><div class="seg2 notr" role="group"><button type="button" data-act="pref-set" data-k="lang" data-v="en" aria-pressed="' + (uiLang() === 'en') + '">English</button><button type="button" data-act="pref-set" data-k="lang" data-v="th" aria-pressed="' + (uiLang() === 'th') + '">ไทย</button></div></div>' +
     '<div class="stack" style="gap:6px"><div class="small muted">Theme</div>' + seg('theme', [['', 'Match device'], ['light', 'Light'], ['dark', 'Dark']], p.theme) + '</div>' +
     '<div class="stack" style="gap:6px"><div class="small muted">Text size</div>' + seg('text', [[1, 'Normal'], [1.12, 'Large'], [1.25, 'Extra large']], p.text) + '</div>' +
     '<label class="toggle"><input type="checkbox" data-pref-motion="1"' + (p.motion ? ' checked' : '') + '><span>Reduce motion (no animations)</span></label></div>';
@@ -3283,8 +3309,9 @@ async function fbDelete(){
 }
 const G_LOGO = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
 function gButton(label){ return '<button class="gbtn" data-act="fb-in"' + (!FB.ready || FB.busy ? ' disabled' : '') + '>' + G_LOGO + '<span>' + (FB.busy ? 'Signing in…' : !FB.ready ? 'Loading…' : (label || 'Continue with Google')) + '</span></button>'; }
+function langSwitch(){ return '<div class="row notr" style="justify-content:flex-end;gap:6px"><button class="linkbtn small langsw" data-act="pref-set" data-k="lang" data-v="' + (uiLang() === 'th' ? 'en' : 'th') + '">' + (uiLang() === 'th' ? 'English' : 'ภาษาไทย') + '</button></div>'; }
 function viewLogin(){
-  return '<div class="login stack">' +
+  return '<div class="login stack">' + langSwitch() +
     '<div><h1>Sign in to IAL Revise</h1><p class="muted" style="margin:6px 0 0">Past papers, notes, flashcards, a planner and grade tracking for Pearson Edexcel International A Level.</p></div>' +
     '<ul class="loginperks"><li>Your progress follows you to any phone, tablet or computer</li><li>Add friends and see each other’s subjects</li><li>Nothing lost if you clear your browser</li></ul>' +
     gButton() +
@@ -3542,7 +3569,7 @@ function viewWelcome(){
   const dots = '<div class="wdots" aria-label="Step ' + step + ' of 4">' + [1,2,3,4].map(n => '<i class="' + (n <= step ? 'on' : '') + '"></i>').join('') + '</div>';
   let body = '';
   if (step === 1){
-    body = '<div><h1>Welcome to IAL Revise</h1><p class="muted">Past papers, notes, flashcards, a revision timetable and grade tracking for Pearson Edexcel International A Level, all in one place. First, tell us a little about you.</p></div>' +
+    body = langSwitch() + '<div><h1>Welcome to IAL Revise</h1><p class="muted">Past papers, notes, flashcards, a revision timetable and grade tracking for Pearson Edexcel International A Level, all in one place. First, tell us a little about you.</p></div>' +
       '<div class="card">' + profileForm('welcome') + '</div>';
   } else if (step === 2){
     body = '<div><h1>' + (firstName() ? 'Hi ' + esc(firstName()) + '! ' : '') + 'Which exams are you preparing for?</h1><p class="muted">Pick your subjects and the app fills in the official exam dates.</p></div>' +
@@ -3626,9 +3653,11 @@ function render(){
   catch(err){ console.error(err); $('#view').innerHTML = '<div class="card" role="alert"><h2>Something went wrong on this page</h2><p class="muted">' + esc(String(err && err.message || err)) + '</p><div class="row"><button class="btn primary" data-act="err-reload">Reload</button></div></div>'; }
   try { tick(true); } catch(err){ console.error(err); }
   try { renderRet(); } catch(err){}
+  document.documentElement.lang = uiLang() === 'th' ? 'th' : 'en';
+  if (isTH()) try { thApply(document.body); } catch(err){ console.error(err); }
 }
 let toastTimer;
-function toast(msg){ const el = $('#toast'); el.textContent = msg; el.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.style.display = 'none', 3200); }
+function toast(msg){ const el = $('#toast'); if (isTH()){ const r = thText(String(msg)); if (r != null) msg = r; } el.textContent = msg; el.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.style.display = 'none', 3200); }
 
 function startReview(filter, maxNew){
   const list = allCards().filter(filter || (() => true));
@@ -3992,6 +4021,7 @@ window.addEventListener('hashchange', () => { let h = ''; try { h = location.has
 document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return; const h = a.getAttribute('href').slice(1); if (!['today','cards','quiz','papers','mistakes','grades','syllabus','planner','prefs','setup','search'].includes(h)) return; e.preventDefault(); setTimeout(() => go(h), 0); }, true);
 
 render();
+{ const _ra = renderAsk; renderAsk = function(){ _ra(); askTH(); }; }
 connectCloud();
 fbInit();
 </script>
