@@ -20,7 +20,7 @@
   --bg:#f3f5f8; --surface:#ffffff; --ink:#14213a; --muted:#5a6880; --line:#dde3ec;
   --primary:#19325c; --on-primary:#ffffff; --hi:#f0b429; --soft:#e9eef6;
   --good:#2b8a3e; --warn:#d9480f; --bad:#c2255c;
-  --math:#4058e0; --fm:#8a3fd1; --phys:#e0702a; --chem:#0e9384; --bio:#3f8f2f; --econ:#c0392b; --geog:#8a6a2e; --psych:#c2367f; --cs:#4b5a70;
+  --math:#4058e0; --fm:#8a3fd1; --phys:#e0702a; --chem:#0e9384; --bio:#3f8f2f; --econ:#c0392b; --geog:#8a6a2e; --psych:#c2367f; --cs:#4b5a70; --hist:#7a4b2a;
   --display:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
   --body:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
   --mono:"Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
@@ -32,7 +32,7 @@
     --bg:#0d1320; --surface:#151d2c; --ink:#e7ecf4; --muted:#95a3b9; --line:#253149;
     --primary:#f0b429; --on-primary:#141a26; --hi:#f0b429; --soft:#1c2638;
     --good:#51cf66; --warn:#ff922b; --bad:#f06595;
-    --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f; --econ:#f07b6e; --geog:#d1ad6c; --psych:#f07fbb; --cs:#a3b2c7;
+    --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f; --econ:#f07b6e; --geog:#d1ad6c; --psych:#f07fbb; --cs:#a3b2c7; --hist:#d79a6e;
     color-scheme: dark;
   }
 }
@@ -40,7 +40,7 @@
   --bg:#0d1320; --surface:#151d2c; --ink:#e7ecf4; --muted:#95a3b9; --line:#253149;
   --primary:#f0b429; --on-primary:#141a26; --hi:#f0b429; --soft:#1c2638;
   --good:#51cf66; --warn:#ff922b; --bad:#f06595;
-  --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f; --econ:#f07b6e; --geog:#d1ad6c; --psych:#f07fbb; --cs:#a3b2c7;
+  --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f; --econ:#f07b6e; --geog:#d1ad6c; --psych:#f07fbb; --cs:#a3b2c7; --hist:#d79a6e;
   color-scheme: dark;
 }
 *{box-sizing:border-box}
@@ -99,6 +99,7 @@ main{padding:20px 0 120px}
 .pill.s-econ{background:color-mix(in srgb,var(--econ) 16%,transparent);color:var(--econ)}
 .pill.s-geog{background:color-mix(in srgb,var(--geog) 16%,transparent);color:var(--geog)}
 .pill.s-psych{background:color-mix(in srgb,var(--psych) 16%,transparent);color:var(--psych)}
+.pill.s-hist{background:color-mix(in srgb,var(--hist) 16%,transparent);color:var(--hist)}
 .pill.s-cs{background:color-mix(in srgb,var(--cs) 16%,transparent);color:var(--cs)}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:600;font-size:.92rem;text-decoration:none;color:var(--ink);min-height:40px}
@@ -567,6 +568,12 @@ const SUBJECTS = [
   {c:'WPS03', l:'Unit 3', n:'Applications of Psychology', t:['Developmental psychology: attachment and deprivation','Developmental psychology: studies, methods and practical','Option: criminological psychology','Option: health psychology','Issues and debates in developmental psychology']},
   {c:'WPS04', l:'Unit 4', n:'Clinical Psychology and Psychological Skills', t:['Diagnosing mental disorders','Schizophrenia: explanations and treatments','A second disorder: explanations and treatments','Clinical studies and research methods','Psychological skills: methods and data analysis','Issues and debates (synoptic)']}
  ]},
+ {id:'hist', name:'History', short:'History', units:[
+  {c:'WHI01', l:'Unit 1', n:'Depth Study with Interpretations', opts:{'1A':'France in Revolution, 1774–99','1B':'Russia in Revolution, 1881–1917','1C':'Germany, 1918–45','1D':'Britain, 1964–90'}, t:['Option 1A: France in Revolution, 1774–99','Option 1B: Russia in Revolution, 1881–1917','Option 1C: Germany, 1918–45','Option 1D: Britain, 1964–90','Essay technique (Section A)','Comparing interpretations (Section B)']},
+  {c:'WHI02', l:'Unit 2', n:'Breadth Study with Source Evaluation', opts:{'1A':'India, 1857–1948: The Raj to Partition','1B':'China, 1900–76','1C':'Russia, 1917–91: From Lenin to Yeltsin','1D':'South Africa, 1948–2014'}, t:['Option 1A: India, 1857–1948','Option 1B: China, 1900–76','Option 1C: Russia, 1917–91','Option 1D: South Africa, 1948–2014','Source evaluation (Section A)','Breadth essays (Section B)']},
+  {c:'WHI03', l:'Unit 3', n:'Thematic Study with Source Evaluation', opts:{'1A':'The USA, Independence to Civil War, 1763–1865','1B':'The British Experience of Warfare, 1803–1945','1C':'Germany: United, Divided and Reunited, 1870–1990','1D':'Civil Rights and Race Relations in the USA, 1865–2009'}, t:['Option 1A: The USA, 1763–1865','Option 1B: British Experience of Warfare, 1803–1945','Option 1C: Germany, 1870–1990','Option 1D: Civil Rights in the USA, 1865–2009','Source evaluation (Section A)','Thematic essays (Sections B and C)']},
+  {c:'WHI04', l:'Unit 4', n:'International Study with Historical Interpretations', opts:{'1A':'The Making of Modern Europe, 1805–71','1B':'The World in Crisis, 1879–1945','1C':'The World Divided: Superpower Relations, 1943–90','1D':'The Cold War and Hot War in Asia, 1945–90'}, t:['Option 1A: Making of Modern Europe, 1805–71','Option 1B: The World in Crisis, 1879–1945','Option 1C: Superpower Relations, 1943–90','Option 1D: Cold War and Hot War in Asia, 1945–90','Interpretations (Section A)','International essays (Sections B and C)']}
+ ]},
  {id:'cs', name:'Computer Science', short:'Comp Sci', units:[
   {c:'WCP01', l:'Unit 1', n:'Principles of Computer Science', t:['Computer systems','Data representation','Networks and encryption','Structuring data','Problem solving','Enabling technologies']},
   {c:'WCP02', l:'Unit 2', n:'Practical Programming and Problem-solving', t:['Programming in Python 3','Organising and handling data','Best practice','Computational thinking and algorithms']},
@@ -585,7 +592,7 @@ const RES = (() => {
   [['phys','WPH1','a-level-physics','physics-revision'], ['chem','WCH1','a-level-chemistry','chemistry-revision'], ['bio','WBI1','a-level-biology','biology-revision']].forEach(([, pre, papers, rev]) => {
     for (let n = 1; n <= 6; n++) r[pre + n] = { papers: PMT + 'past-papers/' + papers + '/edexcel-unit-' + n + '/', notes: PMT + rev + '/a-level-edexcel-ial/' };
   });
-  [['WEC1', 'a-level-economics/edexcel-unit-'], ['WGE0', 'a-level-geography/edexcel-unit-'], ['WPS0', 'a-level-psychology/edexcel-ial-paper-']].forEach(([pre, path]) => {
+  [['WEC1', 'a-level-economics/edexcel-unit-'], ['WGE0', 'a-level-geography/edexcel-unit-'], ['WPS0', 'a-level-psychology/edexcel-ial-paper-'], ['WHI0', 'a-level-history/edexcel-ial-paper-']].forEach(([pre, path]) => {
     for (let n = 1; n <= 4; n++) r[pre + n] = { papers: PMT + 'past-papers/' + path + n + '/' };
   });
   for (let n = 1; n <= 4; n++) r['WCP0' + n] = { papers: 'https://qualifications.pearson.com/en/qualifications/edexcel-international-advanced-levels/computer-science-2026.html' };
@@ -638,7 +645,7 @@ function sSeg(cur){ const due = decksIn('all').filter(d => deckStatus(d) === 'du
    ============================================================ */
 const LS_KEY = 'ial-study-hub-v1';
 function defaultState(){
-  return { v:1, updatedAt:0, hidden:[], cardState:{}, deckState:{}, custom:[], quizHist:[], tq:{}, papers:{}, oldDone:{}, linkReports:[], results:{}, mistakes:[], pmtDone:{}, topics:{}, exams:[], setup:null, targets:{}, lastBackup:'', goal:{min:60}, plan:null, topicAt:{}, reviewSeen:'', tasks:[], sessions:[], reviewDays:{}, timerPrefs:{focus:25, brk:5, subject:'math'}, cp:{} };
+  return { v:1, updatedAt:0, hidden:[], cardState:{}, deckState:{}, custom:[], quizHist:[], tq:{}, papers:{}, oldDone:{}, linkReports:[], results:{}, mistakes:[], pmtDone:{}, topics:{}, exams:[], setup:null, targets:{}, lastBackup:'', goal:{min:60}, plan:null, topicAt:{}, reviewSeen:'', tasks:[], sessions:[], reviewDays:{}, timerPrefs:{focus:25, brk:5, subject:'math'}, cp:{}, histOpt:{} };
 }
 function normalize(s){
   const d = defaultState(); s = (s && typeof s === 'object') ? s : {};
@@ -1128,7 +1135,11 @@ function viewQuizRun(){
 /* ---------- Past papers (direct PDF links + mark log) ---------- */
 function qSeg(cur){ return '<nav class="seg" aria-label="Question type"><a href="#quiz"' + (cur === 'quiz' ? ' aria-current="page"' : '') + '>Topic questions</a><a href="#papers"' + (cur === 'papers' ? ' aria-current="page"' : '') + '>Past papers</a><a href="#mistakes"' + (cur === 'mistakes' ? ' aria-current="page"' : '') + '>Mistakes' + (dueMistakes().length ? ' <span class="badge">' + dueMistakes().length + '</span>' : '') + '</a></nav>'; }
 const MONTH_ORDER = { January:1, June:6, October:10 };
-function seriesSortKey(sr){ const m = sr.match(/^(\w+) (\d{4})$/); return m ? +m[2] * 100 + (MONTH_ORDER[m[1]] || 0) : -1; }
+const srBase = sr => String(sr).split(' · ')[0];
+/* History: only the papers for the option the student picked */
+function histOpt(c){ return (state.histOpt && state.histOpt[c]) || ''; }
+function papersFor(c){ const all = (typeof PAPERS !== 'undefined' && PAPERS[c]) || []; const o = histOpt(c); return o ? all.filter(r => r[0].endsWith(' · ' + o)) : all; }
+function seriesSortKey(sr){ const m = srBase(sr).match(/^(\w+) (\d{4})$/); return m ? +m[2] * 100 + (MONTH_ORDER[m[1]] || 0) : -1; }
 const paperKey = (c, sr) => c + '|' + sr;
 function paperPct(r){ return r && r.m ? r.s / r.m : 0; }
 function viewPapers(){
@@ -1137,7 +1148,7 @@ function viewPapers(){
   const units = s.units.filter(u => !isHidden(u.c));
   if (!p.unit || !units.find(u => u.c === p.unit)) p.unit = (units[0] || {}).c || null;
   const u = p.unit ? UNIT[p.unit] : null;
-  const all = u && typeof PAPERS !== 'undefined' ? (PAPERS[u.c] || []).slice().sort((a, b) => seriesSortKey(b[0]) - seriesSortKey(a[0])) : [];
+  const all = u && typeof PAPERS !== 'undefined' ? papersFor(u.c).slice().sort((a, b) => seriesSortKey(b[0]) - seriesSortKey(a[0])) : [];
   const logged = all.map(r => [r, state.papers[paperKey(u.c, r[0])]]).filter(x => x[1]);
   const shown = all.filter(r => { const done = !!state.papers[paperKey(u.c, r[0])]; return p.filter === 'all' || (p.filter === 'done' ? done : !done); });
   let stats = '';
@@ -1154,6 +1165,7 @@ function viewPapers(){
     '</div>';
   }
   const max = u ? (PAPER_MAX[u.c] || 75) : 75;
+  const optPick = u && u.opts ? '<div class="stack" style="gap:6px"><div class="small muted">Which option do you study?</div><div class="chips" role="group" aria-label="History option"><button class="chip" data-act="hist-opt" data-u="' + u.c + '" data-v="" aria-pressed="' + !histOpt(u.c) + '">All options</button>' + Object.entries(u.opts).map(([k, n]) => '<button class="chip" data-act="hist-opt" data-u="' + u.c + '" data-v="' + k + '" aria-pressed="' + (histOpt(u.c) === k) + '">' + k + ' ' + esc(n) + '</button>').join('') + '</div></div>' : '';
   const rows = shown.map(r => {
     const [sr, qp, ms] = r; const key = paperKey(u.c, sr); const rec = state.papers[key];
     const older = /^\w+ (\d{4})$/.test(sr) && +sr.slice(-4) < 2019;
@@ -1180,9 +1192,9 @@ function viewPapers(){
   return '<div class="stack">' + qSeg('papers') + modeSeg('ial') +
     '<div><h1>Past papers</h1><p class="muted">Real Pearson Edexcel IAL papers. Each link opens the PDF directly from Physics &amp; Maths Tutor. The two newest papers for each unit are marked “Save for a mock”: keep them for timed practice close to your exam. Start a timed mock to sit a paper at the real exam length, mark it with the mark scheme, then log your mark. You’ll see the UMS and grade it would have got in that series, and it feeds your <a href="#grades">Grades</a>. The examiner report explains the most common mistakes on each question.</p></div>' +
     '<div class="chips" role="group" aria-label="Subject">' + SUBJECTS.map(x => '<button class="chip" data-act="pp-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === p.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
-    '<div class="row" style="align-items:flex-end"><label class="f" style="flex:2;min-width:220px">Unit<select id="pp-unit">' + units.map(x => { const n = (typeof PAPERS !== 'undefined' && PAPERS[x.c]) ? PAPERS[x.c].length : 0; const d = n ? PAPERS[x.c].filter(r => state.papers[paperKey(x.c, r[0])]).length : 0; return '<option value="' + x.c + '"' + (x.c === p.unit ? ' selected' : '') + '>' + esc(x.l + ' · ' + x.n) + ' (' + d + '/' + n + ' done)</option>'; }).join('') + '</select></label>' +
+    '<div class="row" style="align-items:flex-end"><label class="f" style="flex:2;min-width:220px">Unit<select id="pp-unit">' + units.map(x => { const n = papersFor(x.c).length; const d = n ? papersFor(x.c).filter(r => state.papers[paperKey(x.c, r[0])]).length : 0; return '<option value="' + x.c + '"' + (x.c === p.unit ? ' selected' : '') + '>' + esc(x.l + ' · ' + x.n) + ' (' + d + '/' + n + ' done)</option>'; }).join('') + '</select></label>' +
     '<div class="chips" role="group" aria-label="Show">' + [['all','All'],['todo','Not done'],['done','Done']].map(([v, l]) => '<button class="chip" data-act="pp-filter" data-v="' + v + '" aria-pressed="' + (p.filter === v) + '">' + l + '</button>').join('') + '</div></div>' +
-    (u ? stats + '<div class="oldhint">' + oldHint(u.c) + '</div>' + tipsBlock(u.c, !!(MOCK && MOCK.key.split('|')[0] === u.c)) + '<div class="card"><div class="list">' + (rows || '<div class="empty">' + (p.filter === 'done' ? 'No papers logged yet for this unit.' : 'You’ve done every paper for this unit.') + '</div>') + '</div></div>' : '<div class="empty">All ' + esc(s.short) + ' units are hidden. <a href="#prefs">Choose your units</a>.</div>') +
+    optPick + (u ? stats + '<div class="oldhint">' + oldHint(u.c) + '</div>' + tipsBlock(u.c, !!(MOCK && MOCK.key.split('|')[0] === u.c)) + '<div class="card"><div class="list">' + (rows || '<div class="empty">' + (p.filter === 'done' ? 'No papers logged yet for this unit.' : 'You’ve done every paper for this unit.') + '</div>') + '</div></div>' : '<div class="empty">All ' + esc(s.short) + ' units are hidden. <a href="#prefs">Choose your units</a>.</div>') +
     '<p class="small muted">Papers, mark schemes and examiner reports © Pearson Education. Papers and mark schemes are hosted by Physics &amp; Maths Tutor; examiner reports open from Pearson’s website. Papers before 2019 are from the older specification but most questions still match the current units.</p>' +
   '</div>';
 }
@@ -1360,16 +1372,17 @@ function viewSettings(){
    ============================================================ */
 const GBS = typeof GB !== 'undefined' ? GB : {};
 const GB_SERIES = Object.keys(GBS).sort((a, b) => seriesSortKey(a) - seriesSortKey(b));
-const A2 = new Set(['WMA13','WMA14','WFM02','WFM03','WME02','WME03','WST02','WST03','WPH14','WPH15','WPH16','WCH14','WCH15','WCH16','WBI14','WBI15','WBI16','WEC13','WEC14','WGE03','WGE04','WPS03','WPS04','WCP03','WCP04']);
+const A2 = new Set(['WMA13','WMA14','WFM02','WFM03','WME02','WME03','WST02','WST03','WPH14','WPH15','WPH16','WCH14','WCH15','WCH16','WBI14','WBI15','WBI16','WEC13','WEC14','WGE03','WGE04','WPS03','WPS04','WCP03','WCP04','WHI03','WHI04']);
 const PAPER_MIN = {};
 SUBJECTS.forEach(s => s.units.forEach(u => { const n = +u.c.slice(-1); PAPER_MIN[u.c] = (s.id === 'math' || s.id === 'fm') ? 90 : (n === 3 || n === 6) ? 80 : (n === 4 || n === 5) ? 105 : 90; }));
 /* 4-unit subjects: exam length (min) and maximum UMS, from the Pearson specifications */
-const UNIT4_INFO = { WEC11:[105,100], WEC12:[105,100], WEC13:[120,100], WEC14:[120,100], WGE01:[105,120], WGE02:[90,80], WGE03:[120,120], WGE04:[90,80], WPS01:[90,80], WPS02:[120,120], WPS03:[90,80], WPS04:[120,120], WCP01:[90,100], WCP02:[180,100], WCP03:[90,100], WCP04:[180,100] };
+const UNIT4_INFO = { WHI01:[120,100], WHI02:[120,100], WHI03:[120,100], WHI04:[120,100], WEC11:[105,100], WEC12:[105,100], WEC13:[120,100], WEC14:[120,100], WGE01:[105,120], WGE02:[90,80], WGE03:[120,120], WGE04:[90,80], WPS01:[90,80], WPS02:[120,120], WPS03:[90,80], WPS04:[120,120], WCP01:[90,100], WCP02:[180,100], WCP03:[90,100], WCP04:[180,100] };
 Object.entries(UNIT4_INFO).forEach(([c, [m]]) => { PAPER_MIN[c] = m; });
 function isMathsUnit(c){ return UNIT_SUBJ[c] === 'math' || UNIT_SUBJ[c] === 'fm'; }
 function umsMax(c){ if (isMathsUnit(c)) return 100; if (UNIT4_INFO[c]) return UNIT4_INFO[c][1]; const n = +c.slice(-1); return (n === 3 || n === 6) ? 60 : 120; }
 function fmtDur(m){ return Math.floor(m / 60) + 'h' + (m % 60 ? ' ' + (m % 60) + 'm' : ''); }
 function boundsFor(c, sr){
+  const mo = String(sr).match(/^(.*) · (\w+)$/); if (mo){ c = c + '_' + mo[2]; sr = mo[1]; }
   if (GBS[sr] && GBS[sr][c]) return { b: GBS[sr][c], sr, est: false };
   const k = /^\w+ \d{4}$/.test(sr) ? seriesSortKey(sr) : 1e9; let best = null, bd = Infinity;
   GB_SERIES.forEach(s => { if (!GBS[s][c]) return; const d = Math.abs(seriesSortKey(s) - k); if (d <= bd){ bd = d; best = s; } });
@@ -1602,7 +1615,7 @@ window.addEventListener('resize', setHdr);
    ============================================================ */
 function noErReason(sr){
   if (/Specimen/.test(sr)) return 'No examiner report: sample paper, never sat';
-  if (sr === 'June 2021') return 'No examiner report: exams cancelled, grades were teacher-assessed';
+  if (srBase(sr) === 'June 2021') return 'No examiner report: exams cancelled, grades were teacher-assessed';
   if (sr === 'June 2020') return 'No examiner report: exams cancelled (pandemic)';
   return 'No examiner report published online for this paper';
 }
@@ -1706,15 +1719,15 @@ function mkReadForm(){ const f = ui.mk.form; if (!f) return; const g = id => { c
 const MOCK_KEEP = 2;
 function reservedPapers(c){
   if (typeof PAPERS === 'undefined' || !PAPERS[c]) return [];
-  return PAPERS[c].filter(r => /^\w+ \d{4}$/.test(r[0])).sort((a, b) => seriesSortKey(b[0]) - seriesSortKey(a[0])).slice(0, MOCK_KEEP).map(r => r[0]);
+  return papersFor(c).filter(r => /^\w+ \d{4}$/.test(srBase(r[0]))).sort((a, b) => seriesSortKey(b[0]) - seriesSortKey(a[0])).slice(0, MOCK_KEEP).map(r => r[0]);
 }
 function isReserved(c, sr){ return reservedPapers(c).includes(sr) && !state.papers[paperKey(c, sr)]; }
 function pickPaper(c, examDays){
   if (typeof PAPERS === 'undefined' || !PAPERS[c]) return null;
-  const todo = PAPERS[c].filter(r => !state.papers[paperKey(c, r[0])]).sort((a, b) => seriesSortKey(b[0]) - seriesSortKey(a[0]));
+  const todo = papersFor(c).filter(r => !state.papers[paperKey(c, r[0])]).sort((a, b) => seriesSortKey(b[0]) - seriesSortKey(a[0]));
   if (!todo.length) return null;
   const res = new Set(reservedPapers(c));
-  const practice = todo.filter(r => !res.has(r[0]) && r[0] !== 'Specimen' && +r[0].slice(-4) >= 2019);
+  const practice = todo.filter(r => !res.has(r[0]) && srBase(r[0]) !== 'Specimen' && +srBase(r[0]).slice(-4) >= 2019);
   const mock = todo.filter(r => res.has(r[0]));
   const r = (examDays !== null && examDays <= 14 && mock.length) ? mock[0] : (practice[0] || todo.filter(x => !res.has(x[0]))[0] || mock[0]);
   return r ? { sr: r[0], reserved: res.has(r[0]) } : null;
@@ -1840,7 +1853,7 @@ function setupSave(){
 /* ============================================================
    Target grades · automatic topic progress · data protection
    ============================================================ */
-const TARGET_KEYS = [['math','Maths'],['fm','Further Maths'],['phys','Physics'],['chem','Chemistry'],['bio','Biology'],['econ','Economics'],['geog','Geography'],['psych','Psychology'],['cs','Computer Science']];
+const TARGET_KEYS = [['math','Maths'],['fm','Further Maths'],['phys','Physics'],['chem','Chemistry'],['bio','Biology'],['econ','Economics'],['geog','Geography'],['psych','Psychology'],['hist','History'],['cs','Computer Science']];
 function targetFor(k){ return (state.targets && state.targets[k]) || ''; }
 function targetLine(q, k, label){
   const tg = targetFor(k); if (!tg || !q) return '';
@@ -1991,6 +2004,7 @@ function viewOldPapers(){
   '</div>';
 }
 function oldHint(c){
+  if (!['math','fm','phys','chem','bio'].includes(UNIT_SUBJ[c])) return '';
   if (OLD_STATE !== 'ready') return '<button class="linkbtn" data-act="pp-mode" data-v="old">More practice: UK old-spec papers for this unit →</button>';
   const eq = oldEquivFor(c); if (!eq.length) return '';
   const n = eq.reduce((a, u) => a + (OLD_PAPERS[u.k] || []).length, 0);
@@ -2173,9 +2187,10 @@ const QUICK_UNITS = {
   econ: ['WEC11','WEC12','WEC13','WEC14'],
   geog: ['WGE01','WGE02','WGE03','WGE04'],
   psych:['WPS01','WPS02','WPS03','WPS04'],
+  hist: ['WHI01','WHI02','WHI03','WHI04'],
   cs:   ['WCP01','WCP02','WCP03','WCP04']
 };
-function isASUnit(c){ return /^(WMA1[12]|WME01|WST01|WDM11|WFM01|W(PH|CH|BI)1[123]|WEC1[12]|W(GE|PS|CP)0[12])$/.test(c); }
+function isASUnit(c){ return /^(WMA1[12]|WME01|WST01|WDM11|WFM01|W(PH|CH|BI)1[123]|WEC1[12]|W(GE|PS|CP|HI)0[12])$/.test(c); }
 function quickInit(){
   if (ui.quick) return ui.quick;
   const prevSubj = SUBJECTS.filter(s => s.units.some(u => !isHidden(u.c) && setupDone())).map(s => s.id);
@@ -2438,8 +2453,8 @@ function rtBuild(min, rest){
     const topics = u.t.map((n, i) => ({ i, n, st: state.topics[topicId(c, i)] || 0, lost: topicMistakes(c, i).reduce((a, m) => a + m.lost, 0) }))
       .filter(x => x.st < 3).sort((a, b) => a.st - b.st || b.lost - a.lost);
     const res = new Set(reservedPapers(c));
-    const todo = (typeof PAPERS !== 'undefined' && PAPERS[c] ? PAPERS[c] : []).filter(r => !state.papers[paperKey(c, r[0])]).sort((a, b) => seriesSortKey(b[0]) - seriesSortKey(a[0]));
-    return { c, u, exam: e.d, topics, practice: todo.filter(r => !res.has(r[0]) && r[0] !== 'Specimen').map(r => r[0]), mocks: todo.filter(r => res.has(r[0])).map(r => r[0]), lastPaper: null, mockDone: false, reviewDone: false, pmin: PAPER_MIN[c] || 90 };
+    const todo = papersFor(c).filter(r => !state.papers[paperKey(c, r[0])]).sort((a, b) => seriesSortKey(b[0]) - seriesSortKey(a[0]));
+    return { c, u, exam: e.d, topics, practice: todo.filter(r => !res.has(r[0]) && srBase(r[0]) !== 'Specimen').map(r => r[0]), mocks: todo.filter(r => res.has(r[0])).map(r => r[0]), lastPaper: null, mockDone: false, reviewDone: false, pmin: PAPER_MIN[c] || 90 };
   });
   const last = ex[ex.length - 1].d, out = [];
   for (let d = t; d < last && out.length < 600; d = addDays(d, 1)){
@@ -2703,6 +2718,7 @@ document.addEventListener('click', e => {
     case 'card-del': state.custom = state.custom.filter(k => k.id !== id); delete state.cardState[id]; commit(); break;
     case 'pp-subj': ui.papers.subj = v; ui.papers.unit = null; ui.papers.log = null; render(); break;
     case 'pp-filter': ui.papers.filter = v; render(); break;
+    case 'hist-opt': state.histOpt = Object.assign({}, state.histOpt || {}, { [b.dataset.u]: v }); commit(); break;
     case 'goto-papers': ui.papers.subj = UNIT_SUBJ[b.dataset.u]; ui.papers.unit = b.dataset.u; ui.papers.log = null; if (route() === 'papers') render(); else go('papers'); break;
     case 'paper-log': ui.papers.log = b.dataset.key; ui.papers.qmode = !!(state.papers[b.dataset.key] && state.papers[b.dataset.key].qs); ui.papers.qrows = ui.papers.qmode ? pqDefault(b.dataset.key) : null; render(); { const el = $('#pl-s'); if (el) el.focus(); } break;
     case 'paper-cancel': ui.papers.log = null; ui.papers.qmode = false; ui.papers.qrows = null; render(); break;

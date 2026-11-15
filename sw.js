@@ -1,5 +1,5 @@
 /* Offline support: keeps the app's own files on the device. Papers and notes (PDFs on other sites) still need internet. */
-const CACHE = 'ial-study-hub-20261115184408';
+const CACHE = 'ial-study-hub-20261115185934';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',
   './papers.js', './topicqs.js', './notes.js', './decks.js', './boundaries.js', './reports.js', './timetable.js', './tips.js', './practicals.js', './keyphrases.js', './oldspec.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
