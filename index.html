@@ -111,6 +111,8 @@ details.dropped>summary{cursor:pointer;color:var(--muted);padding:6px 0}
 .avlink{display:inline-flex;border-radius:50%;text-decoration:none}
 .pfhead{gap:16px;align-items:center;flex-wrap:nowrap}.pfsum{gap:12px;align-items:center;flex-wrap:nowrap}
 .avcols{gap:6px}.avc{width:34px;height:34px;border-radius:50%;border:0;cursor:pointer;padding:0}.avc[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:2px}
+.trend{width:100%;height:auto;display:block}.trend .tg-grid{stroke:var(--line);stroke-width:1}.trend .tg-target{stroke:var(--hi);stroke-width:1.5;stroke-dasharray:5 4}.trend .tg-lab{fill:var(--muted);font-size:13px;font-family:var(--body)}
+.tg-keys{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.88rem}.tg-key{display:inline-flex;align-items:center;gap:6px}.tg-key i{width:12px;height:12px;border-radius:3px;display:inline-block}
 .pill.s-hist{background:color-mix(in srgb,var(--hist) 16%,transparent);color:var(--hist)}
 .pill.s-cs{background:color-mix(in srgb,var(--cs) 16%,transparent);color:var(--cs)}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
@@ -1862,6 +1864,43 @@ function awardCard(title, q, sub){
   if (!q) return '';
   return '<div class="award"><div class="small muted">' + esc(title) + '</div><div class="row" style="gap:10px;align-items:baseline"><span class="big-grade">' + esc(q.grade) + '</span><span class="muted">' + q.total + ' / ' + q.max + ' UMS</span></div>' + (sub ? '<div class="small muted">' + sub + '</div>' : '') + '</div>';
 }
+
+/* ---- grade trend: every logged past paper as % of max UMS, per unit, over time ---- */
+const TREND_COLS = ['var(--math)', 'var(--phys)', 'var(--chem)', 'var(--psych)', 'var(--bio)', 'var(--fm)', 'var(--econ)', 'var(--hist)', 'var(--cs)'];
+function trendData(units){
+  return units.map(u => {
+    const pts = Object.entries(state.papers).filter(([k]) => k.startsWith(u.c + '|')).map(([k, r]) => {
+      const sr = k.slice(u.c.length + 1), x = paperUms(u.c, sr, r);
+      return { d: r.d || todayStr(), v: x ? Math.round(x.ums / umsMax(u.c) * 100) : Math.round(paperPct(r) * 100), ums: !!x, sr, raw: r.s + '/' + r.m };
+    }).sort((a, b) => a.d.localeCompare(b.d));
+    return { u, pts };
+  }).filter(x => x.pts.length);
+}
+function trendCard(sid){
+  const s = SUBJ[sid]; if (!s) return '';
+  const units = (sid === 'math' || sid === 'fm') ? s.units.filter(u => takes(u.c)) : s.units.filter(u => takes(u.c));
+  const D = trendData(units), n = D.reduce((a, x) => a + x.pts.length, 0);
+  if (n < 2) return '<div class="card stack"><h2>Your trend</h2><p class="small muted" style="margin:0">Log at least two past papers for ' + esc(s.name) + ' and a chart of your scores over time appears here, one line per unit, against the grade lines.</p></div>';
+  const W = 420, H = 230, L = 26, R = 8, T = 10, B = 26, Y0 = 30, all = D.flatMap(x => x.pts.map(p => p.d)).sort();
+  const t0 = parseD(all[0]).getTime(), t1 = Math.max(parseD(all[all.length - 1]).getTime(), t0 + 86400000 * 7);
+  const X = d => L + (parseD(d).getTime() - t0) / (t1 - t0) * (W - L - R), Y = v => T + (100 - Math.max(Y0, Math.min(100, v))) / (100 - Y0) * (H - T - B);
+  const tg = targetFor(sid), tgv = { 'A*': 90, A: 80, B: 70, C: 60, D: 50, E: 40 }[tg];
+  let g = '';
+  [['A', 80], ['B', 70], ['C', 60], ['D', 50], ['E', 40]].forEach(([l, v]) => { g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" class="tg-grid"/><text x="' + (L - 6) + '" y="' + (Y(v) + 4) + '" class="tg-lab" text-anchor="end">' + l + '</text>'; });
+  if (tgv) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(tgv) + '" y2="' + Y(tgv) + '" class="tg-target"/><text x="' + (W - R) + '" y="' + (Y(tgv) - 5) + '" class="tg-lab" text-anchor="end">target ' + esc(tg) + '</text>';
+  const months = []; { const a = parseD(all[0]); a.setDate(1); for (let d = new Date(a); d.getTime() <= t1; d.setMonth(d.getMonth() + 1)) months.push(new Date(d)); }
+  const step = Math.max(1, Math.ceil(months.length / 6));
+  months.forEach((m, i) => { if (i % step) return; const ds = todayStr(m), x = X(ds); if (x < L - 1) return; g += '<text x="' + x + '" y="' + (H - 8) + '" class="tg-lab" text-anchor="middle">' + m.toLocaleDateString('en-GB', { month: 'short' }) + (m.getMonth() === 0 || i === 0 ? ' ' + String(m.getFullYear()).slice(2) : '') + '</text>'; });
+  D.forEach((x, i) => {
+    const col = TREND_COLS[i % TREND_COLS.length];
+    if (x.pts.length > 1) g += '<polyline fill="none" stroke="' + col + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="' + x.pts.map(p => X(p.d).toFixed(1) + ',' + Y(p.v).toFixed(1)).join(' ') + '"/>';
+    x.pts.forEach(p => { g += '<circle cx="' + X(p.d).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="4" fill="' + col + '" stroke="var(--surface)" stroke-width="1.5"><title>' + esc(x.u.l + ' · ' + p.sr + ': ' + p.raw + ' → ' + p.v + '%' + (p.ums ? ' of max UMS' : ' (raw)') + ' · ' + fmtDate(p.d, {day:'numeric', month:'short'})) + '</title></circle>'; });
+  });
+  const legend = D.map((x, i) => { const f = x.pts[0].v, l = x.pts[x.pts.length - 1].v, d = l - f; return '<span class="tg-key"><i style="background:' + TREND_COLS[i % TREND_COLS.length] + '"></i>' + esc(x.u.l) + ' <b>' + l + '%</b>' + (x.pts.length > 1 ? ' <span class="' + (d > 0 ? 'up' : d < 0 ? 'down' : 'muted') + '">' + (d > 0 ? '▲' : d < 0 ? '▼' : '') + (d ? Math.abs(d) : 'no change') + '</span>' : '') + '</span>'; }).join('');
+  return '<div class="card stack wr"><div class="card-h"><h2>Your trend</h2><span class="small muted">' + n + ' paper' + (n === 1 ? '' : 's') + '</span></div>' +
+    '<svg class="trend" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Past-paper scores over time for ' + esc(s.name) + '">' + g + '</svg>' +
+    '<div class="tg-keys">' + legend + '</div><p class="small muted" style="margin:0">Each dot is a past paper you logged, as % of the maximum UMS using that paper’s grade boundaries (anything under 30% sits on the bottom edge). Lines A–E are the grade thresholds; ▲▼ compares your latest paper with your first.</p></div>';
+}
 function gradeSubjHasData(sid){ return SUBJ[sid].units.some(u => (state.results[u.c] || []).length || mockEst(u.c)); }
 function todayGrades(){
   const saved = ui.grades.whatif; ui.grades.whatif = {};
@@ -1904,7 +1943,7 @@ function viewGrades(){
   const anyWi = Object.keys(g.whatif).length;
   return '<div class="stack"><div><h1>Grades</h1><p class="muted">Your unit results and past-paper marks turned into UMS and an overall grade, using Pearson’s rules. Try “what if” marks to plan resits.</p></div>' +
     '<div class="chips" role="group" aria-label="Subject">' + gradeSubjects().map(x => '<button class="chip" data-act="gr-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === g.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') +
-    (anyWi ? '<button class="chip" data-act="wi-clear">Clear what-ifs</button>' : '') + '</div>' + body +
+    (anyWi ? '<button class="chip" data-act="wi-clear">Clear what-ifs</button>' : '') + '</div>' + body.replace('<div class="card"><div class="list">', trendCard(g.subj) + '<div class="card"><div class="list">') +
     '<p class="small muted">Estimates from past papers use the official grade boundaries for that paper’s series (or the nearest series if none were published) and assume the main paper, not the time-zone variant. Real UMS comes from your results slip. Grade boundaries © Pearson Education.</p></div>';
 }
 
@@ -2407,7 +2446,18 @@ function examsTimeline(){
 }
 
 /* ---- session planner ---- */
+/* "Just 15 minutes": one focused task, the most useful thing that fits */
+function plan15(){
+  const ex = upcomingExams().filter(e => UNIT[e.u] && !isHidden(e.u)), c0 = ex.length ? ex[0].u : (visibleUnits('all')[0] || {}).c;
+  const dm = dueMistakes().length, dd = decksIn('all').filter(d => deckStatus(d) === 'due').length, dk = allCards().filter(c => cardStatus(c) === 'due').length;
+  const one = (kind, title, act, s) => [{ id: uid(), kind, title, min: 15, act, s: s || '', done: false }];
+  if (dm) return one('mistakes', 'Redo ' + Math.min(dm, 5) + ' mistake' + (Math.min(dm, 5) === 1 ? '' : 's') + ' from your log', 'mk-review');
+  if (dd || dk) return one('cards', 'Flashcards: ' + (dd ? dd + ' deck' + (dd === 1 ? '' : 's') : dk + ' card' + (dk === 1 ? '' : 's')) + ' due', 'cards');
+  if (c0){ const w = weakestTopic(c0); if (w) return pmtPacks(c0, w.i).length ? one('questions', 'Topic questions: ' + w.name + ' (' + UNIT[c0].l + ')', 'tq:' + c0, UNIT_SUBJ[c0]) : one('notes', 'Read notes: ' + w.name + ' (' + UNIT[c0].l + ')', 'rev:' + c0, UNIT_SUBJ[c0]); }
+  return one('cards', 'Flashcards: quick review', 'cards');
+}
 function planFor(total){
+  if (total <= 15) return plan15();
   const steps = [], t = todayStr(); let left = total;
   const push = (kind, title, min, act, s) => { if (left <= 0 || min < 5) return; const m = Math.min(min, left); if (m < 10 && kind !== 'mistakes' && kind !== 'cards') return; steps.push({ id: uid(), kind, title, min: m, act, s: s || '', done: false }); left -= m; };
   const ex = upcomingExams().filter(e => UNIT[e.u] && !isHidden(e.u));
@@ -2435,7 +2485,7 @@ function planCard(){
   const pl = state.plan && state.plan.d === todayStr() ? state.plan : null;
   if (!pl){
     return '<div class="card plancard"><div class="card-h"><h2>Plan my session</h2></div><p class="small muted" style="margin:0 0 8px">How long have you got? You’ll get a step-by-step plan built from your exams, mistakes and weak topics.</p><div class="chips">' +
-      [30, 60, 90, 120, 180].map(m => '<button class="chip" data-act="plan-make" data-v="' + m + '">' + fmtMin(m) + '</button>').join('') + '</div></div>';
+      [15, 30, 60, 90, 120, 180].map(m => '<button class="chip' + (m === 15 ? ' quick15' : '') + '" data-act="plan-make" data-v="' + m + '">' + (m === 15 ? '⚡ Just 15 min' : fmtMin(m)) + '</button>').join('') + '</div></div>';
   }
   const done = pl.steps.filter(s => s.done).length, mins = pl.steps.filter(s => s.done).reduce((a, s) => a + s.min, 0);
   const next = pl.steps.find(s => !s.done);
