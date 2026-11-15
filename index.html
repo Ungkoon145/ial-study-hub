@@ -113,6 +113,10 @@ details.dropped>summary{cursor:pointer;color:var(--muted);padding:6px 0}
 .avcols{gap:6px}.avc{width:34px;height:34px;border-radius:50%;border:0;cursor:pointer;padding:0}.avc[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:2px}
 .trend{width:100%;height:auto;display:block}.trend .tg-grid{stroke:var(--line);stroke-width:1}.trend .tg-target{stroke:var(--hi);stroke-width:1.5;stroke-dasharray:5 4}.trend .tg-lab{fill:var(--muted);font-size:13px;font-family:var(--body)}
 .tg-keys{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.88rem}.tg-key{display:inline-flex;align-items:center;gap:6px}.tg-key i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.weekly-mini{font-size:.92rem;flex-wrap:wrap}
+details.howto{display:inline}details.howto>summary{display:inline;cursor:pointer;color:var(--ink);text-decoration:underline;font-size:.9em}details.howto[open]{display:block;margin-top:6px}
+.pill.ust{background:var(--soft);color:var(--muted)}.pill.ust.resit{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+@media (max-width:640px){ .li .meta.pp3 .btn.sm{flex:1 1 auto;min-width:auto;padding:7px 4px;font-size:.8rem;white-space:nowrap} .li .meta.pp3 .btn.primary{flex:1.5 1 0} .li .meta.pp3 .btn.planbtn{flex:0 0 auto;padding:7px 10px} }
 .pill.s-hist{background:color-mix(in srgb,var(--hist) 16%,transparent);color:var(--hist)}
 .pill.s-cs{background:color-mix(in srgb,var(--cs) 16%,transparent);color:var(--cs)}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
@@ -882,18 +886,19 @@ function viewToday(){
     weakHtml = todo.length
       ? todo.slice(0, 4).map(x => '<div class="li"><div class="grow"><div class="t">' + esc(x.name) + '</div><div class="small muted">Not yet revised for your next exam</div></div>' + unitPill(x.u.c) + '</div>').join('')
       : '<div class="empty">Take a few quizzes and mark syllabus topics. Your weakest areas will show up here.</div>';
+    weakHtml = '';
   }
 
   return '<div class="stack today">' +
     '<div class="todayhead"><div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#prefs" class="avlink" aria-label="Your profile">' + avatar(44) + '</a>' : '') + '<div><p class="muted small">' + fmtDate(t, {weekday:'long', day:'numeric', month:'long'}) + '</p><h1>' + greet + (firstName() ? ', ' + esc(firstName()) : '') + '</h1></div></div>' + goalRing() + '</div>' + profileNudge() +
-    reviewCard(ui.showReview) + backupNudge() + nextCard() + planCard() + examsTimeline() + buddyCard() +
-    '<div class="grid2">' + exHtml +
+    nextCard() + reviewCard(ui.showReview) + backupNudge() + planCard() + examsTimeline() + buddyCard() +
+    '<div class="grid2">' + (ex.length ? '' : exHtml) +
       '<div class="card"><div class="card-h"><h2>Tasks</h2><a class="small muted" href="#planner">' + (openTasks.length > 5 ? 'All ' + openTasks.length : 'Planner') + '</a></div>' +
         '<form data-form="task-quick" class="row" style="margin-bottom:8px"><input type="text" id="tq" placeholder="Quick add, due today" aria-label="New task due today" style="flex:1;min-width:0"><button class="btn" type="submit">Add</button></form>' +
         '<div class="list">' + (nextTasks.length ? nextTasks.map(taskRow).join('') : '<div class="empty">No tasks. Add one here, or set deadlines in Planner.</div>') + '</div></div>' +
     '</div>' +
     '<div class="grid2">' + (todayGrades() || '') +
-      '<div class="card"><div class="card-h"><h2>Needs work</h2><a class="small muted" href="#syllabus">Revise</a></div><div class="list">' + weakHtml + '</div></div>' +
+      (weakHtml ? '<div class="card"><div class="card-h"><h2>Needs work</h2><a class="small muted" href="#syllabus">Revise</a></div><div class="list">' + weakHtml + '</div></div>' : '') +
     '</div>' +
     '<details class="card weekcard"><summary><span class="statline">' +
       '<span><b>' + due + '</b> decks due</span><span><b>' + fmtMin(week) + '</b> focus this week</span><span' + (st >= 3 ? ' class="hot"' : '') + '><b>' + st + '</b> day streak</span><span><b>' + conf + '%</b> syllabus</span>' +
@@ -1184,7 +1189,7 @@ function viewPapers(){
   const rows = shown.map(r => {
     const [sr, qp, ms] = r; const key = paperKey(u.c, sr); const rec = state.papers[key];
     const older = /^\w+ (\d{4})$/.test(sr) && +sr.slice(-4) < 2019;
-    const links = '<a class="btn sm" href="' + qp + '" target="_blank" rel="noopener">Question paper ↗</a>' + (ms ? '<a class="btn sm" href="' + ms + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '<span class="small muted">No mark scheme</span>') + (erUrl(u.c, sr) ? '<a class="btn sm er" href="' + esc(erUrl(u.c, sr)) + '" target="_blank" rel="noopener" title="Pearson examiners’ report: common mistakes on each question">Examiner report ↗</a>' : '<span class="small muted noer">' + esc(noErReason(sr)) + '</span>') + flagBtn('IAL ' + u.l + ' ' + (UNIT_SUBJ[u.c] === 'math' || UNIT_SUBJ[u.c] === 'fm' ? '' : SUBJ[UNIT_SUBJ[u.c]].short + ' ') + sr);
+    const links = '<a class="btn sm" href="' + qp + '" target="_blank" rel="noopener">Paper</a>' + (ms ? '<a class="btn sm" href="' + ms + '" target="_blank" rel="noopener">Mark scheme</a>' : '<span class="small muted">No mark scheme</span>') + (erUrl(u.c, sr) ? '<a class="btn sm er" href="' + esc(erUrl(u.c, sr)) + '" target="_blank" rel="noopener" title="Pearson examiners’ report: common mistakes on each question">Report</a>' : '<span class="small muted noer">' + esc(noErReason(sr)) + '</span>') + flagBtn('IAL ' + u.l + ' ' + (UNIT_SUBJ[u.c] === 'math' || UNIT_SUBJ[u.c] === 'fm' ? '' : SUBJ[UNIT_SUBJ[u.c]].short + ' ') + sr);
     let status;
     if (p.log === key){
       status = '<form class="editbox" data-form="paper-log" data-key="' + esc(key) + '">' +
@@ -1199,13 +1204,13 @@ function viewPapers(){
       const pc = paperPct(rec);
       status = '<div class="meta"><span class="pill" style="background:color-mix(in srgb,var(--' + scoreColor(pc) + ') 20%,transparent)">' + rec.s + ' / ' + rec.m + ' · ' + Math.round(pc * 100) + '%</span>' + (() => { const x = paperUms(u.c, sr, rec); return x ? '<span class="pill" title="Using the ' + esc(x.sr) + ' grade boundaries' + (x.est ? ' (none published for this paper)' : '') + '">≈ ' + x.ums + '/' + umsMax(u.c) + ' UMS · ' + unitGrade(u.c, x.ums) + '</span>' : ''; })() + (rec.mock ? '<span class="pill" title="Done as a timed mock">Timed</span>' : '') + '<span>Done ' + fmtDate(rec.d, {day:'numeric', month:'short'}) + (rec.min ? ' · ' + rec.min + ' min' : '') + '</span><button class="linkbtn" data-act="paper-log" data-key="' + esc(key) + '">Edit</button>' + (() => { const n = mkCountFor(u.c, sr); return '<button class="btn sm' + (ui.papers.justSaved === key && !n ? ' primary' : '') + '" data-act="mk-from-paper" data-key="' + esc(key) + '">' + (n ? 'Mistakes (' + n + ')' : 'Log mistakes') + '</button>'; })() + '</div>';
     } else {
-      status = '<div class="meta"><button class="btn sm primary" data-act="mock-start" data-key="' + esc(key) + '">Timed mock (' + fmtDur(PAPER_MIN[u.c]) + ')</button><button class="btn sm" data-act="paper-log" data-key="' + esc(key) + '">Log my mark</button><button class="btn sm ghost" data-act="paper-plan" data-key="' + esc(key) + '">Add to Planner</button></div>';
+      status = '<div class="meta pp3"><button class="btn sm primary" data-act="mock-start" data-key="' + esc(key) + '">Timed mock (' + fmtDur(PAPER_MIN[u.c]) + ')</button><button class="btn sm" data-act="paper-log" data-key="' + esc(key) + '">Log mark</button><button class="btn sm ghost planbtn" data-act="paper-plan" data-key="' + esc(key) + '" title="Add to Planner" aria-label="Add to Planner">+ Plan</button></div>';
     }
     return '<div class="li" style="align-items:flex-start' + (rec ? '' : '') + '"><span class="pdot' + (rec ? ' done' : '') + '" aria-hidden="true"></span><div class="grow"><div class="t"><b>' + esc(sr) + '</b>' + (older ? ' <span class="pill" title="Sat before the 2018 specification; most questions still useful">Older spec</span>' : '') + (isReserved(u.c, sr) ? ' <span class="pill keep" title="One of the two newest papers. Save it for a timed mock close to your exam.">Save for a mock</span>' : '') + '</div>' +
-      '<div class="meta">' + links + '</div>' + status + '</div></div>';
+      '<div class="meta pp3 pplinks">' + links + '</div>' + status + '</div></div>';
   }).join('');
   return '<div class="stack">' + qSeg('papers') + modeSeg('ial') +
-    '<div><h1>Past papers</h1><p class="muted">Real Pearson Edexcel IAL papers. Each link opens the PDF directly from Physics &amp; Maths Tutor. The two newest papers for each unit are marked “Save for a mock”: keep them for timed practice close to your exam. Start a timed mock to sit a paper at the real exam length, mark it with the mark scheme, then log your mark. You’ll see the UMS and grade it would have got in that series, and it feeds your <a href="#grades">Grades</a>. The examiner report explains the most common mistakes on each question.</p></div>' +
+    '<div><h1>Past papers</h1><p class="muted">Sit a paper timed, mark it, log your mark: you’ll see the UMS and grade it would have got. <details class="howto"><summary>How it works</summary>Each link opens the PDF from Physics &amp; Maths Tutor (examiner reports from Pearson). The two newest papers per unit are marked “Save for a mock”: keep them for timed practice close to your exam. Logged marks feed your <a href="#grades">Grades</a>, and the examiner report explains the most common mistakes on each question.</details></p></div>' +
     '<div class="chips" role="group" aria-label="Subject">' + mySubjects().map(x => '<button class="chip" data-act="pp-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === p.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
     '<div class="row" style="align-items:flex-end"><label class="f" style="flex:2;min-width:220px">Unit<select id="pp-unit">' + units.map(x => { const n = papersFor(x.c).length; const d = n ? papersFor(x.c).filter(r => state.papers[paperKey(x.c, r[0])]).length : 0; return '<option value="' + x.c + '"' + (x.c === p.unit ? ' selected' : '') + '>' + esc(x.l + ' · ' + x.n) + ' (' + d + '/' + n + ' done)</option>'; }).join('') + '</select></label>' +
     '<div class="chips" role="group" aria-label="Show">' + [['all','All'],['todo','Not done'],['done','Done']].map(([v, l]) => '<button class="chip" data-act="pp-filter" data-v="' + v + '" aria-pressed="' + (p.filter === v) + '">' + l + '</button>').join('') + '</div></div>' +
@@ -1237,7 +1242,7 @@ function viewSyllabus(){
   const labels = ['Not started','Learning','Revising','Confident'];
   const overall = units.length ? Math.round(units.reduce((a, u) => a + unitProgress(u), 0) / units.length * 100) : 0;
   return '<div class="stack">' + sSeg('syllabus') +
-    '<div><h1>Revise</h1><p class="muted">Revision notes and flashcards for every topic, next to your progress. Tap a topic’s status to move it along: Not started → Learning → Revising → Confident. Ticking a topic pack or rating a flashcard deck “Well” moves topics up for you, and a new mistake moves a “Confident” topic back to Revising.</p></div>' +
+    '<div><h1>Revise</h1><p class="muted">Notes for every topic. Tap a topic’s status as you go: Not started → Learning → Revising → Confident. <details class="howto"><summary>How it works</summary>Ticking a topic pack or rating a flashcard deck “Well” moves topics up for you, and a new mistake moves a “Confident” topic back to Revising.</details></p></div>' +
     '<div class="chips" role="group" aria-label="Subject">' + mySubjects().map(x => '<button class="chip" data-act="syl-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === sid) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
     '<div class="card row" style="justify-content:space-between"><div><div style="font-family:var(--display);font-size:1.6rem;font-weight:800">' + overall + '%</div><div class="small muted">' + esc(s.name) + ' covered across ' + units.length + ' units</div></div><a class="btn" href="#prefs">Choose my units</a></div>' +
     (units.length ? units.map(u => {
@@ -1806,7 +1811,7 @@ function resitIdeas(codes, vals){
     const r = bestResult(c), m = mockEst(c), max = umsMax(c);
     const gain = r && m && m.ums > r.ums ? m.ums - r.ums : 0;
     return { c, ums: vals[c], max, head: max - vals[c], gain, r, m };
-  }).sort((a, b) => b.gain - a.gain || b.head - a.head);
+  }).sort((a, b) => ((unitStatus(b.c) === 'resit') - (unitStatus(a.c) === 'resit')) || b.gain - a.gain || b.head - a.head);
 }
 function plannerHtml(q, label, tg){
   if (!q) return '';
@@ -1828,7 +1833,7 @@ function plannerHtml(q, label, tg){
   const ideaHtml = ideas.map(x => {
     const u = UNIT[x.c];
     if (x.gain) return '<li><b>' + esc(u.l) + '</b>: result ' + x.r.ums + '/' + x.max + ', but your recent papers average ≈ ' + x.m.ums + '. A resit could add about <b>' + x.gain + ' UMS</b>.</li>';
-    return '<li><b>' + esc(u.l) + '</b>: ' + x.ums + '/' + x.max + ' (' + x.head + ' UMS of headroom' + (A2.has(x.c) ? ', counts towards A*' : '') + ').</li>';
+    return '<li><b>' + esc(u.l) + '</b>: ' + x.ums + '/' + x.max + ' (' + x.head + ' UMS of headroom' + (A2.has(x.c) ? ', counts towards A*' : '') + ')' + (unitStatus(x.c) === 'resit' ? ' · <b>you’re resitting this</b>' : '') + '.</li>';
   }).join('');
   return '<div class="plan-box"><div class="small muted" style="font-weight:600;letter-spacing:.02em">RESIT &amp; REVISION PLANNER</div>' + lines.map(l => '<p>' + l + '</p>').join('') +
     (ideaHtml ? '<div class="small muted">Best places to gain marks</div><ul class="ideas">' + ideaHtml + '</ul>' : '') + '</div>';
@@ -1853,7 +1858,7 @@ function unitRow(u){
       '<div class="row"><button class="btn primary" type="submit">Save result</button><button class="btn" type="button" data-act="res-cancel">Cancel</button></div>' +
       '<p class="small muted" style="margin:0">Raw marks are converted with that series’ official boundaries.</p></form>';
   }
-  return '<div class="li gu' + (wi !== undefined ? ' wi' : '') + '" style="align-items:flex-start;flex-wrap:wrap"><div class="grow" style="min-width:180px"><div class="t"><b>' + esc(u.l) + '</b> <span class="muted">' + esc(u.n) + '</span>' + (A2.has(c) ? ' <span class="pill" title="IA2 unit">A2</span>' : '') + '</div>' +
+  return '<div class="li gu' + (wi !== undefined ? ' wi' : '') + '" style="align-items:flex-start;flex-wrap:wrap"><div class="grow" style="min-width:180px"><div class="t"><b>' + esc(u.l) + '</b> <span class="muted">' + esc(u.n) + '</span>' + (A2.has(c) ? ' <span class="pill" title="IA2 unit">A2</span>' : '') + (unitStatus(c) === 'sat' ? ' <span class="pill ust">Sat</span>' : unitStatus(c) === 'resit' ? ' <span class="pill ust resit">Resitting</span>' : '') + '</div>' +
       '<div class="meta"><span>' + src + '</span>' + rs.map(r => '<span class="pill">' + esc(r.sr.replace(/(\w{3})\w* /, '$1 ')) + ': ' + r.ums + '<button class="x sm" data-act="res-del" data-u="' + c + '" data-id="' + r.id + '" aria-label="Delete result">×</button></span>').join('') +
       (rs.length && m ? '<span class="muted">papers ≈ ' + m.ums + '</span>' : '') + '</div>' + form + '</div>' +
     '<div class="gval">' + valHtml + '</div>' +
@@ -2104,7 +2109,7 @@ function nextSteps(){
   const t = todayStr(), out = [];
   const add = (score, title, why, action) => out.push({ score, title, why, action });
   if (!setupDone()) add(state.setup && state.setup.skipped ? 58 : 100, 'Set up your units and exam dates', 'Takes a minute: pick your units and exam series (January or June 2027) and the official Pearson dates fill in. Then this card can plan around your exams.', '<a class="btn primary" href="#setup" data-act="su-open">Start setup</a>');
-  targetGaps().forEach(x => { const q = x.q; const short = x.tg === 'A*' ? '' : Math.ceil(gradeFloor(x.tg, q.max) - q.total) + ' UMS'; add(74, x.n + ': below your target ' + x.tg, 'You’re on ' + q.grade + (short ? ', ' + short + ' short' : '') + '. The Grades page shows which units would gain the most.', '<a class="btn primary" href="#grades" data-act="gr-subj" data-v="' + x.sid + '">See the gap</a>'); });
+  targetGaps().forEach(x => { const q = x.q; const short = x.tg === 'A*' ? '' : Math.ceil(gradeFloor(x.tg, q.max) - q.total) + ' UMS'; add(44, x.n + ': below your target ' + x.tg, 'You’re on ' + q.grade + (short ? ', ' + short + ' short' : '') + '. The Grades page shows which units would gain the most.', '<a class="btn primary" href="#grades" data-act="gr-subj" data-v="' + x.sid + '">See the gap</a>'); });
   const dm = dueMistakes().length;
   if (dm) add(92 + Math.min(dm, 8), 'Review ' + dm + ' mistake' + (dm === 1 ? '' : 's'), 'Redoing questions you got wrong is the fastest way to stop losing the same marks.', '<button class="btn primary" data-act="mk-review">Start review</button>');
   const urgentTasks = state.tasks.filter(x => !x.done && x.d && x.d <= t);
@@ -2356,7 +2361,7 @@ function viewOldPapers(){
           (rec ? '<button class="btn sm' + (p.ojust === key && !nMk ? ' primary' : '') + '" data-act="mk-from-old" data-key="' + esc(key) + '">' + (nMk ? 'Mistakes (' + nMk + ')' : 'Log mistakes') + '</button>' : '') + '</div>';
       }
       return '<div class="li' + (rec ? ' done' : '') + '" style="align-items:flex-start"><button class="check" role="checkbox" data-act="old-done" data-key="' + esc(key) + '" aria-checked="' + !!rec + '" aria-label="Mark ' + esc(r[0]) + ' as done">' + (rec ? '✓' : '') + '</button><div class="grow"><div class="t">' + oldLabel(r[0]) + '</div>' +
-        '<div class="meta">' + links + '</div>' + status + '</div></div>';
+        '<div class="meta pp3 pplinks">' + links + '</div>' + status + '</div></div>';
     }).join('') : '<div class="empty">Nothing here.</div>') + '</div></div>' +
     '<p class="small muted">Papers, mark schemes and model answers open from Physics &amp; Maths Tutor; examiner reports open from Pearson’s website. Papers © Pearson Education. “(IAL)” papers are from the older international spec (WPH0/WCH0/WBI0 and C12/C34).</p>' +
   '</div>';
@@ -2525,7 +2530,7 @@ function focusPoints(){
   const ex = upcomingExams().filter(e => UNIT[e.u] && !isHidden(e.u));
   if (ex[0]){ const w = weakestTopic(ex[0].u); if (w) pts.push('<b>Revise ' + esc(w.name) + '</b> for ' + esc(UNIT[ex[0].u].l) + ' (exam in ' + daysBetween(todayStr(), ex[0].d) + ' days).'); }
   const gaps = targetGaps(); if (gaps[0]) pts.push('<b>' + esc(gaps[0].n) + ' is below your target ' + esc(gaps[0].tg) + '.</b> Check Grades for the units that would gain the most.');
-  if (ex[0] && pts.length < 3){ const last = lastPaperDate(ex[0].u); if (!last || daysBetween(last, todayStr()) > 7) pts.push('<b>Sit a timed mock</b> for ' + esc(UNIT[ex[0].u].l) + '. ' + (last ? 'Your last one was ' + daysBetween(last, todayStr()) + ' days ago.' : 'You haven’t done one yet.')); }
+  if (ex[0] && pts.length < 3 && daysBetween(todayStr(), ex[0].d) <= 56){ const last = lastPaperDate(ex[0].u); if (!last || daysBetween(last, todayStr()) > 7) pts.push('<b>Sit a timed mock</b> for ' + esc(UNIT[ex[0].u].l) + '. ' + (last ? 'Your last one was ' + daysBetween(last, todayStr()) + ' days ago.' : 'You haven’t done one yet.')); }
   if (pts.length < 3) pts.push('<b>Keep your goal streak going:</b> ' + fmtMin(goalMin()) + ' a day adds up to ' + fmtMin(goalMin() * 7) + ' a week.');
   return pts.slice(0, 3);
 }
@@ -2534,6 +2539,8 @@ function reviewCard(force){
   const t = todayStr(), isSun = new Date(t + 'T00:00:00').getDay() === 0, wk = weekId(t);
   if (!force && !(isSun && state.reviewSeen !== wk)) return '';
   const a = weekStats(t), b = weekStats(addDays(t, -7));
+  if (!force && !a.mins && !a.papers && !a.reviews && !a.mkNew && !b.mins && !b.papers) return '';
+  if (!force) return '<div class="card weekly-mini row" style="justify-content:space-between;align-items:center;gap:10px"><div><b>Your week:</b> ' + fmtMin(a.mins) + ' studied · ' + a.goalDays + '/7 goal days · ' + a.papers + ' paper' + (a.papers === 1 ? '' : 's') + '</div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm" data-act="review-open">Full review</button><button class="linkbtn small" data-act="review-seen">Hide</button></div></div>';
   const delta = (x, y, unit) => { if (y === null || y === undefined || x === null) return ''; const d = x - y; return d === 0 ? '' : ' <span class="small ' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '▲' : '▼') + ' ' + Math.abs(Math.round(d)) + (unit || '') + '</span>'; };
   const cell = (v, l, extra) => '<div class="wr"><b>' + v + '</b>' + (extra || '') + '<span>' + l + '</span></div>';
   return '<div class="card weekly"><div class="card-h"><h2>Weekly review</h2>' + (force ? '<button class="linkbtn small" data-act="review-close">Close</button>' : '<button class="linkbtn small" data-act="review-seen">Done</button>') + '</div>' +
@@ -2579,7 +2586,7 @@ function quickCard(){
     '<label class="f" style="max-width:280px">Exam series<select id="qs-series">' + TT_SERIES.map(sr => '<option' + (Q.series === sr ? ' selected' : '') + '>' + sr + '</option>').join('') + '</select></label>' +
     '<div><div class="small muted" style="margin-bottom:6px">Subjects</div><div class="chips" role="group" aria-label="Subjects">' + SUBJECTS.map(s => '<button class="chip" data-act="qs-subj" data-v="' + s.id + '" aria-pressed="' + Q.subj.has(s.id) + '"><span class="dot" style="background:var(--' + s.id + ')"></span>' + esc(s.name) + '</button>').join('') + '</div></div>' +
     '<div><div class="small muted" style="margin-bottom:6px">This series I’m sitting</div><div class="chips" role="group" aria-label="Which units">' + [['as','Year 1 (AS) units'],['a2','Year 2 (A2) units'],['both','Both']].map(([k, l]) => '<button class="chip" data-act="qs-stage" data-v="' + k + '" aria-pressed="' + (Q.stage === k) + '">' + l + '</button>').join('') + '</div></div>' +
-    (units.length ? '<p class="small" style="margin:0">' + (sitting.length ? '<b>' + sitting.length + ' exam' + (sitting.length === 1 ? '' : 's') + ' in ' + esc(Q.series) + ':</b> ' + sitting.map(c => esc(UNIT[c].l + (UNIT_SUBJ[c] === 'math' || UNIT_SUBJ[c] === 'fm' ? '' : ' ' + SUBJ[UNIT_SUBJ[c]].short))).join(', ') : 'None of these units has an exam in ' + esc(Q.series) + '.') + '<br><span class="muted">' + units.length + ' units added in total (typical choices; Maths: P1–P4, M1, S1; Further Maths: FP1–FP3, M2, S2, M3).</span></p>' : '') +
+    (units.length ? '<p class="small" style="margin:0">' + (sitting.length ? '<b>' + sitting.length + ' exam' + (sitting.length === 1 ? '' : 's') + ' in ' + esc(Q.series) + ':</b> ' + sitting.map(c => esc(UNIT[c].l + (UNIT_SUBJ[c] === 'math' || UNIT_SUBJ[c] === 'fm' ? '' : ' ' + SUBJ[UNIT_SUBJ[c]].short))).join(', ') : 'None of these units has an exam in ' + esc(Q.series) + '.') + '<br><span class="muted">' + (units.length > sitting.length ? 'The other ' + (units.length - sitting.length) + ' units are saved for later, so your plan covers them when the time comes. ' : '') + 'Typical choices: Maths P1–P4, M1, S1; Further Maths FP1–FP3, M2, S2, M3. Change any unit in Settings.</span></p>' : '') +
     '<div class="row"><button class="btn primary" data-act="qs-save"' + (units.length ? '' : ' disabled') + '>Set up ' + (units.length ? units.length + ' units' : '') + '</button></div></div>';
 }
 function quickSave(){
@@ -2971,7 +2978,7 @@ function retContext(a){
   const txt = (a.textContent || '').trim();
   const pmt = a.closest('.pmtrow');
   if (pmt){ const chk = pmt.querySelector('[data-act="pmt-done"]'); if (chk && chk.getAttribute('aria-checked') !== 'true' && /^Questions/.test(txt)) return { kind: 'tq', key: chk.dataset.key, label: (pmt.querySelector('.t') || {}).textContent || 'this topic pack' }; return null; }
-  if (/^Question paper/.test(txt)){
+  if (/^(Question paper|Paper)( ↗)?$/.test(txt)){
     const li = a.closest('.li'); const k = li && li.querySelector('[data-key]');
     if (k){ const key = k.dataset.key; if (/^W\w+\d\|/.test(key) && !state.papers[key]){ const [c, sr] = key.split('|'); return { kind: 'paper', key, label: UNIT[c] ? UNIT[c].l + (UNIT_SUBJ[c] === 'math' || UNIT_SUBJ[c] === 'fm' ? '' : ' ' + SUBJ[UNIT_SUBJ[c]].short) + ', ' + sr : sr }; } }
     return null;
