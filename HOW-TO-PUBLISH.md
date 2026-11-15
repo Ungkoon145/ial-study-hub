@@ -1,4 +1,4 @@
-# How to publish IAL Study Hub (free, about 10 minutes)
+# How to publish IAL Revise (free, about 10 minutes)
 
 These steps put the site on GitHub Pages, which is free. Your address will look like
 `https://YOUR-USERNAME.github.io/ial-study-hub/`.

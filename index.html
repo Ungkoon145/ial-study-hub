@@ -12,8 +12,8 @@
 <meta name="theme-color" content="#19325c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Study Hub">
-<title>IAL Study Hub</title>
+<meta name="apple-mobile-web-app-title" content="IAL Revise">
+<title>IAL Revise</title>
 <style>
 :root{
   /* Layout: one centered column, top tabs on desktop, bottom tab bar on phones */
@@ -514,7 +514,7 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 <body>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="#today"><span class="brand-mark">IAL</span>Study Hub</a>
+    <a class="brand" href="#today"><span class="brand-mark">IAL</span>Revise</a>
     <span class="sync" id="sync" data-s="local" hidden><i></i><span id="sync-text">This device</span></span>
     <a class="iconbtn" href="#search" id="nav-search" aria-label="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></a>
     <button class="iconbtn" id="fs-btn" type="button" data-act="fullscreen" aria-label="Full screen" title="Full screen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
@@ -526,7 +526,7 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 </header>
 <main class="wrap" id="view"></main>
 <button class="mini" id="mini" type="button" aria-label="Open focus timer"></button>
-<footer class="foot wrap" id="foot" hidden><p class="small muted">IAL Study Hub is an independent study tool, not affiliated with Pearson Edexcel or Physics &amp; Maths Tutor. Papers, mark schemes, examiner reports and notes open from their sites. Your progress stays in your browser.</p></footer>
+<footer class="foot wrap" id="foot" hidden><p class="small muted">IAL Revise is an independent study tool, not affiliated with Pearson Edexcel or Physics &amp; Maths Tutor. Papers, mark schemes, examiner reports and notes open from their sites. Your progress stays in your browser.</p></footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="papers.js"></script>
@@ -1329,7 +1329,7 @@ function tick(force){
   const showMini = route() !== 'planner' && (T.running || (T.remain !== null && T.remain < phaseLen()));
   mini.style.display = showMini ? 'block' : 'none';
   if (showMini) mini.textContent = (T.phase === 'focus' ? 'Focus ' : 'Break ') + fmtClock(ms) + (T.running ? '' : ' (paused)');
-  if (T.running) document.title = fmtClock(ms) + ' · IAL Study Hub'; else if (force || document.title !== 'IAL Study Hub') document.title = 'IAL Study Hub';
+  if (T.running) document.title = fmtClock(ms) + ' · IAL Revise'; else if (force || document.title !== 'IAL Revise') document.title = 'IAL Revise';
 }
 setInterval(tick, 500);
 
@@ -1876,9 +1876,9 @@ function reminderCard(){
 function icsText(){
   const p = prefs(), [h, m] = (p.remind || '19:00').split(':'), t = todayStr().replace(/-/g, ''), stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
   const days = ['SU','MO','TU','WE','TH','FR','SA'].filter((d, i) => !p.offDays.includes(i));
-  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//IAL Study Hub//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:ial-study-reminder-' + uid() + '@ialstudyhub','DTSTAMP:' + stamp,
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//IAL Revise//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:ial-study-reminder-' + uid() + '@ialstudyhub','DTSTAMP:' + stamp,
     'DTSTART:' + t + 'T' + h + m + '00', 'DURATION:PT' + Math.min(goalMin(), 240) + 'M', 'RRULE:FREQ=WEEKLY;BYDAY=' + (days.length ? days : ['MO']).join(','),
-    'SUMMARY:Study time (IAL Study Hub)', 'DESCRIPTION:Open IAL Study Hub and do today’s plan. Goal: ' + fmtMin(goalMin()) + '.',
+    'SUMMARY:Study time (IAL Revise)', 'DESCRIPTION:Open IAL Revise and do today’s plan. Goal: ' + fmtMin(goalMin()) + '.',
     'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Study time','TRIGGER:PT0M','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
 }
 async function saveFile(name, text, type, okMsg){
@@ -1920,14 +1920,14 @@ function summaryText(){
     x.units.forEach(u => lines.push('  ' + u.l + ' ' + u.n + (u.opt ? ' [' + u.opt + ']' : '') + ': ' + (u.ums !== null ? u.ums + '/' + u.max + ' UMS' + (u.umsSrc === 'mock' ? ' (from past papers)' : '') : 'no marks yet') + ' · ' + u.papers + ' paper' + (u.papers === 1 ? '' : 's') + (u.avg !== null ? ', avg ' + u.avg + '%' : '') + (u.st === 'sat' ? ' · sat' : u.st === 'resit' ? ' · resitting' : '') + (u.exam ? ' · exam ' + fmtDate(u.exam, {day:'numeric', month:'short', year:'numeric'}) : '') + (u.weak.length ? ' · work on: ' + u.weak.join('; ') : '')));
     lines.push('  Open mistakes: ' + x.open, '');
   });
-  lines.push('Made with IAL Study Hub. UMS from results slips where entered, otherwise estimated from past papers with official Pearson grade boundaries.');
+  lines.push('Made with IAL Revise. UMS from results slips where entered, otherwise estimated from past papers with official Pearson grade boundaries.');
   return lines.join('\n');
 }
 function summaryHtml(){
   const D = summaryData(), e = esc;
   const body = D.map(x => '<section><h2>' + e(x.s.name) + (x.status === 'finished' ? ' <small>(finished)</small>' : '') + '</h2><p>' + (x.grade ? '<b>' + (x.grade.proj ? 'Projected ' : '') + e(x.grade.g) + '</b> · ' + x.grade.t + '/' + x.grade.max + ' UMS' : 'No grade yet') + (x.target ? ' · target ' + e(x.target) : '') + ' · open mistakes: ' + x.open + '</p>' +
     '<table><tr><th>Unit</th><th>UMS</th><th>Papers</th><th>Avg</th><th>Exam</th><th>Work on</th></tr>' + x.units.map(u => '<tr><td>' + e(u.l + ' ' + u.n) + (u.opt ? ' [' + e(u.opt) + ']' : '') + (u.st === 'sat' ? ' <small>sat</small>' : u.st === 'resit' ? ' <small>resit</small>' : '') + '</td><td>' + (u.ums !== null ? u.ums + '/' + u.max + (u.umsSrc === 'mock' ? '*' : '') : '–') + '</td><td>' + u.papers + '</td><td>' + (u.avg !== null ? u.avg + '%' : '–') + '</td><td>' + (u.exam ? e(fmtDate(u.exam, {day:'numeric', month:'short', year:'numeric'})) : '–') + '</td><td>' + e(u.weak.join('; ')) + '</td></tr>').join('') + '</table></section>').join('');
-  return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IAL progress summary</title><style>body{font-family:"Gill Sans","Gill Sans MT",Calibri,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;color:#14213a}h1{margin:0}h2{margin:22px 0 4px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dde3ec;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f3f5f8}small{color:#5a6880}footer{margin-top:24px;font-size:12px;color:#5a6880}</style></head><body><h1>IAL progress summary' + (prof().name ? ': ' + e(prof().name) : '') + '</h1><p>' + e([fmtDate(todayStr()), prof().school, (YEAR_OPTS.find(x => x[0] === prof().year) || [, ''])[1]].filter(Boolean).join(' · ')) + (prof().goal ? '<br>Goal: ' + e(prof().goal) : '') + '</p>' + (body || '<p>No subjects yet.</p>') + '<footer>* estimated from past papers using official Pearson grade boundaries; other UMS from results slips. Made with IAL Study Hub.</footer><\/body><\/html>';
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IAL progress summary</title><style>body{font-family:"Gill Sans","Gill Sans MT",Calibri,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;color:#14213a}h1{margin:0}h2{margin:22px 0 4px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dde3ec;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f3f5f8}small{color:#5a6880}footer{margin-top:24px;font-size:12px;color:#5a6880}</style></head><body><h1>IAL progress summary' + (prof().name ? ': ' + e(prof().name) : '') + '</h1><p>' + e([fmtDate(todayStr()), prof().school, (YEAR_OPTS.find(x => x[0] === prof().year) || [, ''])[1]].filter(Boolean).join(' · ')) + (prof().goal ? '<br>Goal: ' + e(prof().goal) : '') + '</p>' + (body || '<p>No subjects yet.</p>') + '<footer>* estimated from past papers using official Pearson grade boundaries; other UMS from results slips. Made with IAL Revise.</footer><\/body><\/html>';
 }
 function dataCard(){
   const c = ui.confirm, lb = state.lastBackup, since = lb ? daysBetween(lb, todayStr()) : null;
@@ -3205,13 +3205,13 @@ document.addEventListener('fullscreenchange', fsSync); document.addEventListener
 function installCard(){
   if (STANDALONE) return '<div class="card stack"><div class="card-h"><h2>Install the app</h2>' + (IS_INSTALLED ? '<span class="pill good">Installed</span>' : '') + '</div>' +
     (IS_INSTALLED ? '<p class="small muted" style="margin:0">You’re using the installed app: it opens full screen from your home screen and works offline (papers and notes still need internet).</p>' :
-    '<p class="small muted" style="margin:0">Install Study Hub so it opens full screen from your home screen, like an app, and works offline.</p>' +
-    '<div class="grid2"><div><b>iPhone / iPad</b><ol class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px"><li>Open this site in Safari.</li><li>Tap Share <span aria-hidden="true">⬆︎</span>, then <b>Add to Home Screen</b>.</li><li>Tap Add, then open Study Hub from your home screen.</li></ol></div>' +
+    '<p class="small muted" style="margin:0">Install IAL Revise so it opens full screen from your home screen, like an app, and works offline.</p>' +
+    '<div class="grid2"><div><b>iPhone / iPad</b><ol class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px"><li>Open this site in Safari.</li><li>Tap Share <span aria-hidden="true">⬆︎</span>, then <b>Add to Home Screen</b>.</li><li>Tap Add, then open IAL Revise from your home screen.</li></ol></div>' +
     '<div><b>Android / computer</b><ol class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px"><li>Open this site in Chrome or Edge.</li><li>Tap <b>Install app</b> in the ⋮ menu (or the install icon in the address bar).</li><li>Open it from your home screen or app list.</li></ol></div></div>') + '</div>';
   return '<div class="card stack"><div class="card-h"><h2>Put it on your phone</h2></div>' +
     '<p class="small muted" style="margin:0">Add the site to your home screen so it opens with one tap, like an app. It still opens inside claude.ai (this is where your progress syncs), and the full-screen button ⤢ at the top gives you the most room your phone allows.</p>' +
-    '<div class="grid2"><div><b>iPhone / iPad (Safari)</b><ol class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px"><li>Open this site’s claude.ai link in Safari (not inside the Claude app).</li><li>Tap Share <span aria-hidden="true">⬆︎</span>, then <b>Add to Home Screen</b>.</li><li>Name it “Study Hub” and tap Add.</li></ol></div>' +
-    '<div><b>Android (Chrome)</b><ol class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px"><li>Open this site’s claude.ai link in Chrome.</li><li>Tap the ⋮ menu, then <b>Add to Home screen</b> (or Install).</li><li>Tap Add. It opens straight to your Study Hub.</li></ol></div></div>' +
+    '<div class="grid2"><div><b>iPhone / iPad (Safari)</b><ol class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px"><li>Open this site’s claude.ai link in Safari (not inside the Claude app).</li><li>Tap Share <span aria-hidden="true">⬆︎</span>, then <b>Add to Home Screen</b>.</li><li>Name it “IAL Revise” and tap Add.</li></ol></div>' +
+    '<div><b>Android (Chrome)</b><ol class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px"><li>Open this site’s claude.ai link in Chrome.</li><li>Tap the ⋮ menu, then <b>Add to Home screen</b> (or Install).</li><li>Tap Add. It opens straight to your IAL Revise.</li></ol></div></div>' +
     '<div class="row"><button class="btn" data-act="fullscreen">' + (fsEl() || immOn() ? 'Exit full screen' : 'Full screen now') + '</button></div><p class="small muted" style="margin:0">' + (fsCan() ? 'This browser supports true full screen.' : 'This browser can’t hide its own bars for web pages (iPhones can’t), so full screen hides the site’s bars as you scroll and uses the whole page instead.') + '</p>' +
   '</div>';
 }
@@ -3367,7 +3367,7 @@ function viewWelcome(){
   const dots = '<div class="wdots" aria-label="Step ' + step + ' of 4">' + [1,2,3,4].map(n => '<i class="' + (n <= step ? 'on' : '') + '"></i>').join('') + '</div>';
   let body = '';
   if (step === 1){
-    body = '<div><h1>Welcome to IAL Study Hub</h1><p class="muted">Past papers, notes, flashcards, a revision timetable and grade tracking for Pearson Edexcel International A Level, all in one place. First, tell us a little about you.</p></div>' +
+    body = '<div><h1>Welcome to IAL Revise</h1><p class="muted">Past papers, notes, flashcards, a revision timetable and grade tracking for Pearson Edexcel International A Level, all in one place. First, tell us a little about you.</p></div>' +
       '<div class="card">' + profileForm('welcome') + '</div>';
   } else if (step === 2){
     body = '<div><h1>' + (firstName() ? 'Hi ' + esc(firstName()) + '! ' : '') + 'Which exams are you preparing for?</h1><p class="muted">Pick your subjects and the app fills in the official exam dates.</p></div>' +
@@ -3657,7 +3657,7 @@ document.addEventListener('click', e => {
     }
     case 'report-del': state.linkReports = (state.linkReports || []).filter(x => x.id !== id); commit(); break;
     case 'report-clear': state.linkReports = []; commit(); break;
-    case 'report-copy': { const txt = 'Broken links in IAL Study Hub:\n' + reportsText(); try { navigator.clipboard.writeText(txt).then(() => toast('Copied. Paste it to Claude to fix them.'), () => toast('Copy blocked: select the text below instead.')); } catch(err){ toast('Copy blocked: select the text below instead.'); } break; }
+    case 'report-copy': { const txt = 'Broken links in IAL Revise:\n' + reportsText(); try { navigator.clipboard.writeText(txt).then(() => toast('Copied. Paste it to Claude to fix them.'), () => toast('Copy blocked: select the text below instead.')); } catch(err){ toast('Copy blocked: select the text below instead.'); } break; }
     case 'backup-download': downloadBackup(); break;
     case 'backup-snooze': try { localStorage.setItem(SNOOZE_KEY, String(Date.now() + 7 * 864e5)); } catch(err){} render(); break;
     case 'su-all': { const sub = SUBJ[v], all = sub.units.every(u => ui.setup.units.has(u.c)); sub.units.forEach(u => all ? ui.setup.units.delete(u.c) : ui.setup.units.add(u.c)); render(); break; }

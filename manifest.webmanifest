@@ -1,6 +1,6 @@
 {
-  "name": "IAL Study Hub",
-  "short_name": "Study Hub",
+  "name": "IAL Revise",
+  "short_name": "IAL Revise",
   "description": "Revision for Pearson Edexcel International A Level: Maths, Further Maths, Physics, Chemistry and Biology.",
   "start_url": "./index.html#today",
   "scope": "./",
