@@ -107,6 +107,10 @@ main{padding:20px 0 120px}
 .grid2.tight{gap:10px}.grid2.tight .f span{font-size:.85rem;color:var(--muted)}
 details.dropped>summary{cursor:pointer;color:var(--muted);padding:6px 0}
 .chip .x{margin-left:4px;min-width:24px;min-height:24px}
+.avatar{border-radius:50%;display:inline-grid;place-items:center;color:#fff;font-weight:600;object-fit:cover;flex:none;letter-spacing:.02em}
+.avlink{display:inline-flex;border-radius:50%;text-decoration:none}
+.pfhead{gap:16px;align-items:center;flex-wrap:nowrap}.pfsum{gap:12px;align-items:center;flex-wrap:nowrap}
+.avcols{gap:6px}.avc{width:34px;height:34px;border-radius:50%;border:0;cursor:pointer;padding:0}.avc[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:2px}
 .pill.s-hist{background:color-mix(in srgb,var(--hist) 16%,transparent);color:var(--hist)}
 .pill.s-cs{background:color-mix(in srgb,var(--cs) 16%,transparent);color:var(--cs)}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
@@ -879,7 +883,7 @@ function viewToday(){
   }
 
   return '<div class="stack today">' +
-    '<div class="todayhead"><div><p class="muted small">' + fmtDate(t, {weekday:'long', day:'numeric', month:'long'}) + '</p><h1>' + greet + '</h1></div>' + goalRing() + '</div>' +
+    '<div class="todayhead"><div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#prefs" class="avlink" aria-label="Your profile">' + avatar(44) + '</a>' : '') + '<div><p class="muted small">' + fmtDate(t, {weekday:'long', day:'numeric', month:'long'}) + '</p><h1>' + greet + (firstName() ? ', ' + esc(firstName()) : '') + '</h1></div></div>' + goalRing() + '</div>' + profileNudge() +
     reviewCard(ui.showReview) + backupNudge() + nextCard() + planCard() + examsTimeline() + buddyCard() +
     '<div class="grid2">' + exHtml +
       '<div class="card"><div class="card-h"><h2>Tasks</h2><a class="small muted" href="#planner">' + (openTasks.length > 5 ? 'All ' + openTasks.length : 'Planner') + '</a></div>' +
@@ -1352,6 +1356,74 @@ function viewPlanner(){
 }
 
 /* ============================================================
+   Profile: private to the student (saved with their own data, never shared)
+   ============================================================ */
+const YEAR_OPTS = [['y12', 'Year 12 (first year, AS)'], ['y13', 'Year 13 (second year, A2)'], ['both', 'Doing AS and A2 together'], ['resit', 'Gap year / resitting'], ['private', 'Private candidate'], ['other', 'Other']];
+const AV_COLORS = ['#4058e0', '#8a3fd1', '#e0702a', '#0e9384', '#3f8f2f', '#c0392b', '#c2367f', '#7a4b2a', '#4b5a70', '#19325c'];
+function prof(){ state.profile = Object.assign({ name: '', school: '', year: '', session: '', goal: '', photo: '', color: '' }, state.profile || {}); return state.profile; }
+function hasProfile(){ const p = state.profile; return !!(p && (p.name || p.school || p.year || p.photo)); }
+function initials(n){ const w = String(n || '').trim().split(/\s+/).filter(Boolean); return w.length ? (w[0][0] + (w.length > 1 ? w[w.length - 1][0] : '')).toUpperCase() : ''; }
+function avatarColor(){ const p = prof(); if (p.color) return p.color; let h = 0; for (const ch of p.name || 'IAL') h = (h * 31 + ch.charCodeAt(0)) >>> 0; return AV_COLORS[h % AV_COLORS.length]; }
+function avatar(size){
+  const p = prof(), s = size || 40;
+  if (p.photo) return '<img class="avatar" src="' + esc(p.photo) + '" alt="" width="' + s + '" height="' + s + '" style="width:' + s + 'px;height:' + s + 'px">';
+  const ini = initials(p.name);
+  return '<span class="avatar" aria-hidden="true" style="width:' + s + 'px;height:' + s + 'px;background:' + esc(avatarColor()) + ';font-size:' + Math.round(s * .4) + 'px">' + (ini ? esc(ini) : '<svg viewBox="0 0 24 24" width="' + Math.round(s * .55) + '" height="' + Math.round(s * .55) + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>') + '</span>';
+}
+function firstName(){ return String(prof().name || '').trim().split(/\s+/)[0] || ''; }
+/* photos are cropped to a square and shrunk to 160×160 so they stay small */
+function photoFromFile(file){
+  return new Promise((res, rej) => {
+    if (!file || !/^image\//.test(file.type)) return rej(new Error('Please choose a photo (JPG, PNG or HEIC).'));
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      try {
+        const side = Math.min(img.naturalWidth, img.naturalHeight), c = document.createElement('canvas'); c.width = c.height = 160;
+        c.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 160, 160);
+        URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.82));
+      } catch(e){ rej(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('That photo couldn’t be opened. Try a JPG or PNG.')); };
+    img.src = url;
+  });
+}
+function profileForm(where){
+  const p = prof(), sess = TT_SERIES;
+  return '<form data-form="profile" data-where="' + where + '" class="stack" autocomplete="off">' +
+    '<div class="row pfhead">' + avatar(72) + '<div class="stack" style="gap:6px"><div class="row" style="gap:6px"><label class="btn sm" for="pf-photo">' + (p.photo ? 'Change photo' : 'Add photo') + '</label><input type="file" id="pf-photo" accept="image/*" hidden>' + (p.photo ? '<button class="btn sm ghost" type="button" data-act="pf-photo-del">Remove photo</button>' : '') + '</div>' +
+      (p.photo ? '' : '<div class="chips avcols" role="group" aria-label="Avatar colour">' + AV_COLORS.map(c => '<button type="button" class="avc" data-act="pf-color" data-v="' + c + '" style="background:' + c + '" aria-label="Colour" aria-pressed="' + (avatarColor() === c) + '"></button>').join('') + '</div>') + '</div></div>' +
+    '<div class="grid2 tight">' +
+      '<label class="f"><span>Name or nickname</span><input type="text" id="pf-name" maxlength="40" value="' + esc(p.name) + '" placeholder="e.g. Ploy"></label>' +
+      '<label class="f"><span>School <span class="muted">(optional)</span></span><input type="text" id="pf-school" maxlength="80" value="' + esc(p.school) + '" placeholder="e.g. Bangkok International School"></label>' +
+      '<label class="f"><span>Year</span><select id="pf-year"><option value="">Choose…</option>' + YEAR_OPTS.map(([v, l]) => '<option value="' + v + '"' + (p.year === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label>' +
+      '<label class="f"><span>Main exam session</span><select id="pf-session"><option value="">Not decided</option>' + sess.map(s => '<option' + (p.session === s ? ' selected' : '') + '>' + s + '</option>').join('') + (p.session && !sess.includes(p.session) ? '<option selected>' + esc(p.session) + '</option>' : '') + '</select></label>' +
+    '</div>' +
+    '<label class="f"><span>University or career goal <span class="muted">(optional)</span></span><input type="text" id="pf-goal" maxlength="100" value="' + esc(p.goal) + '" placeholder="e.g. Medicine, needs A*AA"></label>' +
+    '<p class="small muted" style="margin:0">Saved only for you, with the rest of your progress. It’s never shared, and your photo isn’t shown to study buddies.</p>' +
+    '<div class="row">' + (where === 'welcome' ? '<button class="btn primary" type="submit">Next</button><button class="btn ghost" type="button" data-act="wel-skip0">Skip for now</button>' : '<button class="btn primary" type="submit">Save profile</button>' + (where === 'nudge' ? '<button class="btn ghost" type="button" data-act="pf-later">Not now</button>' : '') + (where === 'settings' && hasProfile() ? '<button class="btn ghost danger" type="button" data-act="pf-clear">' + (ui.confirm === 'pf-clear' ? 'Tap again to clear' : 'Clear profile') + '</button>' : '')) + '</div></form>';
+}
+function pfRead(){ const p = prof(), g = id => $('#' + id); if (!g('pf-name')) return; p.name = g('pf-name').value.trim().slice(0, 40); p.school = g('pf-school').value.trim().slice(0, 80); p.year = g('pf-year').value; p.session = g('pf-session').value; p.goal = g('pf-goal').value.trim().slice(0, 100); }
+function profileSave(f){
+  const p = prof(), v = id => ($('#' + id) || {}).value || '';
+  p.name = v('pf-name').trim().slice(0, 40); p.school = v('pf-school').trim().slice(0, 80); p.year = v('pf-year'); p.session = v('pf-session'); p.goal = v('pf-goal').trim().slice(0, 100);
+  if (p.session && !(state.setup && state.setup.done)) state.setup = Object.assign({ done: false, series: {} }, state.setup || {}, { def: p.session });
+  if (p.year){ const Q = quickInit(); Q.stage = p.year === 'y13' ? 'a2' : (p.year === 'both' || p.year === 'resit' || p.year === 'private') ? 'both' : 'as'; if (p.session) Q.series = p.session; }
+  const where = f.dataset.where;
+  if (where === 'welcome'){ ui.welcomeStep = 2; commit(); window.scrollTo({ top: 0 }); }
+  else { ui.pfEdit = false; state.pfNudged = true; commit(); toast('Profile saved'); }
+}
+function profileCard(){
+  const p = prof();
+  if (ui.pfEdit || !hasProfile()) return '<div class="card stack"><h2>Profile</h2>' + profileForm('settings') + '</div>';
+  const yl = (YEAR_OPTS.find(x => x[0] === p.year) || [, ''])[1];
+  return '<div class="card"><div class="row pfsum">' + avatar(56) + '<div class="grow"><div class="t"><b>' + esc(p.name || 'No name yet') + '</b></div><div class="small muted">' + esc([p.school, yl, p.session && 'exams ' + p.session].filter(Boolean).join(' · ') || 'Add your school and year') + '</div>' + (p.goal ? '<div class="small">Goal: ' + esc(p.goal) + '</div>' : '') + '</div><button class="btn sm" data-act="pf-edit">Edit</button></div></div>';
+}
+function profileNudge(){
+  if (hasProfile() || state.pfNudged || !state.welcomed) return '';
+  return '<div class="card stack"><div class="card-h"><h2>Tell us about yourself</h2></div><p class="small muted" style="margin:0">Add your name, school and year so the app can set things up for you. It takes 30 seconds.</p>' + profileForm('nudge') + '</div>';
+}
+
+/* ============================================================
    Settings: my subjects (add / switch / finish / drop), study habits,
    look & accessibility, reminders, progress summary
    ============================================================ */
@@ -1570,7 +1642,8 @@ function summaryData(){
 }
 function summaryText(){
   const D = summaryData(), wk = (() => { const t = todayStr(); return state.sessions.filter(x => daysBetween(x.d, t) < 28).reduce((a, x) => a + x.m, 0); })();
-  const lines = ['IAL progress summary · ' + fmtDate(todayStr()), 'Study time in the last 4 weeks: ' + fmtMin(wk), ''];
+  const P = prof(), who = [P.name, P.school, (YEAR_OPTS.find(x => x[0] === P.year) || [, ''])[1]].filter(Boolean).join(' · ');
+  const lines = ['IAL progress summary · ' + fmtDate(todayStr())].concat(who ? [who] : []).concat(P.goal ? ['Goal: ' + P.goal] : []).concat([ 'Study time in the last 4 weeks: ' + fmtMin(wk), '']);
   D.forEach(x => {
     lines.push(x.s.name.toUpperCase() + (x.status === 'finished' ? ' (finished)' : '') + (x.grade ? ' · ' + (x.grade.proj ? 'projected ' : '') + x.grade.g + ' (' + x.grade.t + '/' + x.grade.max + ' UMS)' : '') + (x.target ? ' · target ' + x.target : ''));
     x.units.forEach(u => lines.push('  ' + u.l + ' ' + u.n + (u.opt ? ' [' + u.opt + ']' : '') + ': ' + (u.ums !== null ? u.ums + '/' + u.max + ' UMS' + (u.umsSrc === 'mock' ? ' (from past papers)' : '') : 'no marks yet') + ' · ' + u.papers + ' paper' + (u.papers === 1 ? '' : 's') + (u.avg !== null ? ', avg ' + u.avg + '%' : '') + (u.st === 'sat' ? ' · sat' : u.st === 'resit' ? ' · resitting' : '') + (u.exam ? ' · exam ' + fmtDate(u.exam, {day:'numeric', month:'short', year:'numeric'}) : '') + (u.weak.length ? ' · work on: ' + u.weak.join('; ') : '')));
@@ -1583,7 +1656,7 @@ function summaryHtml(){
   const D = summaryData(), e = esc;
   const body = D.map(x => '<section><h2>' + e(x.s.name) + (x.status === 'finished' ? ' <small>(finished)</small>' : '') + '</h2><p>' + (x.grade ? '<b>' + (x.grade.proj ? 'Projected ' : '') + e(x.grade.g) + '</b> · ' + x.grade.t + '/' + x.grade.max + ' UMS' : 'No grade yet') + (x.target ? ' · target ' + e(x.target) : '') + ' · open mistakes: ' + x.open + '</p>' +
     '<table><tr><th>Unit</th><th>UMS</th><th>Papers</th><th>Avg</th><th>Exam</th><th>Work on</th></tr>' + x.units.map(u => '<tr><td>' + e(u.l + ' ' + u.n) + (u.opt ? ' [' + e(u.opt) + ']' : '') + (u.st === 'sat' ? ' <small>sat</small>' : u.st === 'resit' ? ' <small>resit</small>' : '') + '</td><td>' + (u.ums !== null ? u.ums + '/' + u.max + (u.umsSrc === 'mock' ? '*' : '') : '–') + '</td><td>' + u.papers + '</td><td>' + (u.avg !== null ? u.avg + '%' : '–') + '</td><td>' + (u.exam ? e(fmtDate(u.exam, {day:'numeric', month:'short', year:'numeric'})) : '–') + '</td><td>' + e(u.weak.join('; ')) + '</td></tr>').join('') + '</table></section>').join('');
-  return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IAL progress summary</title><style>body{font-family:"Gill Sans","Gill Sans MT",Calibri,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;color:#14213a}h1{margin:0}h2{margin:22px 0 4px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dde3ec;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f3f5f8}small{color:#5a6880}footer{margin-top:24px;font-size:12px;color:#5a6880}</style></head><body><h1>IAL progress summary</h1><p>' + e(fmtDate(todayStr())) + '</p>' + (body || '<p>No subjects yet.</p>') + '<footer>* estimated from past papers using official Pearson grade boundaries; other UMS from results slips. Made with IAL Study Hub.</footer><\/body><\/html>';
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IAL progress summary</title><style>body{font-family:"Gill Sans","Gill Sans MT",Calibri,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;color:#14213a}h1{margin:0}h2{margin:22px 0 4px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dde3ec;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f3f5f8}small{color:#5a6880}footer{margin-top:24px;font-size:12px;color:#5a6880}</style></head><body><h1>IAL progress summary' + (prof().name ? ': ' + e(prof().name) : '') + '</h1><p>' + e([fmtDate(todayStr()), prof().school, (YEAR_OPTS.find(x => x[0] === prof().year) || [, ''])[1]].filter(Boolean).join(' · ')) + (prof().goal ? '<br>Goal: ' + e(prof().goal) : '') + '</p>' + (body || '<p>No subjects yet.</p>') + '<footer>* estimated from past papers using official Pearson grade boundaries; other UMS from results slips. Made with IAL Study Hub.</footer><\/body><\/html>';
 }
 function dataCard(){
   const c = ui.confirm, lb = state.lastBackup, since = lb ? daysBetween(lb, todayStr()) : null;
@@ -1599,8 +1672,8 @@ function dataCard(){
 }
 function viewSettings(){
   return '<div class="stack">' +
-    '<div><h1>Settings</h1><p class="muted">Your subjects, study habits and how the app looks. Everything here saves automatically.</p></div>' +
-    mySubjectsCard() + habitsCard() + lookCard() + reminderCard() + buddySettings() + installCard() +
+    '<div><h1>Settings</h1><p class="muted">Your profile, subjects, study habits and how the app looks.</p></div>' +
+    profileCard() + mySubjectsCard() + habitsCard() + lookCard() + reminderCard() + buddySettings() + installCard() +
     ((state.linkReports || []).length ? '<div class="card stack"><div class="card-h"><h2>Broken links (' + state.linkReports.length + ')</h2></div><p class="small muted" style="margin:0">Links you reported. Copy the list and paste it to Claude, and they’ll be fixed in one go.</p><div class="list">' + state.linkReports.map(x => '<div class="li"><div class="grow"><div class="t">' + esc(x.where) + '</div><div class="small muted">Reported ' + fmtDate(x.at, {day:'numeric', month:'short'}) + '</div></div><button class="x" data-act="report-del" data-id="' + x.id + '" aria-label="Remove report">×</button></div>').join('') + '</div><div class="row"><button class="btn primary" data-act="report-copy">Copy list</button><button class="btn ghost" data-act="report-clear">Clear all</button></div><textarea readonly rows="3" aria-label="Broken links list">' + esc(reportsText()) + '</textarea></div>' : '') +
     dataCard() + '</div>';
 }
@@ -2811,12 +2884,15 @@ function viewSearch(){
 function shouldWelcome(){ if (state.welcomed) return false; if (ui.welcomeStep) return true; return !setupDone() && !state.sessions.length && !Object.keys(state.papers).length && !state.mistakes.length; }
 function viewWelcome(){
   const step = ui.welcomeStep || 1;
-  const dots = '<div class="wdots" aria-label="Step ' + step + ' of 3">' + [1,2,3].map(n => '<i class="' + (n <= step ? 'on' : '') + '"></i>').join('') + '</div>';
+  const dots = '<div class="wdots" aria-label="Step ' + step + ' of 4">' + [1,2,3,4].map(n => '<i class="' + (n <= step ? 'on' : '') + '"></i>').join('') + '</div>';
   let body = '';
   if (step === 1){
-    body = '<div><h1>Welcome to IAL Study Hub</h1><p class="muted">Past papers, notes, flashcards, a revision timetable and grade tracking for Pearson Edexcel International A Level, all in one place. First, which exams are you preparing for?</p></div>' +
-      quickCard() + '<div class="row"><button class="btn ghost" data-act="wel-skip1">Skip for now</button></div>';
+    body = '<div><h1>Welcome to IAL Study Hub</h1><p class="muted">Past papers, notes, flashcards, a revision timetable and grade tracking for Pearson Edexcel International A Level, all in one place. First, tell us a little about you.</p></div>' +
+      '<div class="card">' + profileForm('welcome') + '</div>';
   } else if (step === 2){
+    body = '<div><h1>' + (firstName() ? 'Hi ' + esc(firstName()) + '! ' : '') + 'Which exams are you preparing for?</h1><p class="muted">Pick your subjects and the app fills in the official exam dates.</p></div>' +
+      quickCard() + '<div class="row"><button class="btn ghost" data-act="wel-skip1">Skip for now</button></div>';
+  } else if (step === 3){
     const cur = goalMin();
     body = '<div><h1>How much will you study a day?</h1><p class="muted">This sets your daily goal ring and streak on Today, and how much your revision timetable plans. You can change it any time.</p></div>' +
       '<div class="card stack"><div class="chips" role="group" aria-label="Daily study goal">' + [30,45,60,90,120,180].map(m => '<button class="chip" data-act="wel-goal" data-v="' + m + '" aria-pressed="' + (m === cur) + '">' + fmtMin(m) + '</button>').join('') + '</div>' +
@@ -2944,7 +3020,7 @@ document.addEventListener('click', e => {
   if (b.closest('#retsheet') && ui.ret){ ui.ret = null; setTimeout(renderRet, 0); }
   const act = b.dataset.act, v = b.dataset.v, id = b.dataset.id;
   if (b.tagName === 'INPUT') return;
-  if (act !== 'restore' && act !== 'reset' && act !== 'sub-wipe') ui.confirm = null;
+  if (act !== 'restore' && act !== 'reset' && act !== 'sub-wipe' && act !== 'pf-clear') ui.confirm = null;
   switch (act){
     case 'cards-subj': ui.cards.subj = v; ui.cards.unit = 'all'; render(); break;
     case 'quiz-subj': ui.quiz.subj = v; ui.quiz.unit = 'all'; render(); break;
@@ -2966,6 +3042,11 @@ document.addEventListener('click', e => {
     case 'card-del': state.custom = state.custom.filter(k => k.id !== id); delete state.cardState[id]; commit(); break;
     case 'pp-subj': ui.papers.subj = v; ui.papers.unit = null; ui.papers.log = null; render(); break;
     case 'pp-filter': ui.papers.filter = v; render(); break;
+    case 'pf-edit': ui.pfEdit = true; render(); break;
+    case 'pf-later': state.pfNudged = true; commit(); break;
+    case 'pf-color': pfRead(); prof().color = v; commit(); break;
+    case 'pf-photo-del': pfRead(); prof().photo = ''; commit(); break;
+    case 'pf-clear': if (ui.confirm === 'pf-clear'){ ui.confirm = null; state.profile = null; ui.pfEdit = false; commit(); toast('Profile cleared'); } else { ui.confirm = 'pf-clear'; render(); } break;
     case 'sub-add': subEditInit(v, true); render(); window.scrollTo({ top: 0 }); break;
     case 'sub-edit': subEditInit(v, false); render(); window.scrollTo({ top: 0 }); break;
     case 'sub-cancel': ui.subEdit = null; render(); break;
@@ -2986,10 +3067,11 @@ document.addEventListener('click', e => {
     case 'pq-add': { const rows = pqRead(); const last = rows[rows.length - 1]; const n = last && /^\d+$/.test(last.q) ? String(+last.q + 1) : ''; rows.push({ q: n, s: '', m: '', t: '', why: '' }); ui.papers.qrows = rows; const keep = { s: $('#pl-s').value, m: $('#pl-m').value, t: $('#pl-t').value, d: $('#pl-d').value }; render(); ['s','m','t','d'].forEach(k => { const el = $('#pl-' + k); if (el) el.value = keep[k]; }); pqSyncTotal(); const r = document.querySelectorAll('.pqrow'); if (r.length) r[r.length - 1].querySelector('.pq-s').focus(); break; }
     case 'qs-subj': { const Q = quickInit(); Q.subj.has(v) ? Q.subj.delete(v) : Q.subj.add(v); render(); break; }
     case 'qs-stage': quickInit().stage = v; render(); break;
-    case 'qs-save': { const wel = route() === 'today' && shouldWelcome(); quickSave(); if (wel){ ui.welcomeStep = 2; render(); window.scrollTo({ top: 0 }); } break; }
-    case 'wel-skip1': ui.welcomeStep = 2; render(); window.scrollTo({ top: 0 }); break;
+    case 'qs-save': { const wel = route() === 'today' && shouldWelcome(); quickSave(); if (wel){ ui.welcomeStep = 3; render(); window.scrollTo({ top: 0 }); } break; }
+    case 'wel-skip0': ui.welcomeStep = 2; render(); window.scrollTo({ top: 0 }); break;
+    case 'wel-skip1': ui.welcomeStep = 3; render(); window.scrollTo({ top: 0 }); break;
     case 'wel-goal': state.goal = Object.assign({}, state.goal, { min: +v }); commit(); break;
-    case 'wel-next': ui.welcomeStep = 3; render(); window.scrollTo({ top: 0 }); break;
+    case 'wel-next': ui.welcomeStep = 4; render(); window.scrollTo({ top: 0 }); break;
     case 'wel-done': state.welcomed = true; ui.welcomeStep = null; commit(); window.scrollTo({ top: 0 }); toast('You’re all set. Start with “Do this next”.'); break;
     case 'ret-dismiss': ui.ret = null; renderRet(); break;
     case 'ret-paper': { const key = b.dataset.key, c = key.split('|')[0]; ui.ret = null; renderRet(); ui.papers.mode = 'ial'; ui.papers.subj = UNIT_SUBJ[c]; ui.papers.unit = c; ui.papers.filter = 'all'; ui.papers.log = key; ui.papers.qmode = false; ui.papers.qrows = null; if (route() === 'papers') render(); else go('papers'); setTimeout(() => { const el = $('#pl-s'); if (el){ el.scrollIntoView({ block: 'center' }); el.focus(); } }, 120); break; }
@@ -3154,6 +3236,7 @@ document.addEventListener('change', e => {
   else if (el.id === 'mk-u'){ mkReadForm(); const f = ui.mk.form; f.u = el.value; f.sr = mkSources(f.u)[0]; f.t = ''; render(); }
   else if (el.id === 't-subj'){ state.timerPrefs.subject = el.value; commit(); }
   else if (el.id === 't-len'){ const [f, b] = el.value.split('-').map(Number); state.timerPrefs.focus = f; state.timerPrefs.brk = b; if (!T.running){ T.remain = phaseLen(); saveT(); } commit(); }
+  else if (el.id === 'pf-photo' && el.files && el.files[0]){ pfRead(); photoFromFile(el.files[0]).then(d => { prof().photo = d; commit(); toast('Photo added'); }, err => toast(err.message || 'That photo couldn’t be used')); }
   else if (el.dataset && el.dataset.subst){ subjSetStatus(el.dataset.subst, el.value); }
   else if (el.dataset && el.dataset.seTake){ ui.subEdit.taking[el.dataset.seTake] = el.checked; render(); }
   else if (el.dataset && el.dataset.seSt){ ui.subEdit.st[el.dataset.seSt] = el.value; render(); }
@@ -3174,6 +3257,7 @@ document.addEventListener('change', e => {
 document.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details.cp')){ if (d.open) ui.cpOpen = d.dataset.cp; else if (ui.cpOpen === d.dataset.cp) ui.cpOpen = null; return; } if (d.matches && d.matches('details.pmtq')){ if (d.open) ui.quiz.openPmt = d.dataset.k; else if (ui.quiz.openPmt === d.dataset.k) ui.quiz.openPmt = null; return; } if (d.matches && d.matches('details.unit')){ if (d.open) ui.syllabus.open = d.dataset.unit; else if (ui.syllabus.open === d.dataset.unit) ui.syllabus.open = null; } }, true);
 document.addEventListener('submit', e => {
   const f = e.target.closest('form[data-form]'); if (!f) return;
+  if (f.dataset.form === 'profile'){ e.preventDefault(); profileSave(f); return; }
   if (f.dataset.form === 'busy-add'){ e.preventDefault(); const d = $('#busy-d').value; if (d && !prefs().busy.includes(d)){ prefs().busy.push(d); commit(); toast('Busy day added'); } return; }
   e.preventDefault();
   const kind = f.dataset.form;
