@@ -117,6 +117,10 @@ details.dropped>summary{cursor:pointer;color:var(--muted);padding:6px 0}
 details.howto{display:inline}details.howto>summary{display:inline;cursor:pointer;color:var(--ink);text-decoration:underline;font-size:.9em}details.howto[open]{display:block;margin-top:6px}
 .pill.ust{background:var(--soft);color:var(--muted)}.pill.ust.resit{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
 @media (max-width:640px){ .li .meta.pp3 .btn.sm{flex:1 1 auto;min-width:auto;padding:7px 4px;font-size:.8rem;white-space:nowrap} .li .meta.pp3 .btn.primary{flex:1.5 1 0} .li .meta.pp3 .btn.planbtn{flex:0 0 auto;padding:7px 10px} }
+.askmodes{display:grid;grid-template-columns:repeat(3,1fr);width:100%}.askmodes button{padding:8px 6px;line-height:1.2}.seg2 button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.edlist{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.examday .edexam{border-left:4px solid var(--primary)}
+.edtom{border-left:4px solid var(--warn)}
 #asksheet{position:fixed;inset:0;z-index:60;background:color-mix(in srgb,#000 45%,transparent);display:flex;align-items:flex-end;justify-content:center}
 #asksheet .askbox{background:var(--surface);color:var(--ink);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;box-shadow:0 -8px 30px rgba(0,0,0,.25)}
 @media (min-width:700px){ #asksheet{align-items:center} #asksheet .askbox{border-radius:18px} }
@@ -850,6 +854,7 @@ function unitSelect(id, sid, cur, withAll = true, onlyWithContent = null){
 
 function viewToday(){
   const t = todayStr();
+  { const td = examsOn(t); if (td.length && ui.edOff !== t) return viewExamDay(t, td, true); if (ui.edPreview && !td.length){ const tm = examsOn(addDays(t, 1)); if (tm.length) return viewExamDay(addDays(t, 1), tm, false); ui.edPreview = false; } }
   const ex = upcomingExams();
   const cards = allCards();
   const due = cards.filter(c => cardStatus(c) === 'due').length + decksIn('all').filter(d => deckStatus(d) === 'due').length;
@@ -901,7 +906,7 @@ function viewToday(){
 
   return '<div class="stack today">' +
     '<div class="todayhead"><div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#prefs" class="avlink" aria-label="Your profile">' + avatar(44) + '</a>' : '') + '<div><p class="muted small">' + fmtDate(t, {weekday:'long', day:'numeric', month:'long'}) + '</p><h1>' + greet + (firstName() ? ', ' + esc(firstName()) : '') + '</h1></div></div>' + goalRing() + '</div>' + profileNudge() +
-    nextCard() + reviewCard(ui.showReview) + backupNudge() + planCard() + examsTimeline() + buddyCard() +
+    examTomorrowCard() + nextCard() + reviewCard(ui.showReview) + backupNudge() + planCard() + examsTimeline() + buddyCard() +
     '<div class="grid2">' + (ex.length ? '' : exHtml) +
       '<div class="card"><div class="card-h"><h2>Tasks</h2><a class="small muted" href="#planner">' + (openTasks.length > 5 ? 'All ' + openTasks.length : 'Planner') + '</a></div>' +
         '<form data-form="task-quick" class="row" style="margin-bottom:8px"><input type="text" id="tq" placeholder="Quick add, due today" aria-label="New task due today" style="flex:1;min-width:0"><button class="btn" type="submit">Add</button></form>' +
@@ -1187,7 +1192,7 @@ function viewPapers(){
     const avg = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length * 100) : null;
     const best = pcts.length ? Math.round(Math.max(...pcts) * 100) : null;
     const byDate = logged.slice().sort((a, b) => (a[1].d || '').localeCompare(b[1].d || '')).slice(-10);
-    stats = '<div class="card stack" style="gap:12px"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="code muted">' + u.c + '</div><h2>' + esc(u.l + ' ' + u.n) + '</h2></div>' + resLinks(u.c, true).replace(/<button[^>]*goto-papers[^>]*>[^<]*<\/button>/, '').replace(/<\/div>$/, askBtn(u.c, true) + '</div>') + '</div>' +
+    stats = '<div class="card stack" style="gap:12px"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="code muted">' + u.c + '</div><h2>' + esc(u.l + ' ' + u.n) + '</h2></div>' + resLinks(u.c, true).replace(/<button[^>]*goto-papers[^>]*>[^<]*<\/button>/, '').replace(/<\/div>$/, askBtn(u.c, true, isEssayUnit(u.c) ? 'essay' : '', isEssayUnit(u.c) ? '✦ Mark my essay' : '') + '</div>') + '</div>' +
       '<div class="tiles" style="grid-template-columns:repeat(3,1fr)"><div class="tile"><b>' + logged.length + '<span style="font-size:1rem;color:var(--muted)"> / ' + all.length + '</span></b><span>papers done</span></div>' +
       '<div class="tile"><b>' + (avg === null ? '–' : avg + '%') + '</b><span>average</span></div><div class="tile"><b>' + (best === null ? '–' : best + '%') + '</b><span>best</span></div></div>' +
       (byDate.length >= 2 ? '<div><div class="small muted" style="margin-bottom:4px">Your scores over time</div><div class="bars" style="height:90px;grid-template-columns:repeat(' + byDate.length + ',1fr)">' + byDate.map(x => { const pc = Math.round(paperPct(x[1]) * 100); return '<div class="bar"><em>' + pc + '%</em><div style="height:' + pc + '%;background:var(--' + scoreColor(pc / 100) + ')"></div></div>'; }).join('') + '</div>' +
@@ -1259,7 +1264,7 @@ function viewSyllabus(){
       const p = Math.round(unitProgress(u) * 100);
       const q = qs[u.c];
       return '<details class="unit"' + (ui.syllabus.open === u.c ? ' open' : '') + ' data-unit="' + u.c + '"><summary><span class="code">' + u.c + '</span><span><b>' + esc(u.l) + '</b> ' + esc(u.n) + '</span><span class="small muted">' + p + '%' + (q ? ' · quiz ' + Math.round(q[0] / q[1] * 100) + '%' : '') + '</span><div class="meter"><i style="width:' + p + '%;background:var(--' + sid + ')"></i></div></summary>' +
-        '<div style="padding:12px 16px;border-bottom:1px solid var(--line)" class="stack">' + unitNotesBlock(u.c) + solbankBlock(u.c) + (bookletFor(u.c) && bookletFor(u.c).url ? '<div class="row">' + bookletBtn(u.c, true) + '</div>' : '') + tipsBlock(u.c, false) + (ASK ? '<div class="row askrow"><span class="small muted">Stuck on a question?</span>' + askBtn(u.c, true) + '</div>' : '') + '<div class="row" style="gap:8px">' + (hasPmt(u.c) ? '<button class="btn sm" data-act="goto-tq" data-u="' + u.c + '">Topic questions</button>' : '') + (typeof PAPERS !== 'undefined' && PAPERS[u.c] ? '<button class="btn sm" data-act="goto-papers" data-u="' + u.c + '">Past papers (' + PAPERS[u.c].length + ')</button>' : '') + '</div></div>' +
+        '<div style="padding:12px 16px;border-bottom:1px solid var(--line)" class="stack">' + unitNotesBlock(u.c) + solbankBlock(u.c) + (bookletFor(u.c) && bookletFor(u.c).url ? '<div class="row">' + bookletBtn(u.c, true) + '</div>' : '') + tipsBlock(u.c, false) + (ASK ? '<div class="row askrow"><span class="small muted">Stuck on a question?</span>' + askBtn(u.c, true) + (isEssayUnit(u.c) ? askBtn(u.c, true, 'essay', '✦ Mark my essay') : '') + '</div>' : '') + '<div class="row" style="gap:8px">' + (hasPmt(u.c) ? '<button class="btn sm" data-act="goto-tq" data-u="' + u.c + '">Topic questions</button>' : '') + (typeof PAPERS !== 'undefined' && PAPERS[u.c] ? '<button class="btn sm" data-act="goto-papers" data-u="' + u.c + '">Past papers (' + PAPERS[u.c].length + ')</button>' : '') + '</div></div>' +
         '<div>' + u.t.map((t, i) => { const v = state.topics[topicId(u.c, i)] || 0; const tm = topicMistakes(u.c, i), tl = tm.reduce((a, m) => a + m.lost, 0); return '<div class="topic"><div class="grow"><div>' + esc(t) + (tl ? ' <a class="pill mkpill" href="#mistakes" title="Open mistakes on this topic">−' + tl + ' mark' + (tl === 1 ? '' : 's') + ' in mistakes</a>' : '') + '</div>' + topicNotes(u.c, i) + '</div><button class="status" data-v="' + v + '" data-act="topic" data-id="' + topicId(u.c, i) + '" aria-label="' + esc(t) + ': ' + labels[v] + '. Tap to change">' + labels[v] + '</button></div>'; }).join('') + '</div></details>';
     }).join('') : '<div class="empty">All ' + esc(s.short) + ' units are hidden. <a href="#prefs">Choose your units</a>.</div>') +
     practicalsBlock(sid) +
@@ -1404,7 +1409,7 @@ function solbankBlock(c){
 let ASK = null;          // the sample namespace, or null when this view can't ask Claude
 let ASK_IMG = false;
 try { if (!STANDALONE && window.claude && claude.use) claude.use('sample').then(ns => { ASK = ns || null; if (ASK && ASK.limits) ASK.limits().then(l => { ASK_IMG = !!(l && l.images); }, () => {}); if (ASK) render(); }, () => {}); } catch(e){}
-function askBtn(c, small){ return ASK ? '<button class="btn' + (small ? ' sm' : '') + ' askbtn" data-act="ask-open" data-u="' + (c || '') + '">✦ Ask Claude</button>' : ''; }
+function askBtn(c, small, mode, label){ return ASK ? '<button class="btn' + (small ? ' sm' : '') + ' askbtn" data-act="ask-open" data-u="' + (c || '') + '"' + (mode ? ' data-mode="' + mode + '"' : '') + '>' + (label || '✦ Ask Claude') + '</button>' : ''; }
 const ASK_MODES = [['explain', 'Explain step by step'], ['hint', 'Just a hint'], ['check', 'Check my answer']];
 /* photos are shrunk to at most 1600 px so they upload quickly */
 function askShrink(file){
@@ -1416,12 +1421,13 @@ function askShrink(file){
     img.src = url;
   });
 }
-document.addEventListener('keydown', e => { if (!ui.ask) return; if (e.key === 'Escape') askClose(); else if (e.key === 'Enter' && e.target && e.target.id === 'ask-f'){ e.preventDefault(); askSend(true); } });
-function askOpen(c){
-  ui.ask = { u: c || '', mode: 'explain', q: '', work: '', img: null, imgUrl: '', msgs: [], busy: false, out: '', err: '', follow: '' };
+document.addEventListener('keydown', e => { if (!ui.ask) return; if (e.key === 'Escape') askClose(); else if (e.key === 'Enter' && e.target && e.target.id === 'ask-f' && e.target.tagName !== 'TEXTAREA'){ e.preventDefault(); askSend(true); } });
+function askOpen(c, mode){
+  ui.ask = { u: c || '', mode: askModesFor(c || '').some(m => m[0] === mode) ? mode : 'explain', q: '', work: '', essay: '', marks: '', img: null, imgUrl: '', msgs: [], busy: false, out: '', err: '', follow: '' };
   renderAsk();
   setTimeout(() => { const t = $('#ask-q'); if (t) t.focus(); }, 50);
 }
+function askCapture(){ const A = ui.ask; if (!A) return; const q = $('#ask-q'), w = $('#ask-w'), e = $('#ask-e'), m = $('#ask-m'); if (q) A.q = q.value; if (w) A.work = w.value; if (e) A.essay = e.value; if (m) A.marks = m.value; }
 function askClose(){ if (ui.ask && ui.ask.ctrl) try { ui.ask.ctrl.abort(); } catch(e){} if (ui.ask && ui.ask.imgUrl) URL.revokeObjectURL(ui.ask.imgUrl); ui.ask = null; renderAsk(); }
 function askFmt(t){
   // safe, light formatting: escape, then **bold**, line breaks and simple lists
@@ -1430,7 +1436,9 @@ function askFmt(t){
 function askSystem(){
   const A = ui.ask, u = UNIT[A.u], sid = u ? UNIT_SUBJ[A.u] : '';
   const where = u ? 'Pearson Edexcel International A Level ' + SUBJ[sid].name + ', ' + u.l + ' ' + u.n + ' (' + A.u + ')' : 'Pearson Edexcel International A Level';
-  const how = A.mode === 'hint'
+  const how = A.mode === 'essay'
+    ? 'The student has written an answer to a levels-marked question' + (A.marks ? ' worth ' + A.marks + ' marks' : '') + '. Mark it the way an experienced examiner for this unit would, using the skills the qualification rewards (knowledge, application, analysis and evaluation, as they apply to this question). Start with one line: **Estimated mark: X/' + (A.marks || 'N') + ' (Level L)**, and say it is an estimate. Then **What earns marks**: 2 or 3 bullets, each pointing to a short phrase from their answer. Then **To reach the next level**: the 3 changes that would gain the most marks, specific to this answer. Then **One paragraph improved**: rewrite one of their weaker paragraphs to show the difference. Do not write a whole model essay. If the answer is very short or misses the question, say so kindly and explain what the question is really asking. In follow-ups, if they send an improved version, compare it with the last one and re-estimate the mark.'
+    : A.mode === 'hint'
     ? 'Give ONE short hint that points the student to the next step. Do not solve the question or give the final answer. End by asking what they think the next step is.'
     : A.mode === 'check'
       ? 'The student has shared their working or answer. Say clearly whether it is right. If not, point to the first line that goes wrong and explain why, then show the correct step. Mention any lines a mark scheme would expect but they left out.'
@@ -1441,10 +1449,15 @@ function askSystem(){
 async function askSend(follow){
   const A = ui.ask; if (!A || A.busy || !ASK) return;
   if (!follow){
-    const q = (($('#ask-q') || {}).value || '').trim(), w = (($('#ask-w') || {}).value || '').trim();
-    A.q = q; A.work = w;
-    if (!q && !A.img){ A.err = 'Type the question or add a photo of it first.'; renderAsk(); return; }
-    A.msgs = [{ role: 'user', content: askSystem() + '\n\nQuestion:\n' + (q || '(see the attached photo)') + (A.mode === 'check' && w ? '\n\nMy working / answer:\n' + w : '') }];
+    askCapture(); const q = A.q.trim(), w = A.work.trim(), es = A.essay.trim();
+    if (A.mode === 'essay'){
+      if (!q){ A.err = 'Type the essay question first.'; renderAsk(); return; }
+      if (!es && !A.img){ A.err = 'Paste your answer or add a photo of it.'; renderAsk(); return; }
+      A.msgs = [{ role: 'user', content: askSystem() + '\n\nQuestion' + (A.marks ? ' (' + A.marks + ' marks)' : '') + ':\n' + q + '\n\nMy answer:\n' + (es || '(see the attached photo of my handwritten answer)') }];
+    } else {
+      if (!q && !A.img){ A.err = 'Type the question or add a photo of it first.'; renderAsk(); return; }
+      A.msgs = [{ role: 'user', content: askSystem() + '\n\nQuestion:\n' + (q || '(see the attached photo)') + (A.mode === 'check' && w ? '\n\nMy working / answer:\n' + w : '') }];
+    }
   } else {
     const f = (($('#ask-f') || {}).value || '').trim(); if (!f) return;
     A.msgs.push({ role: 'user', content: f }); A.follow = '';
@@ -1478,20 +1491,104 @@ function renderAsk(){
   const thread = A.msgs.slice(1).map((m, i) => m.role === 'assistant' ? '' : '<div class="askme">' + esc(m.content) + '</div>');
   el.innerHTML = '<div class="askbox"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">✦ Ask Claude</h2><button class="x" data-act="ask-close" aria-label="Close">×</button></div>' +
     (!started ? '<label class="f"><span>Unit</span><select id="ask-u">' + unitOpts + '</select></label>' +
-      '<div class="seg2" role="group" aria-label="What do you want?">' + ASK_MODES.map(([v, l]) => '<button type="button" data-act="ask-mode" data-v="' + v + '" aria-pressed="' + (A.mode === v) + '">' + l + '</button>').join('') + '</div>' +
-      '<label class="f"><span>The question you’re stuck on</span><textarea id="ask-q" rows="4" placeholder="Type or paste the question, e.g. Show that d/dx(sec x) = sec x tan x">' + esc(A.q) + '</textarea></label>' +
-      (ASK_IMG ? '<div class="row" style="gap:8px;align-items:center"><label class="btn sm" for="ask-img">' + (A.img ? 'Change photo' : '📷 Add a photo of the question') + '</label><input type="file" id="ask-img" accept="image/*" hidden>' + (A.imgUrl ? '<img src="' + A.imgUrl + '" alt="Your photo" class="askthumb"><button class="linkbtn small" data-act="ask-img-del">Remove</button>' : '') + '</div>' : '') +
+      '<div class="seg2 askmodes" role="group" aria-label="What do you want?">' + askModesFor(A.u).map(([v, l]) => '<button type="button" data-act="ask-mode" data-v="' + v + '" aria-pressed="' + (A.mode === v) + '">' + l + '</button>').join('') + '</div>' +
+      (A.mode === 'essay'
+        ? '<label class="f"><span>Essay question</span><textarea id="ask-q" rows="3" placeholder="e.g. Evaluate the likely effects of a fall in interest rates on economic growth.">' + esc(A.q) + '</textarea></label>' +
+          '<label class="f"><span>Marks</span><select id="ask-m"><option value="">Not sure</option>' + ESSAY_MARKS.map(n => '<option value="' + n + '"' + (String(n) === String(A.marks) ? ' selected' : '') + '>' + n + ' marks</option>').join('') + '</select></label>' +
+          '<label class="f"><span>Your answer · <span class="small muted" id="ask-wc">' + wordCount(A.essay) + ' words</span></span><textarea id="ask-e" rows="10" placeholder="Paste or type your answer. You can also add a photo of a handwritten answer below.">' + esc(A.essay) + '</textarea></label>'
+        : '<label class="f"><span>The question you’re stuck on</span><textarea id="ask-q" rows="4" placeholder="Type or paste the question, e.g. Show that d/dx(sec x) = sec x tan x">' + esc(A.q) + '</textarea></label>') +
+      (ASK_IMG ? '<div class="row" style="gap:8px;align-items:center"><label class="btn sm" for="ask-img">' + (A.img ? 'Change photo' : A.mode === 'essay' ? '📷 Add a photo of your answer' : '📷 Add a photo of the question') + '</label><input type="file" id="ask-img" accept="image/*" hidden>' + (A.imgUrl ? '<img src="' + A.imgUrl + '" alt="Your photo" class="askthumb"><button class="linkbtn small" data-act="ask-img-del">Remove</button>' : '') + '</div>' : '') +
       (A.mode === 'check' ? '<label class="f"><span>Your working or answer</span><textarea id="ask-w" rows="4" placeholder="Type your steps and answer">' + esc(A.work) + '</textarea></label>' : '') +
-      '<div class="row"><button class="btn primary" data-act="ask-send"' + (A.busy ? ' disabled' : '') + '>Ask</button><span class="small muted">Answers can contain mistakes: check them against the mark scheme.</span></div>'
-    : '<div class="small muted">' + esc((u ? u.l + ' ' + u.n + ' · ' : '') + (ASK_MODES.find(m => m[0] === A.mode) || [, ''])[1]) + '</div>' +
-      '<div class="askme">' + esc(A.q || 'Photo of the question') + '</div>' + thread.join('') +
+      '<div class="row"><button class="btn primary" data-act="ask-send"' + (A.busy ? ' disabled' : '') + '>' + (A.mode === 'essay' ? 'Get feedback' : 'Ask') + '</button><span class="small muted">Answers can contain mistakes: check them against the mark scheme.</span></div>'
+    : '<div class="small muted">' + esc((u ? u.l + ' ' + u.n + ' · ' : '') + (askModesFor(A.u).concat(ASK_MODES).find(m => m[0] === A.mode) || [, ''])[1]) + '</div>' +
+      '<div class="askme">' + esc(A.q || 'Photo of the question') + (A.mode === 'essay' ? '<div class="small" style="opacity:.75;margin-top:4px">' + (A.marks ? A.marks + ' marks · ' : '') + (A.essay ? wordCount(A.essay) + '-word answer' : 'photo of answer') + '</div>' : '') + '</div>' + thread.join('') +
       '<div id="ask-out" class="askout" aria-live="polite">' + (A.out ? askFmt(A.out) : A.busy ? '<span class="muted">Thinking…</span>' : '') + '</div>' +
       (A.busy ? '<div class="row"><button class="btn sm" data-act="ask-stop">Stop</button></div>'
-        : '<div class="row" style="align-items:flex-end;flex-wrap:nowrap"><label class="f" style="flex:1"><span>Follow-up</span><input type="text" id="ask-f" placeholder="e.g. Why did you use the chain rule there?"></label><button class="btn primary" data-act="ask-follow">Send</button></div>' +
+        : '<div class="row" style="align-items:flex-end;flex-wrap:nowrap"><label class="f" style="flex:1"><span>Follow-up</span>' + (A.mode === 'essay' ? '<textarea id="ask-f" rows="3" placeholder="Ask about the feedback, or paste your improved version to re-mark it"></textarea>' : '<input type="text" id="ask-f" placeholder="e.g. Why did you use the chain rule there?">') + '</label><button class="btn primary" data-act="ask-follow">Send</button></div>' +
           '<div class="row"><button class="btn sm ghost" data-act="ask-new">New question</button>' + (A.u ? '<button class="btn sm ghost" data-act="ask-mistake">Add to mistake log</button>' : '') + '</div>')) +
     (A.err ? '<p class="small warnline" style="margin:0">' + esc(A.err) + '</p>' : '') + '</div>';
   if (started){ const o = $('#ask-out'); if (o && A.busy) o.scrollIntoView({ block: 'nearest' }); }
 }
+
+/* ============================================================
+   Essay feedback (Ask Claude) and exam-day mode
+   ============================================================ */
+const ESSAY_SUBJ = new Set(['econ', 'geog', 'psych', 'hist']);
+function isEssayUnit(c){ return !!(c && UNIT[c] && ESSAY_SUBJ.has(UNIT_SUBJ[c])); }
+const ESSAY_MARKS = [4, 6, 8, 10, 12, 14, 16, 20, 25];
+function askModesFor(c){
+  return isEssayUnit(c)
+    ? [['essay', 'Mark my essay'], ['explain', 'How to answer it'], ['hint', 'Just a hint']]
+    : ASK_MODES;
+}
+function wordCount(t){ return (String(t || '').trim().match(/\S+/g) || []).length; }
+
+/* ---- exam day ---- */
+function examsOn(d){ return state.exams.filter(e => e.d === d && (!UNIT[e.u] || !isHidden(e.u))).sort((a, b) => (a.sess === 'PM') - (b.sess === 'PM')); }
+function packList(list){
+  const sids = new Set(list.map(e => UNIT_SUBJ[e.u]).filter(Boolean));
+  const items = ['Statement of entry (candidate number) and photo ID', 'Two black pens', 'Pencil, eraser and sharpener', 'Clear pencil case', 'Water in a clear bottle with the label removed'];
+  const calc = ['math', 'fm', 'phys', 'chem', 'bio', 'econ', 'geog', 'psych'].some(s => sids.has(s));
+  if (calc) items.push('Calculator you’re allowed to use, with fresh batteries');
+  if (sids.has('cs')) items.push('Check whether a calculator is allowed in this paper');
+  if (sids.has('math') || sids.has('fm')) items.push('Ruler, protractor and compasses');
+  else if (sids.has('phys') || sids.has('geog')) items.push('Ruler (and protractor for Physics)');
+  else if (sids.has('chem') || sids.has('bio')) items.push('Ruler');
+  items.push('A watch without smart features (phones and smartwatches stay off and away)');
+  return items;
+}
+function packState(d){ if (!state.examPack || state.examPack.d !== d) state.examPack = { d, done: [] }; return state.examPack; }
+function pace(c){
+  const mins = PAPER_MIN[c], max = PAPER_MAX[c];
+  if (!mins || !max) return '';
+  const r = mins / max, eg = UNIT_SUBJ[c] === 'hist' ? 20 : isEssayUnit(c) ? 12 : 6;
+  return 'Pace: about ' + (Math.round(r * 10) / 10) + ' minutes a mark, so a ' + eg + '-mark question gets about ' + Math.round(r * eg) + ' minutes.';
+}
+function fmtDur(m){ return m >= 60 ? Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '') : m + ' min'; }
+function edName(c){ const u = UNIT[c]; if (!u) return c; const sh = SUBJ[UNIT_SUBJ[c]].short; return (u.l.indexOf(sh) === 0 ? '' : sh + ' ') + u.l + ' ' + u.n; }
+function examTomorrowCard(){
+  const t = todayStr(); if (examsOn(t).length) return '';
+  const tm = examsOn(addDays(t, 1)); if (!tm.length) return '';
+  const names = tm.map(e => edName(e.u));
+  return '<div class="card edtom"><div class="card-h"><h2>Exam tomorrow</h2><span class="pill">' + esc(tm.map(e => e.sess === 'PM' ? 'Afternoon' : 'Morning').join(' & ')) + '</span></div>' +
+    '<p style="margin:0"><b>' + esc(names.join(' and ')) + '</b>. Pack your bag tonight and get a proper night’s sleep: a rested brain recalls more than a late cram.</p>' +
+    '<div class="row"><button class="btn primary" data-act="ed-preview">Get ready for tomorrow</button></div></div>';
+}
+function viewExamDay(d, list, isToday){
+  const t = todayStr(), pk = packState(d), items = packList(list);
+  const nextAfter = state.exams.filter(e => e.d > d && (!UNIT[e.u] || !isHidden(e.u))).sort((a, b) => a.d.localeCompare(b.d))[0];
+  const essay = list.some(e => isEssayUnit(e.u));
+  const examCards = list.map(e => {
+    const u = UNIT[e.u], c = e.u, mins = PAPER_MIN[c], hasKp = CARDS.some(k => k.kp && k.u === c), bk = bookletFor(c);
+    const tips = (typeof UNIT_TIPS !== 'undefined' && UNIT_TIPS[c]) ? UNIT_TIPS[c].slice(0, 3) : [];
+    return '<div class="card stack edexam"><div><div class="small muted">' + (e.sess === 'PM' ? 'Afternoon session' : 'Morning session') + ' · <span class="code">' + esc(c) + '</span></div>' +
+      '<h2 style="margin:2px 0 0">' + esc(edName(c)) + '</h2>' +
+      '<div class="small muted">' + (mins ? fmtDur(mins) + (PAPER_MAX[c] ? ' · ' + PAPER_MAX[c] + ' marks' : '') + ' · ' : '') + 'Check the start time on your statement of entry.</div></div>' +
+      (pace(c) ? '<p class="small" style="margin:0">' + esc(pace(c)) + '</p>' : '') +
+      '<div><b>Your last 10 minutes</b><ul class="small edlist">' + tips.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' +
+      '<div class="row">' + (hasKp ? '<button class="btn primary" data-act="kp-review" data-v="' + c + '">Quick phrase check</button>' : '') +
+        (bk && bk.url ? '<a class="btn" href="' + esc(bk.url) + '" target="_blank" rel="noopener">' + esc(bk.label) + ' ↗</a>' : '') + '</div></div>';
+  }).join('');
+  const done = pk.done.length, all = items.length;
+  return '<div class="stack today examday">' +
+    '<div><p class="muted small">' + fmtDate(d, {weekday:'long', day:'numeric', month:'long'}) + '</p><h1>' + (isToday ? 'Exam day' + (firstName() ? ', ' + esc(firstName()) : '') : 'Tomorrow’s exam') + '</h1>' +
+      '<p class="muted" style="margin:4px 0 0">' + (isToday ? 'You’ve done the work. Today is about staying calm and showing what you know.' : 'Get everything ready tonight so tomorrow morning is easy.') + '</p></div>' +
+    examCards +
+    '<div class="card stack"><div class="card-h"><h2>In your bag</h2><span class="small muted">' + done + '/' + all + '</span></div><div class="list">' +
+      items.map((x, i) => { const on = pk.done.includes(i); return '<div class="li' + (on ? ' done' : '') + '"><button class="check" role="checkbox" aria-checked="' + on + '" aria-label="' + esc(x) + '" data-act="ed-pack" data-v="' + i + '">' + (on ? '✓' : '') + '</button><div class="grow"><div class="t">' + esc(x) + '</div></div></div>'; }).join('') +
+    '</div>' + (done === all ? '<p class="small" style="margin:0;color:var(--good);font-weight:600">All packed.</p>' : '') + '</div>' +
+    '<div class="card stack"><h2 style="margin:0">In the exam room</h2><ul class="small edlist">' +
+      '<li>Before you start: breathe in for 4 counts and out for 6, three times.</li>' +
+      '<li>Read each question twice and underline the command word and the marks.</li>' +
+      (essay ? '<li>Spend 2 to 3 minutes planning each long answer before you write.</li>' : '<li>Show every step: method marks count even if the final answer slips.</li>') +
+      '<li>Stuck for more than 2 minutes? Mark it, move on, come back at the end.</li>' +
+      '<li>Leave 5 minutes to check units, signs and anything you skipped.</li>' +
+    '</ul></div>' +
+    (isToday ? '<div class="card stack"><h2 style="margin:0">Afterwards</h2><p class="small" style="margin:0">Try not to go through answers with friends straight away; it won’t change your mark. Eat, rest, then switch to the next thing.' + (nextAfter ? ' Next up: <b>' + esc(edName(nextAfter.u)) + '</b> in ' + daysBetween(t, nextAfter.d) + ' day' + (daysBetween(t, nextAfter.d) === 1 ? '' : 's') + '.' : '') + '</p></div>' : '') +
+    '<div class="row">' + (isToday ? '<button class="btn ghost" data-act="ed-off">Show my usual Today</button>' : '<button class="btn" data-act="ed-close">Back to Today</button>') + '</div>' +
+  '</div>';
+}
+document.addEventListener('input', e => { if (e.target && e.target.id === 'ask-e'){ const w = $('#ask-wc'); if (w) w.textContent = wordCount(e.target.value) + ' words'; } });
 
 /* ============================================================
    Profile: private to the student (saved with their own data, never shared)
@@ -3231,9 +3328,13 @@ document.addEventListener('click', e => {
     case 'pp-subj': ui.papers.subj = v; ui.papers.unit = null; ui.papers.log = null; render(); break;
     case 'pp-filter': ui.papers.filter = v; render(); break;
     case 'sb-retry': SB_STATE = 'idle'; render(); break;
-    case 'ask-open': askOpen(b.dataset.u); break;
+    case 'ed-preview': ui.edPreview = true; render(); window.scrollTo(0, 0); break;
+    case 'ed-close': ui.edPreview = false; render(); window.scrollTo(0, 0); break;
+    case 'ed-off': ui.edOff = todayStr(); render(); window.scrollTo(0, 0); break;
+    case 'ed-pack': { const pk = state.examPack; if (pk){ const i = +v; pk.done = pk.done.includes(i) ? pk.done.filter(x => x !== i) : pk.done.concat(i); commit(); } break; }
+    case 'ask-open': askOpen(b.dataset.u, b.dataset.mode); break;
     case 'ask-close': askClose(); break;
-    case 'ask-mode': if (ui.ask){ const q = $('#ask-q'), w = $('#ask-w'); if (q) ui.ask.q = q.value; if (w) ui.ask.work = w.value; ui.ask.mode = v; renderAsk(); } break;
+    case 'ask-mode': if (ui.ask){ askCapture(); ui.ask.mode = v; renderAsk(); } break;
     case 'ask-send': askSend(false); break;
     case 'ask-follow': askSend(true); break;
     case 'ask-stop': if (ui.ask && ui.ask.ctrl) ui.ask.ctrl.abort(); break;
@@ -3435,7 +3536,7 @@ document.addEventListener('change', e => {
   else if (el.id === 't-subj'){ state.timerPrefs.subject = el.value; commit(); }
   else if (el.id === 't-len'){ const [f, b] = el.value.split('-').map(Number); state.timerPrefs.focus = f; state.timerPrefs.brk = b; if (!T.running){ T.remain = phaseLen(); saveT(); } commit(); }
   else if (el.id === 'pf-photo' && el.files && el.files[0]){ pfRead(); photoFromFile(el.files[0]).then(d => { prof().photo = d; commit(); toast('Photo added'); }, err => toast(err.message || 'That photo couldn’t be used')); }
-  else if (el.id === 'ask-u' && ui.ask){ const q = $('#ask-q'), w = $('#ask-w'); if (q) ui.ask.q = q.value; if (w) ui.ask.work = w.value; ui.ask.u = el.value; renderAsk(); }
+  else if (el.id === 'ask-u' && ui.ask){ askCapture(); ui.ask.u = el.value; const ms = askModesFor(el.value); if (!ms.some(m => m[0] === ui.ask.mode)) ui.ask.mode = ms[0][0] === 'essay' ? 'essay' : 'explain'; renderAsk(); }
   else if (el.id === 'ask-img' && el.files && el.files[0] && ui.ask){ const A = ui.ask, f = el.files[0], q = $('#ask-q'), w = $('#ask-w'); if (q) A.q = q.value; if (w) A.work = w.value;
     askShrink(f).then(bl => { if (ui.ask !== A) return; if (A.imgUrl) URL.revokeObjectURL(A.imgUrl); A.img = bl; A.imgUrl = URL.createObjectURL(bl); renderAsk(); }, () => toast('That photo couldn’t be used')); }
   else if (el.dataset && el.dataset.subst){ subjSetStatus(el.dataset.subst, el.value); }
