@@ -448,6 +448,23 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 .foot p{margin:0;text-align:center}
 .sync[hidden]{display:none!important}
 @media (max-width:400px){ .seg{max-width:100%} .seg a,.seg button{padding:8px 9px;font-size:.84rem;white-space:nowrap} .mockbar .btn.sm{padding:6px 8px} }
+
+/* welcome */
+.welcome{max-width:640px;margin:0 auto}
+.wdots{display:flex;gap:6px;justify-content:center;margin-top:4px}
+.wdots i{width:28px;height:5px;border-radius:9px;background:var(--line)}
+.wdots i.on{background:var(--primary)}
+.wtour{align-items:flex-start}
+.wico{width:36px;height:36px;border-radius:10px;background:var(--soft);display:grid;place-items:center;flex:none}
+.wico svg{width:20px;height:20px}
+/* did you finish? sheet */
+.retsheet{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:0 0 calc(12px + env(safe-area-inset-bottom));animation:retin .25s ease-out}
+.retcard{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.retq{font-weight:600;font-size:1.05rem}
+.retbtns{gap:8px;flex-wrap:wrap}
+@media (max-width:560px){ .retcard .grow{flex-basis:100%} }
+@keyframes retin{from{transform:translateY(100%);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){ .retsheet{animation:none} }
 </style>
 </head>
 <body>
@@ -577,11 +594,12 @@ const ICONS = {
  today:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
  cards:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="15" height="14" rx="2"/><path d="M7 2h13a2 2 0 0 1 2 2v12"/></svg>',
  quiz:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg>',
- syllabus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+ syllabus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v14a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v14a2 2 0 0 1 2-2h8z"/></svg>',
  grades:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>',
  planner:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>'
 };
-const ROUTES = [['today','Today'],['cards','Flashcards'],['quiz','Questions'],['grades','Grades'],['syllabus','Revise'],['planner','Planner']];
+const ROUTES = [['today','Today'],['syllabus','Study'],['quiz','Questions'],['grades','Grades'],['planner','Planner']];
+function sSeg(cur){ const due = decksIn('all').filter(d => deckStatus(d) === 'due').length + allCards().filter(c => cardStatus(c) === 'due').length; return '<nav class="seg" aria-label="Study"><a href="#syllabus"' + (cur === 'syllabus' ? ' aria-current="page"' : '') + '>Revise</a><a href="#cards"' + (cur === 'cards' ? ' aria-current="page"' : '') + '>Flashcards' + (due ? ' <span class="badge">' + due + '</span>' : '') + '</a></nav>'; }
 
 /* ============================================================
    State + saving (device first, then the user's private cloud copy)
@@ -915,7 +933,7 @@ function viewCards(){
   const allDue = decksIn('all').filter(d => deckStatus(d) === 'due');
   const mine = state.custom.filter(k => UNIT[k.u] && !isHidden(k.u));
   const mineDue = mine.filter(k => cardStatus(k) !== 'later').length;
-  return '<div class="stack">' +
+  return '<div class="stack">' + sSeg('cards') +
     '<div><h1>Flashcards</h1><p class="muted">Flashcard decks from Physics &amp; Maths Tutor. Open a deck, go through it, then rate how well you knew it. The deck comes back for review just before you’d forget it.</p></div>' +
     (allDue.length ? '<div class="card"><div class="card-h"><h2>Due for review today</h2><span class="small muted">' + allDue.length + ' deck' + (allDue.length > 1 ? 's' : '') + '</span></div><div class="stack" style="gap:0">' + allDue.map(d => '<div style="margin-top:6px">' + unitPill(d.u) + '</div>' + deckRow(d)).join('') + '</div></div>' : '') +
     '<div class="chips" role="group" aria-label="Subject">' + SUBJECTS.map(x => '<button class="chip" data-act="cards-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === c.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
@@ -1159,7 +1177,7 @@ function viewSyllabus(){
   const qs = unitQuizStats();
   const labels = ['Not started','Learning','Revising','Confident'];
   const overall = units.length ? Math.round(units.reduce((a, u) => a + unitProgress(u), 0) / units.length * 100) : 0;
-  return '<div class="stack">' +
+  return '<div class="stack">' + sSeg('syllabus') +
     '<div><h1>Revise</h1><p class="muted">Revision notes and flashcards for every topic, next to your progress. Tap a topic’s status to move it along: Not started → Learning → Revising → Confident. Ticking a topic pack or rating a flashcard deck “Well” moves topics up for you, and a new mistake moves a “Confident” topic back to Revising.</p></div>' +
     '<div class="chips" role="group" aria-label="Subject">' + SUBJECTS.map(x => '<button class="chip" data-act="syl-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === sid) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
     '<div class="card row" style="justify-content:space-between"><div><div style="font-family:var(--display);font-size:1.6rem;font-weight:800">' + overall + '%</div><div class="small muted">' + esc(s.name) + ' covered across ' + units.length + ' units</div></div><a class="btn" href="#prefs">Choose my units</a></div>' +
@@ -2134,7 +2152,7 @@ function quickSits(c){ const Q = quickInit(); return Q.stage === 'both' || (Q.st
 function quickCard(){
   const Q = quickInit(), units = quickUnits(), sitting = units.filter(c => quickSits(c) && ttDate(c, Q.series));
   return '<div class="card stack quick">' +
-    '<div><h2 style="margin:0">Quick start</h2><p class="small muted" style="margin:4px 0 0">Three taps and you’re set. You can fine-tune single units below afterwards.</p></div>' +
+    '<div><h2 style="margin:0">Quick start</h2><p class="small muted" style="margin:4px 0 0">Three taps and you’re set. ' + (route() === 'today' ? 'You can change single units later in Settings.' : 'You can fine-tune single units below afterwards.') + '</p></div>' +
     '<label class="f" style="max-width:280px">Exam series<select id="qs-series">' + TT_SERIES.map(sr => '<option' + (Q.series === sr ? ' selected' : '') + '>' + sr + '</option>').join('') + '</select></label>' +
     '<div><div class="small muted" style="margin-bottom:6px">Subjects</div><div class="chips" role="group" aria-label="Subjects">' + SUBJECTS.map(s => '<button class="chip" data-act="qs-subj" data-v="' + s.id + '" aria-pressed="' + Q.subj.has(s.id) + '"><span class="dot" style="background:var(--' + s.id + ')"></span>' + esc(s.name) + '</button>').join('') + '</div></div>' +
     '<div><div class="small muted" style="margin-bottom:6px">This series I’m sitting</div><div class="chips" role="group" aria-label="Which units">' + [['as','Year 1 (AS) units'],['a2','Year 2 (A2) units'],['both','Both']].map(([k, l]) => '<button class="chip" data-act="qs-stage" data-v="' + k + '" aria-pressed="' + (Q.stage === k) + '">' + l + '</button>').join('') + '</div></div>' +
@@ -2486,14 +2504,94 @@ function viewSearch(){
     '<div id="search-res" class="stack">' + searchResultsHtml(q) + '</div></div>';
 }
 
+/* ============================================================
+   First-time welcome · "Did you finish?" after opening a PDF
+   ============================================================ */
+function shouldWelcome(){ if (state.welcomed) return false; if (ui.welcomeStep) return true; return !setupDone() && !state.sessions.length && !Object.keys(state.papers).length && !state.mistakes.length; }
+function viewWelcome(){
+  const step = ui.welcomeStep || 1;
+  const dots = '<div class="wdots" aria-label="Step ' + step + ' of 3">' + [1,2,3].map(n => '<i class="' + (n <= step ? 'on' : '') + '"></i>').join('') + '</div>';
+  let body = '';
+  if (step === 1){
+    body = '<div><h1>Welcome to IAL Study Hub</h1><p class="muted">Past papers, notes, flashcards, a revision timetable and grade tracking for Pearson Edexcel International A Level, all in one place. First, which exams are you preparing for?</p></div>' +
+      quickCard() + '<div class="row"><button class="btn ghost" data-act="wel-skip1">Skip for now</button></div>';
+  } else if (step === 2){
+    const cur = goalMin();
+    body = '<div><h1>How much will you study a day?</h1><p class="muted">This sets your daily goal ring and streak on Today, and how much your revision timetable plans. You can change it any time.</p></div>' +
+      '<div class="card stack"><div class="chips" role="group" aria-label="Daily study goal">' + [30,45,60,90,120,180].map(m => '<button class="chip" data-act="wel-goal" data-v="' + m + '" aria-pressed="' + (m === cur) + '">' + fmtMin(m) + '</button>').join('') + '</div>' +
+      '<p class="small muted" style="margin:0">Most students aim for 1–2 hours on school days. Little and often beats long cramming sessions.</p></div>' +
+      '<div class="row"><button class="btn primary" data-act="wel-next">Next</button></div>';
+  } else {
+    const tour = [
+      ['today', 'Today', 'What to do next, your daily goal, exam countdown and tasks.'],
+      ['syllabus', 'Study', 'Revision notes and flashcards for every topic, plus core practicals.'],
+      ['quiz', 'Questions', 'Topic questions, real past papers with mark schemes and examiner reports, and your mistake log.'],
+      ['grades', 'Grades', 'Your UMS and overall grade, worked out from your results and past papers.'],
+      ['planner', 'Planner', 'A revision timetable up to your exams, tasks and a focus timer.']
+    ];
+    body = '<div><h1>Here’s where everything is</h1><p class="muted">Open a PDF, and when you come back the site asks how it went, so your progress keeps itself up to date.</p></div>' +
+      '<div class="card"><div class="list">' + tour.map(([id, l, d]) => '<div class="li wtour"><span class="wico" aria-hidden="true">' + ICONS[id] + '</span><div class="grow"><div class="t">' + l + '</div><div class="small muted">' + d + '</div></div></div>').join('') +
+      '<div class="li wtour"><span class="wico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><div class="grow"><div class="t">Search</div><div class="small muted">The magnifying glass at the top finds any topic, paper, note or flashcard.</div></div></div></div></div>' +
+      '<div class="row"><button class="btn primary big" data-act="wel-done">Start studying</button></div>';
+  }
+  return '<div class="stack welcome">' + dots + body + '</div>';
+}
+
+let RET_PENDING = null;
+function retContext(a){
+  const href = a.getAttribute('href') || '';
+  if (!/^https?:/.test(href)) return null;
+  const txt = (a.textContent || '').trim();
+  const pmt = a.closest('.pmtrow');
+  if (pmt){ const chk = pmt.querySelector('[data-act="pmt-done"]'); if (chk && chk.getAttribute('aria-checked') !== 'true' && /^Questions/.test(txt)) return { kind: 'tq', key: chk.dataset.key, label: (pmt.querySelector('.t') || {}).textContent || 'this topic pack' }; return null; }
+  if (/^Question paper/.test(txt)){
+    const li = a.closest('.li'); const k = li && li.querySelector('[data-key]');
+    if (k){ const key = k.dataset.key; if (/^W\w+\d\|/.test(key) && !state.papers[key]){ const [c, sr] = key.split('|'); return { kind: 'paper', key, label: UNIT[c] ? UNIT[c].l + (UNIT_SUBJ[c] === 'math' || UNIT_SUBJ[c] === 'fm' ? '' : ' ' + SUBJ[UNIT_SUBJ[c]].short) + ', ' + sr : sr }; } }
+    return null;
+  }
+  const deck = a.closest('.deck');
+  if (deck){ const r = deck.querySelector('[data-act="deck-rate"]'); if (r) return { kind: 'deck', url: r.dataset.url, label: (deck.querySelector('.t') || {}).textContent || 'this deck' }; return null; }
+  if (a.classList.contains('note')){
+    const top = a.closest('.topic'); const tb = top && top.querySelector('[data-act="topic"]');
+    if (tb){ const id = tb.dataset.id, m = id.match(/^(.+)-(\d+)$/); if (m && UNIT[m[1]] && (state.topics[id] || 0) < 3) return { kind: 'note', id, label: UNIT[m[1]].t[+m[2]] }; }
+  }
+  return null;
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('a[target="_blank"]'); if (!a) return;
+  const c = retContext(a); if (c){ c.t = Date.now(); RET_PENDING = c; }
+}, true);
+function retCheck(){
+  if (document.visibilityState !== 'visible' || !RET_PENDING) return;
+  const p = RET_PENDING, away = Date.now() - p.t;
+  if (away < 20000) return; // came straight back: probably just checking something
+  RET_PENDING = null; if (away > 12 * 3600e3) return;
+  ui.ret = p; renderRet();
+}
+document.addEventListener('visibilitychange', retCheck);
+window.addEventListener('focus', () => setTimeout(retCheck, 50));
+function renderRet(){
+  let el = document.getElementById('retsheet');
+  const r = ui.ret;
+  if (!r){ if (el) el.remove(); return; }
+  if (!el){ el = document.createElement('div'); el.id = 'retsheet'; el.className = 'retsheet'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
+  let q = '', btns = '';
+  if (r.kind === 'paper'){ q = 'Finished ' + esc(r.label) + '?'; btns = '<button class="btn primary" data-act="ret-paper" data-key="' + esc(r.key) + '">Log my mark</button>'; }
+  else if (r.kind === 'tq'){ q = 'Done the <b>' + esc(r.label) + '</b> questions?'; btns = '<button class="btn primary" data-act="pmt-done" data-key="' + esc(r.key) + '">Yes, tick it off</button>'; }
+  else if (r.kind === 'deck'){ q = 'How well did you know <b>' + esc(r.label) + '</b>?'; btns = [['Badly',1],['Mostly',2],['Well',3]].map(([l, v]) => '<button class="btn' + (v === 3 ? ' primary' : '') + '" data-act="deck-rate" data-url="' + esc(r.url) + '" data-v="' + v + '">' + l + '</button>').join(''); }
+  else if (r.kind === 'note'){ q = 'How’s <b>' + esc(r.label) + '</b> going?'; btns = '<button class="btn" data-act="ret-topic" data-id="' + esc(r.id) + '" data-v="2">Still revising</button><button class="btn primary" data-act="ret-topic" data-id="' + esc(r.id) + '" data-v="3">Confident</button>'; }
+  el.innerHTML = '<div class="wrap"><div class="retcard"><div class="grow"><div class="small muted">Welcome back</div><div class="retq">' + q + '</div></div><div class="row retbtns">' + btns + '<button class="btn ghost" data-act="ret-dismiss">Not yet</button></div></div></div>';
+}
+
 function render(){
   const r = route(); setHdr();
-  $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
+  $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && r === 'cards') ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
   $('#nav-settings').setAttribute('aria-current', r === 'prefs' ? 'page' : 'false'); { const ns = $('#nav-search'); if (ns) ns.setAttribute('aria-current', r === 'search' ? 'page' : 'false'); } fsSync();
   const v = { today:viewToday, cards:viewCards, quiz:viewQuiz, papers:viewPapers, syllabus:viewSyllabus, planner:viewPlanner, prefs:viewSettings, search:viewSearch, grades:viewGrades, mistakes:viewMistakes, setup:viewSetup }[r];
-  try { $('#view').innerHTML = mockBar() + v(); }
+  try { $('#view').innerHTML = mockBar() + (route() === 'today' && shouldWelcome() ? viewWelcome() : v()); }
   catch(err){ console.error(err); $('#view').innerHTML = '<div class="card" role="alert"><h2>Something went wrong on this page</h2><p class="muted">' + esc(String(err && err.message || err)) + '</p><div class="row"><button class="btn primary" data-act="err-reload">Reload</button></div></div>'; }
   try { tick(true); } catch(err){ console.error(err); }
+  try { renderRet(); } catch(err){}
 }
 let toastTimer;
 function toast(msg){ const el = $('#toast'); el.textContent = msg; el.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.style.display = 'none', 3200); }
@@ -2541,6 +2639,7 @@ function nextQuestion(){
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
+  if (b.closest('#retsheet') && ui.ret){ ui.ret = null; setTimeout(renderRet, 0); }
   const act = b.dataset.act, v = b.dataset.v, id = b.dataset.id;
   if (b.tagName === 'INPUT') return;
   if (act !== 'restore' && act !== 'reset') ui.confirm = null;
@@ -2572,7 +2671,14 @@ document.addEventListener('click', e => {
     case 'pq-add': { const rows = pqRead(); const last = rows[rows.length - 1]; const n = last && /^\d+$/.test(last.q) ? String(+last.q + 1) : ''; rows.push({ q: n, s: '', m: '', t: '', why: '' }); ui.papers.qrows = rows; const keep = { s: $('#pl-s').value, m: $('#pl-m').value, t: $('#pl-t').value, d: $('#pl-d').value }; render(); ['s','m','t','d'].forEach(k => { const el = $('#pl-' + k); if (el) el.value = keep[k]; }); pqSyncTotal(); const r = document.querySelectorAll('.pqrow'); if (r.length) r[r.length - 1].querySelector('.pq-s').focus(); break; }
     case 'qs-subj': { const Q = quickInit(); Q.subj.has(v) ? Q.subj.delete(v) : Q.subj.add(v); render(); break; }
     case 'qs-stage': quickInit().stage = v; render(); break;
-    case 'qs-save': quickSave(); break;
+    case 'qs-save': { const wel = route() === 'today' && shouldWelcome(); quickSave(); if (wel){ ui.welcomeStep = 2; render(); window.scrollTo({ top: 0 }); } break; }
+    case 'wel-skip1': ui.welcomeStep = 2; render(); window.scrollTo({ top: 0 }); break;
+    case 'wel-goal': state.goal = Object.assign({}, state.goal, { min: +v }); commit(); break;
+    case 'wel-next': ui.welcomeStep = 3; render(); window.scrollTo({ top: 0 }); break;
+    case 'wel-done': state.welcomed = true; ui.welcomeStep = null; commit(); window.scrollTo({ top: 0 }); toast('You’re all set. Start with “Do this next”.'); break;
+    case 'ret-dismiss': ui.ret = null; renderRet(); break;
+    case 'ret-paper': { const key = b.dataset.key, c = key.split('|')[0]; ui.ret = null; renderRet(); ui.papers.mode = 'ial'; ui.papers.subj = UNIT_SUBJ[c]; ui.papers.unit = c; ui.papers.filter = 'all'; ui.papers.log = key; ui.papers.qmode = false; ui.papers.qrows = null; if (route() === 'papers') render(); else go('papers'); setTimeout(() => { const el = $('#pl-s'); if (el){ el.scrollIntoView({ block: 'center' }); el.focus(); } }, 120); break; }
+    case 'ret-topic': { const id = b.dataset.id, nv = +v; ui.ret = null; renderRet(); if ((state.topics[id] || 0) < nv){ state.topics[id] = nv; state.topicAt = state.topicAt || {}; state.topicAt[id] = todayStr(); } commit(); toast(nv === 3 ? 'Marked Confident.' : 'Marked as Revising.'); break; }
     case 'rt-clear': { const n = rtTasks().filter(x => !x.done).length; state.tasks = state.tasks.filter(x => !(x.gen === 'rt' && !x.done)); state.rt = null; commit(); toast(n + ' planned session' + (n === 1 ? '' : 's') + ' removed.'); break; }
     case 'kp-one': { const k = CARDS.find(x => x.id === b.dataset.id); if (k){ ui.cards.subj = UNIT_SUBJ[k.u]; ui.cards.unit = k.u; ui.cards.review = { queue: [k.id], idx: 0, shown: false, done: 0, again: 0 }; } break; }
     case 'fullscreen': toggleFullscreen(); break;
