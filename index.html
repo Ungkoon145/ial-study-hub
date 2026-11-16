@@ -160,7 +160,41 @@ div.f.schoolpick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;col
 .blivepill{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
 @keyframes bpulse{0%,100%{opacity:1}50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.bdot{animation:none}}
-.calbtn{white-space:nowrap}
+.calbtn{white-space:nowrap;flex:0 0 auto !important}
+.calwrap{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
+@media (min-width:1000px){.calwrap{grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr)}}
+.calhead{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.calhead h2{margin:0 4px;min-width:150px;text-align:center}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cwd{text-align:center;font-size:.75rem;font-weight:700;color:var(--muted);padding:2px 0}
+.cday{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:2px;min-height:88px;padding:4px 5px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;text-align:left;cursor:pointer;overflow:hidden}
+.cday:hover{border-color:var(--primary)}
+.cday.out{opacity:.45}
+.cday.busy{background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 6px,var(--soft) 6px,var(--soft) 12px)}
+.cday.s1{background-color:color-mix(in srgb,var(--good) 8%,var(--surface))}.cday.s2{background-color:color-mix(in srgb,var(--good) 16%,var(--surface))}.cday.s3{background-color:color-mix(in srgb,var(--good) 26%,var(--surface))}
+.cday.today .cnum{background:var(--primary);color:var(--on-primary)}
+.cday.sel{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset}
+.cnum{align-self:flex-start;min-width:24px;height:24px;line-height:24px;text-align:center;border-radius:12px;font-weight:700;font-size:.85rem}
+.cmks{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cmk{font-size:.7rem;line-height:1.25;padding:1px 5px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--soft)}
+.cmk.ex{background:var(--bad);color:#fff;font-weight:700}.cmk.mt{background:#6d4bc3;color:#fff}.cmk.mt.pend{background:transparent;color:#6d4bc3;outline:1px dashed #6d4bc3}
+.cmk.rg{background:var(--warn);color:#fff}.cmk.tk.late{color:var(--bad)}.cmk.dn,.cmk.more{background:transparent;color:var(--muted)}
+.cmin{position:absolute;right:5px;top:6px;font-size:.68rem;color:var(--good);font-weight:700}
+.callegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px}
+.callegend .lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;background:var(--soft);border:1px solid var(--line)}
+.lg.ex{background:var(--bad);border:0}.lg.mt{background:#6d4bc3;border:0}.lg.st{background:color-mix(in srgb,var(--good) 26%,var(--surface))}
+.meetrow{border:1px solid var(--line);border-left:4px solid #6d4bc3;border-radius:10px;padding:10px 12px}
+.meetrow.exrow{border-left-color:var(--bad)}
+.meetrow .pill.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn);white-space:nowrap}
+@media (max-width:640px){
+  .calcard{padding:12px 8px}
+  .cday{min-height:58px;padding:3px 2px;align-items:center}
+  .cnum{align-self:center}
+  .cmks{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:3px}
+  .cmk{font-size:0;width:8px;height:8px;padding:0;border-radius:50%;background:var(--muted)}
+  .cmk.tk.late{background:var(--bad)}.cmk.dn{background:var(--good)}.cmk.more{display:none}.cmk.mt.pend{background:transparent}
+  .cmin{position:static;font-size:.62rem}
+}
 .tgline{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin:4px 0 2px}
 .tgline .tg{white-space:nowrap}.tgline .tg.on{background:color-mix(in srgb,var(--primary) 14%,transparent);border-radius:6px;padding:0 6px}
 .taskcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;align-items:start;margin-top:10px}
@@ -723,9 +757,10 @@ const ICONS = {
  quiz:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg>',
  syllabus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v14a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v14a2 2 0 0 1 2-2h8z"/></svg>',
  grades:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>',
+ calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
  planner:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>'
 };
-const ROUTES = [['today','Today'],['syllabus','Study'],['quiz','Questions'],['grades','Grades'],['planner','Planner']];
+const ROUTES = [['today','Today'],['syllabus','Study'],['quiz','Questions'],['grades','Grades'],['planner','Planner'],['calendar','Calendar']];
 function sSeg(cur){ const due = decksIn('all').filter(d => deckStatus(d) === 'due').length + allCards().filter(c => cardStatus(c) === 'due').length; return '<nav class="seg" aria-label="Study"><a href="#syllabus"' + (cur === 'syllabus' ? ' aria-current="page"' : '') + '>Revise</a><a href="#cards"' + (cur === 'cards' ? ' aria-current="page"' : '') + '>Flashcards' + (due ? ' <span class="badge">' + due + '</span>' : '') + '</a></nav>'; }
 
 /* ============================================================
@@ -913,7 +948,7 @@ const ui = {
   confirm: null
 };
 let curRoute = null;
-function route(){ let h = curRoute; if (h == null){ try { h = (location.hash || '').slice(1); } catch(e){ h = ''; } } if (h === 'settings') h = 'prefs'; return ['today','cards','quiz','papers','mistakes','grades','syllabus','planner','prefs','setup','search'].includes(h) ? h : (h === '' && ['today','syllabus','quiz','papers','grades','planner'].includes(prefs().start) ? prefs().start : 'today'); }
+function route(){ let h = curRoute; if (h == null){ try { h = (location.hash || '').slice(1); } catch(e){ h = ''; } } if (h === 'settings') h = 'prefs'; return ['today','cards','quiz','papers','mistakes','grades','syllabus','planner','calendar','prefs','setup','search'].includes(h) ? h : (h === '' && ['today','syllabus','quiz','papers','grades','planner'].includes(prefs().start) ? prefs().start : 'today'); }
 // Navigate without relying on the host page delivering hashchange events (artifact viewers differ).
 function go(r){ const changed = route() !== r; setTimeout(() => { if (route() === 'search' && changed){ const i = $('#search-q'); if (i) i.focus(); } }, 30); curRoute = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch(e){} ui.confirm = null; ui.editTask = null; render(); if (changed) window.scrollTo({ top: 0 }); if (ui.scrollCp){ ui.scrollCp = false; const o = document.querySelector('details.cp[open]'); if (o) o.scrollIntoView({ block: 'center' }); } }
 
@@ -988,7 +1023,7 @@ function viewToday(){
 
   return '<div class="stack today">' +
     '<div class="todayhead"><div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#prefs" class="avlink" aria-label="Your profile">' + avatar(44) + '</a>' : '') + '<div><p class="muted small">' + fmtDate(t, {weekday:'long', day:'numeric', month:'long'}) + '</p><h1>' + greet + (firstName() ? ', ' + esc(firstName()) : '') + '</h1></div></div>' + goalRing() + '</div>' + profileNudge() +
-    examTomorrowCard() + nextCard() + friendReqCard() + studyBoard() + reviewCard(ui.showReview) + backupNudge() + planCard() + examsTimeline() + buddyCard() +
+    examTomorrowCard() + nextCard() + meetInviteCard() + friendReqCard() + studyBoard() + reviewCard(ui.showReview) + backupNudge() + planCard() + examsTimeline() + buddyCard() +
     '<div class="grid2">' + (ex.length ? '' : exHtml) +
       '<div class="card"><div class="card-h"><h2>Tasks</h2><a class="small muted" href="#planner">' + (openTasks.length > 5 ? 'All ' + openTasks.length : 'Planner') + '</a></div>' +
         '<form data-form="task-quick" class="row" style="margin-bottom:8px"><input type="text" id="tq" placeholder="Quick add, due today" aria-label="New task due today" style="flex:1;min-width:0"><button class="btn" type="submit">Add</button></form>' +
@@ -2459,6 +2494,120 @@ function regCard(){
       '<p class="muted" style="margin:6px 0 0">When you register you choose unit codes (for example WMA11). Ask the centre about “cash-in” too: without it you get unit results but no overall A-level grade.</p></details>' +
     '<p class="small muted" style="margin:0">Dates are Pearson’s deadlines for international centres. <a href="' + REG_SRC + '" target="_blank" rel="noopener">Source ↗</a> · checked ' + REG_CHECKED + '</p></div>';
 }
+/* ============================================================
+   Calendar: month overview of exams, tasks, study time and mocks, with a day panel.
+   Group mocks: plan a timed mock for a date and time and invite friends. Invitations travel
+   inside the same per-friend encrypted box as profiles, so only invited friends can read them.
+   ============================================================ */
+function ymd(y, m, d){ return y + '-' + pad(m + 1) + '-' + pad(d); }
+function calState(){ const t = todayStr(); ui.cal = ui.cal || { ym: t.slice(0, 7), sel: t }; return ui.cal; }
+function meetClean(m){
+  if (!m || typeof m !== 'object') return null;
+  const ok = typeof m.id === 'string' && m.id.length <= 24 && typeof m.u === 'string' && UNIT[m.u] && typeof m.sr === 'string' && m.sr.length <= 40 && /^\d{4}-\d\d-\d\d$/.test(m.d) && /^\d\d:\d\d$/.test(m.tm);
+  return ok ? { id: m.id, u: m.u, sr: m.sr, d: m.d, tm: m.tm } : null;
+}
+function myMeets(){ return (state.meets || []).map(m => Object.assign({ host: 'me' }, m)); }
+function theirMeets(){
+  const out = [];
+  if (!frOn()) return out;
+  Object.keys(FR.peers).forEach(fid => { if (!frState().friends[fid]) return; (FR.peers[fid].inv || []).forEach(m => out.push(Object.assign({ host: fid, hostName: FR.peers[fid].n || 'A friend', rsp: (state.meetRsp || {})[m.id] || '' }, m))); });
+  return out;
+}
+function allMeets(){ return myMeets().concat(theirMeets().filter(m => m.rsp !== 'no')).sort((a, b) => (a.d + a.tm).localeCompare(b.d + b.tm)); }
+function meetsOn(d){ return allMeets().filter(m => m.d === d); }
+function meetLabel(m){ return (UNIT[m.u] ? UNIT[m.u].l : m.u) + ' ' + m.sr; }
+function meetWho(m){
+  if (m.host !== 'me') return 'Invited by ' + m.hostName;
+  const w = (m.with || []).map(fid => { const p = FR.peers[fid]; if (!p) return null; const r = p.rsp && p.rsp[m.id]; return (p.n || 'Friend') + (r === 'yes' ? ' ✓' : r === 'no' ? ' ✗' : ' (waiting)'); }).filter(Boolean);
+  return w.length ? 'With ' + w.join(', ') : 'Just you';
+}
+function meetRow(m){
+  const key = paperKey(m.u, m.sr), past = m.d < todayStr(), row = paperRow(m.u, m.sr);
+  const btns = m.host !== 'me' && !m.rsp
+    ? '<button class="btn sm primary" data-act="meet-rsp" data-id="' + esc(m.id) + '" data-v="yes">Accept</button><button class="btn sm ghost" data-act="meet-rsp" data-id="' + esc(m.id) + '" data-v="no">Decline</button>'
+    : (past ? '' : '<button class="btn sm primary" data-act="mock-start" data-key="' + esc(key) + '">Start mock</button>') + (row ? pdfBtn(row[1], 'Paper') : '') +
+      (m.host === 'me' ? '<button class="btn sm ghost" data-act="meet-del" data-id="' + esc(m.id) + '">Cancel</button>' : '<button class="btn sm ghost" data-act="meet-rsp" data-id="' + esc(m.id) + '" data-v="no">Leave</button>');
+  return '<div class="meetrow"><div class="row" style="justify-content:space-between;gap:8px;flex-wrap:nowrap"><div style="min-width:0"><b>' + esc(m.tm) + ' · Mock: ' + esc(meetLabel(m)) + '</b><div class="small muted">' + esc(meetWho(m)) + (m.host !== 'me' && m.rsp === 'yes' ? ' · you’re in' : '') + '</div></div>' +
+    (m.host !== 'me' && !m.rsp ? '<span class="pill warn">Invitation</span>' : '') + '</div><div class="row" style="margin-top:8px">' + btns + '</div></div>';
+}
+function meetForm(){
+  const F = ui.meetForm, units = mySubjects().flatMap(s => s.units.filter(u => takes(u.c) && papersFor(u.c).length));
+  if (!units.length) return '<div class="card"><p class="small muted" style="margin:0">Choose your units in Settings first, then you can plan a mock.</p><div class="row"><button class="btn" data-act="meet-form">Close</button></div></div>';
+  const u = units.some(x => x.c === F.u) ? F.u : units[0].c, rows = papersFor(u).slice().sort((a, b) => (seriesSortKey(b[0]) > seriesSortKey(a[0]) ? 1 : -1)).sort((a, b) => !!state.papers[paperKey(u, a[0])] - !!state.papers[paperKey(u, b[0])]), friends = frOn() ? frLists().friends : [];
+  return '<form class="card stack" data-form="meet" id="meetform"><div class="card-h"><h2>Plan a mock</h2></div>' +
+    '<div class="row"><label class="f" style="flex:1;min-width:170px">Unit<select id="mt-u">' + units.map(x => '<option value="' + x.c + '"' + (x.c === u ? ' selected' : '') + '>' + esc(x.l + ' · ' + x.n) + '</option>').join('') + '</select></label>' +
+    '<label class="f" style="flex:1;min-width:150px">Paper<select id="mt-sr">' + rows.map(r => { const done = state.papers[paperKey(u, r[0])]; return '<option value="' + esc(r[0]) + '">' + esc(r[0]) + (done ? ' (done)' : '') + '</option>'; }).join('') + '</select></label></div>' +
+    '<div class="row"><label class="f">Date<input type="date" id="mt-d" required min="' + todayStr() + '" value="' + esc(F.d || todayStr()) + '"></label><label class="f">Start time<input type="time" id="mt-t" required value="16:00"></label></div>' +
+    (friends.length ? '<div><div class="small muted" style="margin-bottom:4px">Invite friends to sit it at the same time</div><div class="chips">' + friends.map(x => '<label class="chip pick"><input type="checkbox" data-mtf="' + esc(x.id) + '"><span>' + esc(x.p.n || 'Friend') + '</span></label>').join('') + '</div></div>'
+      : '<p class="small muted" style="margin:0">' + (LOCAL_ONLY ? 'Sign in to invite friends to sit it with you.' : 'Add friends in Settings to invite them to sit it at the same time.') + '</p>') +
+    '<div class="row"><button class="btn primary" type="submit">Add to calendar</button><button class="btn" type="button" data-act="meet-form">Cancel</button></div></form>';
+}
+function calDayInfo(d){
+  const t = todayStr(), p = prefs();
+  return {
+    exams: state.exams.filter(e => e.d === d),
+    tasks: state.tasks.filter(x => !x.done && x.d === d),
+    done: state.tasks.filter(x => x.done && x.doneAt === d),
+    meets: meetsOn(d), mins: minutesOn(d),
+    busy: (p.busy || []).includes(d), off: (p.offDays || []).includes(parseD(d).getDay()),
+    reg: Object.keys(REG_DATES).filter(sr => REG_DATES[sr].dl === d)
+  };
+}
+function calGrid(){
+  const C = calState(), [y, m] = C.ym.split('-').map(Number), first = new Date(y, m - 1, 1), lead = (first.getDay() + 6) % 7, dim = new Date(y, m, 0).getDate(), t = todayStr();
+  const cells = [];
+  for (let i = 0; i < Math.ceil((lead + dim) / 7) * 7; i++){
+    const dt = new Date(y, m - 1, 1 - lead + i), d = ymd(dt.getFullYear(), dt.getMonth(), dt.getDate()), out = dt.getMonth() !== m - 1, I = calDayInfo(d);
+    const mk = [];
+    I.exams.forEach(e => mk.push('<span class="cmk ex">' + esc(UNIT[e.u] ? UNIT[e.u].l : e.u) + ' exam</span>'));
+    I.meets.forEach(x => mk.push('<span class="cmk mt' + (x.host !== 'me' && !x.rsp ? ' pend' : '') + '">' + esc(x.tm) + ' mock</span>'));
+    I.reg.forEach(() => mk.push('<span class="cmk rg">Entries close</span>'));
+    I.tasks.slice(0, 3).forEach(x => mk.push('<span class="cmk tk' + (d < t ? ' late' : '') + '">' + esc(x.t) + '</span>'));
+    if (I.tasks.length > 3) mk.push('<span class="cmk more">+' + (I.tasks.length - 3) + '</span>');
+    if (!I.tasks.length && I.done.length) mk.push('<span class="cmk dn">' + I.done.length + ' done</span>');
+    const lvl = I.mins >= 120 ? 3 : I.mins >= 45 ? 2 : I.mins > 0 ? 1 : 0;
+    const n = I.exams.length + I.meets.length + I.tasks.length;
+    cells.push('<button type="button" class="cday' + (out ? ' out' : '') + (d === t ? ' today' : '') + (d === C.sel ? ' sel' : '') + (I.busy || I.off ? ' busy' : '') + ' s' + lvl + '" data-act="cal-day" data-v="' + d + '" aria-pressed="' + (d === C.sel) + '" aria-label="' + fmtDate(d, {weekday:'long', day:'numeric', month:'long'}) + (n ? ', ' + n + ' item' + (n === 1 ? '' : 's') : '') + '">' +
+      '<span class="cnum">' + dt.getDate() + '</span><span class="cmks">' + mk.join('') + '</span>' + (I.mins ? '<span class="cmin notr">' + fmtMin(I.mins) + '</span>' : '') + '</button>');
+  }
+  return '<div class="calgrid" role="group" aria-label="Month">' + ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(w => '<div class="cwd">' + w + '</div>').join('') + cells.join('') + '</div>';
+}
+function calDayPanel(){
+  const C = calState(), d = C.sel, I = calDayInfo(d), t = todayStr();
+  const empty = !I.exams.length && !I.meets.length && !I.tasks.length && !I.done.length && !I.reg.length;
+  return '<div class="card stack" id="calday"><div class="card-h"><h2>' + fmtDate(d, {weekday:'long', day:'numeric', month:'long'}) + '</h2>' + (d === t ? '<span class="pill">Today</span>' : '') + '</div>' +
+    (I.busy ? '<p class="small muted" style="margin:0">Busy day: the revision timetable skips it.</p>' : I.off ? '<p class="small muted" style="margin:0">One of your days off.</p>' : '') +
+    I.exams.map(e => { const u = UNIT[e.u]; return '<div class="meetrow exrow"><b>Exam: ' + esc(u ? u.l + ' ' + u.n : e.u) + '</b><div class="small muted">' + (e.sess === 'PM' ? 'Afternoon session' : e.sess ? 'Morning session' : 'Check the start time on your statement of entry.') + '</div></div>'; }).join('') +
+    I.reg.map(sr => '<div class="meetrow"><b>Entries close for ' + esc(sr) + '</b><div class="small muted">After today Pearson charges late fees. <a href="#planner" data-act="goto-reg">Registration info</a></div></div>').join('') +
+    I.meets.map(meetRow).join('') +
+    (I.tasks.length || I.done.length ? '<div class="list">' + I.tasks.map(taskRow).join('') + I.done.map(taskDoneRow).join('') + '</div>' : '') +
+    (empty ? '<div class="empty">Nothing planned.</div>' : '') +
+    (I.mins ? '<p class="small" style="margin:0">Studied <b class="notr">' + fmtMin(I.mins) + '</b> this day.</p>' : '') +
+    (d >= t ? '<form data-form="cal-task" class="row" style="align-items:flex-end"><label class="f" style="flex:1;min-width:160px">Add a task for this day<input id="ct-text" maxlength="140" placeholder="e.g. P1 June 2023 paper"></label><button class="btn primary" type="submit">Add</button></form>' +
+      '<div class="row"><button class="btn sm" data-act="meet-form" data-v="' + d + '">Plan a mock</button><button class="btn sm ghost" data-act="cal-busy" data-v="' + d + '">' + (I.busy ? 'Not busy after all' : 'Mark as busy day') + '</button></div>' : '') + '</div>';
+}
+function viewCalendar(){
+  const C = calState(), [y, m] = C.ym.split('-').map(Number), t = todayStr();
+  const title = new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const pend = theirMeets().filter(x => !x.rsp && x.d >= t);
+  const soon = allMeets().filter(x => x.d >= t && (x.host === 'me' || x.rsp === 'yes')).slice(0, 3);
+  return '<div class="stack calpage"><div><h1>Calendar</h1><p class="muted" style="margin:4px 0 0">Your exams, tasks, mocks and study time in one view. Tap a day to see it or add to it.</p></div>' +
+    (pend.length ? '<div class="card stack"><div class="card-h"><h2>Mock invitation' + (pend.length > 1 ? 's' : '') + '</h2></div>' + pend.map(x => '<div><div class="small muted">' + fmtDate(x.d, {weekday:'short', day:'numeric', month:'short'}) + '</div>' + meetRow(x) + '</div>').join('') + '</div>' : '') +
+    (ui.meetForm ? meetForm() : '') +
+    '<div class="calwrap"><div class="card calcard"><div class="calhead"><button class="btn sm" data-act="cal-nav" data-v="-1" aria-label="Previous month">‹</button><h2 aria-live="polite">' + title + '</h2><button class="btn sm" data-act="cal-nav" data-v="1" aria-label="Next month">›</button>' +
+      '<span class="grow"></span>' + (C.ym !== t.slice(0, 7) || C.sel !== t ? '<button class="btn sm ghost" data-act="cal-today">Today</button>' : '') + (ui.meetForm ? '' : '<button class="btn sm primary" data-act="meet-form" data-v="' + C.sel + '">Plan a mock</button>') + '</div>' +
+      calGrid() +
+      '<div class="callegend small muted"><span><i class="lg ex"></i>Exam</span><span><i class="lg mt"></i>Mock</span><span><i class="lg tk"></i>Task</span><span><i class="lg st"></i>Study time</span></div></div>' +
+    calDayPanel() + '</div>' +
+    (soon.length ? '<div class="card stack"><div class="card-h"><h2>Coming up: mocks</h2></div>' + soon.map(x => '<div><div class="small muted">' + fmtDate(x.d, {weekday:'short', day:'numeric', month:'short'}) + '</div>' + meetRow(x) + '</div>').join('') + '</div>' : '') +
+  '</div>';
+}
+function meetInviteCard(){
+  const t = todayStr(), pend = theirMeets().filter(x => !x.rsp && x.d >= t), today = allMeets().filter(x => x.d === t && (x.host === 'me' || x.rsp === 'yes'));
+  if (!pend.length && !today.length) return '';
+  return '<div class="card stack"><div class="card-h"><h2>' + (pend.length ? 'Mock invitation' + (pend.length > 1 ? 's' : '') : 'Mock today') + '</h2><a class="small muted" href="#calendar">Calendar</a></div>' +
+    pend.concat(today).map(x => '<div>' + (x.d !== t ? '<div class="small muted">' + fmtDate(x.d, {weekday:'short', day:'numeric', month:'short'}) + '</div>' : '') + meetRow(x) + '</div>').join('') + '</div>';
+}
 function viewGrades(){
   const g = ui.grades; if (!g.picked){ g.picked = true; g.subj = (gradeSubjects().find(x => gradeSubjHasData(x.id)) || gradeSubjects()[0]).id; } const s = SUBJ[g.subj];
   let body = '';
@@ -3323,21 +3472,24 @@ function frClean(o){
   if (!o || typeof o !== 'object') return null;
   const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
   const ph = str(o.ph, 60000);
-  return { n: str(o.n, 40), c: /^#[0-9a-fA-F]{6}$/.test(o.c) ? o.c : '#4b5a70', s: str(o.s, 60), y: str(o.y, 40), sub: Array.isArray(o.sub) ? o.sub.filter(x => typeof x === 'string').slice(0, 12).map(x => x.slice(0, 30)) : [], ph: /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(ph) ? ph : '', act: actClean(o.act) };
+  return { n: str(o.n, 40), c: /^#[0-9a-fA-F]{6}$/.test(o.c) ? o.c : '#4b5a70', s: str(o.s, 60), y: str(o.y, 40), sub: Array.isArray(o.sub) ? o.sub.filter(x => typeof x === 'string').slice(0, 12).map(x => x.slice(0, 30)) : [], ph: /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(ph) ? ph : '', act: actClean(o.act), inv: Array.isArray(o.inv) ? o.inv.slice(0, 20).map(meetClean).filter(Boolean) : [], rsp: (() => { const r = {}; if (o.rsp && typeof o.rsp === 'object') Object.keys(o.rsp).slice(0, 40).forEach(k => { if (k.length <= 24 && (o.rsp[k] === 'yes' || o.rsp[k] === 'no')) r[k] = o.rsp[k]; }); return r; })() };
 }
 function frSchedule(){ if (!frOn() || !cloud.db || !cloud.id) return; clearTimeout(FR.timer); FR.timer = setTimeout(frPublish, 1500); }
 async function frPublish(){
   if (!frOn() || !cloud.db || !cloud.id || !FR.writeOk) return;
   try {
     const f = frState(); await frKeys();
-    const mine = JSON.stringify(frMine()), ids = Object.keys(f.friends).filter(id => !f.ignored.includes(id)).sort();
+    const mineObj = frMine(), t0 = addDays(todayStr(), -1), hosted = (state.meets || []).filter(m => m.d >= t0), rsp = {};
+    Object.keys(state.meetRsp || {}).slice(-40).forEach(k => rsp[k] = state.meetRsp[k]);
+    const mine = JSON.stringify(mineObj) + JSON.stringify(hosted) + JSON.stringify(rsp), ids = Object.keys(f.friends).filter(id => !f.ignored.includes(id)).sort();
     const known = ids.map(id => FR.cards.find(c => c.id === id)).filter(c => c && c.pub);
     const sig = mine + '|' + f.code + '|' + known.map(c => c.id + c.pub.x).join(',');
     if (sig === FR.sent) return;
     const box = {};
     for (const c of known){
       const { key, tag } = await frPair(c), iv = crypto.getRandomValues(new Uint8Array(12));
-      box[tag] = { iv: b64(iv), ct: b64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(mine))) };
+      const forThem = JSON.stringify(Object.assign({}, mineObj, { inv: hosted.filter(m => (m.with || []).includes(c.id)).map(m => ({ id: m.id, u: m.u, sr: m.sr, d: m.d, tm: m.tm })), rsp }));
+      box[tag] = { iv: b64(iv), ct: b64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(forThem))) };
     }
     await cloud.db.doc('cards/' + cloud.id).set({ pub: f.pub, code: f.code, at: Date.now(), box });
     FR.sent = sig;
@@ -3373,7 +3525,7 @@ async function frStop(){
   FR.cards = []; FR.peers = {}; FR.sent = ''; FR.status = 'idle';
   if (cloud.db && cloud.id){ try { await cloud.db.doc('cards/' + cloud.id).delete(); } catch(e){} }
 }
-function frRefresh(){ const r = route(), a = document.activeElement; if ((r === 'today' || r === 'prefs') && !(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName))) render(); }
+function frRefresh(){ const r = route(), a = document.activeElement; if ((r === 'today' || r === 'prefs' || r === 'calendar') && !(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName))) render(); }
 function frLists(){
   const f = frState(), friends = [], requests = [], waiting = [];
   Object.keys(f.friends).forEach(id => { if (f.ignored.includes(id)) return; if (FR.peers[id]) friends.push({ id, p: FR.peers[id] }); else waiting.push({ id, code: f.friends[id].code || '' }); });
@@ -3906,7 +4058,7 @@ function render(){
   const r = route(); setHdr();
   $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && r === 'cards') ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
   $('#nav-settings').setAttribute('aria-current', r === 'prefs' ? 'page' : 'false'); { const ns = $('#nav-search'); if (ns) ns.setAttribute('aria-current', r === 'search' ? 'page' : 'false'); } fsSync();
-  const v = { today:viewToday, cards:viewCards, quiz:viewQuiz, papers:viewPapers, syllabus:viewSyllabus, planner:viewPlanner, prefs:viewSettings, search:viewSearch, grades:viewGrades, mistakes:viewMistakes, setup:viewSetup }[r];
+  const v = { today:viewToday, cards:viewCards, quiz:viewQuiz, papers:viewPapers, syllabus:viewSyllabus, planner:viewPlanner, calendar:viewCalendar, prefs:viewSettings, search:viewSearch, grades:viewGrades, mistakes:viewMistakes, setup:viewSetup }[r];
   const gate = needLogin(); document.body.classList.toggle('gate', gate);
   try { $('#view').innerHTML = gate ? viewLogin() : mockBar() + (route() === 'today' && shouldWelcome() ? viewWelcome() : v()); }
   catch(err){ console.error(err); $('#view').innerHTML = '<div class="card" role="alert"><h2>Something went wrong on this page</h2><p class="muted">' + esc(String(err && err.message || err)) + '</p><div class="row"><button class="btn primary" data-act="err-reload">Reload</button></div></div>'; }
@@ -4009,6 +4161,13 @@ document.addEventListener('click', e => {
     case 'share-send': try { navigator.share({ title: 'IAL Revise', text: 'Free revision site for Edexcel International A Level: past papers, notes, planner and grade tracking.', url: MAIN_URL }).catch(() => {}); } catch(e){} break;
     case 'task-cal': { const x = state.tasks.find(k => k.id === id); if (x && !x.cal){ x.cal = true; setTimeout(commit, 400); } break; }
     case 'cal-all': { const n = state.tasks.filter(x => !x.done && x.d && x.d >= todayStr()).length + state.exams.filter(e => e.d >= todayStr()).length; if (!n){ toast('Nothing to add yet. Give a task a deadline or add an exam date first.'); break; } saveFile('ial-revise-calendar.ics', icsAll(), 'text/calendar', 'Calendar file saved. Open it and choose Google Calendar to add everything.'); break; }
+    case 'cal-day': { const C = calState(); C.sel = v; if (v.slice(0, 7) !== C.ym) C.ym = v.slice(0, 7); render(); if (window.innerWidth < 900) setTimeout(() => { const e = document.getElementById('calday'); if (e) e.scrollIntoView({ block: 'nearest', behavior: prefs().motion ? 'auto' : 'smooth' }); }, 50); break; }
+    case 'cal-nav': { const C = calState(); let [y, m] = C.ym.split('-').map(Number); m += +v; if (m < 1){ m = 12; y--; } if (m > 12){ m = 1; y++; } C.ym = y + '-' + pad(m); render(); break; }
+    case 'cal-today': { const C = calState(); C.ym = todayStr().slice(0, 7); C.sel = todayStr(); render(); break; }
+    case 'cal-busy': { const p = prefs(); p.busy = p.busy || []; p.busy = p.busy.includes(v) ? p.busy.filter(x => x !== v) : p.busy.concat(v); commit(); break; }
+    case 'meet-form': ui.meetForm = ui.meetForm ? null : { d: v || calState().sel, u: '' }; render(); if (ui.meetForm) setTimeout(() => { const e = document.getElementById('meetform'); if (e) e.scrollIntoView({ block: 'nearest' }); }, 50); break;
+    case 'meet-del': if (confirm('Cancel this mock? Invited friends will see it disappear.')){ state.meets = (state.meets || []).filter(m => m.id !== id); commit(); frPublish(); } break;
+    case 'meet-rsp': state.meetRsp = state.meetRsp || {}; state.meetRsp[id] = v; commit(); frPublish(); toast(v === 'yes' ? 'You’re in. It’s on your calendar.' : 'Declined'); break;
     case 'nx-more': ui.nxMore = !ui.nxMore; render(); break;
     case 'ed-preview': ui.edPreview = true; render(); window.scrollTo(0, 0); break;
     case 'ed-close': ui.edPreview = false; render(); window.scrollTo(0, 0); break;
@@ -4207,6 +4366,7 @@ document.addEventListener('change', e => {
   else if (el.id === 'pp-unit'){ ui.papers.unit = el.value; ui.papers.log = null; render(); }
   else if (el.dataset && el.dataset.wi){ const c = el.dataset.wi; if (el.value === '') delete ui.grades.whatif[c]; else ui.grades.whatif[c] = Math.max(0, Math.min(umsMax(c), Math.round(+el.value))); render(); }
   else if (el.dataset && el.dataset.reg){ state.reg = state.reg || {}; if (el.checked) state.reg[el.dataset.reg] = true; else delete state.reg[el.dataset.reg]; commit(); }
+  else if (el.id === 'mt-u' && ui.meetForm){ ui.meetForm.u = el.value; ui.meetForm.d = ($('#mt-d') || {}).value || ui.meetForm.d; render(); }
   else if (el.id === 'un-pick'){ if (el.value === 'own'){ ui.uniForm = true; render(); } else if (el.value){ state.unis = (state.unis || []).concat({ id: uid(), p: el.value }); commit(); } }
   else if (el.dataset && el.dataset.target){ state.targets = state.targets || {}; if (el.value) state.targets[el.dataset.target] = el.value; else delete state.targets[el.dataset.target]; commit(); }
   else if (el.id === 'restore-file' && el.files && el.files[0]){ el.files[0].text().then(txt => { const ta = $('#restore-text'); if (ta) ta.value = txt; toast('Backup loaded. Tap Restore to use it.'); }); }
@@ -4284,13 +4444,18 @@ document.addEventListener('submit', e => {
   else if (kind === 'add-exam'){ const u = $('#ex-unit').value, d = $('#ex-date').value; if (!u || !d) return; state.exams.push({ id: uid(), u, d }); commit(); toast('Exam added'); }
   else if (kind === 'rt-build'){ const n = rtBuild(+$('#rt-min').value, +$('#rt-rest').value); commit(); toast(n ? n + ' sessions planned. They’re in your tasks, by day.' : 'Nothing to plan: add exam dates first.'); }
   else if (kind === 'uni-own'){ const name = $('#un-name').value.trim(); const req = [...document.querySelectorAll('[data-unreq]')].filter(e => e.value).map(e => [e.dataset.unreq, e.value]); if (!name) return; if (!req.length){ toast('Choose a grade for at least one subject.'); return; } state.unis = (state.unis || []).concat({ id: uid(), name, req }); ui.uniForm = false; commit(); }
+  else if (kind === 'cal-task'){ const tx = $('#ct-text').value.trim(); if (!tx) return; state.tasks.push({ id: uid(), t: tx, d: calState().sel, s: '', p: 2, done: false }); commit(); toast('Task added'); }
+  else if (kind === 'meet'){ const u = $('#mt-u').value, sr = $('#mt-sr').value, d = $('#mt-d').value, tm = $('#mt-t').value; if (!u || !sr || !d || !tm) return;
+    const wth = [...document.querySelectorAll('[data-mtf]')].filter(e => e.checked).map(e => e.dataset.mtf);
+    state.meets = (state.meets || []).filter(m => m.d >= addDays(todayStr(), -30)).concat({ id: uid(), u, sr, d, tm, with: wth }); ui.meetForm = null; const C = calState(); C.sel = d; C.ym = d.slice(0, 7); commit(); frPublish();
+    toast(wth.length ? 'Mock planned. Your friends will see the invitation.' : 'Mock added to your calendar.'); }
   else if (kind === 'fr-add'){ const err = frAdd($('#fr-in').value); FR.msg = err; if (!err){ toast('Request sent. You’ll see their profile once they add you back.'); } render(); }
   else if (kind === 'buddy'){ const nick = $('#bd-nick').value.trim().slice(0, 24); const was = buddyOn(); state.buddy = { on: true, nick }; BUD.writeOk = true; commit(); if (!was) buddyStart(); else { BUD.sent = ''; buddyPublish(); } toast(was ? 'Name saved.' : 'Study buddy is on.'); }
   else if (kind === 'add-card'){ const u = $('#nc-unit').value, fr = $('#nc-front').value.trim(), bk = $('#nc-back').value.trim(); if (!fr || !bk) return; state.custom.push({ id: 'u' + uid(), u, f: fr, b: bk, mine: true }); commit(); toast('Card saved. It will appear in your next review.'); }
 });
 window.addEventListener('hashchange', () => { let h = ''; try { h = location.hash.slice(1); } catch(e){} if (h === curRoute) return; curRoute = h || null; ui.confirm = null; ui.editTask = null; render(); window.scrollTo({ top: 0 }); });
 // Every in-app link (#route) is handled here, in capture phase, before anything else can swallow it.
-document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return; const h = a.getAttribute('href').slice(1); if (!['today','cards','quiz','papers','mistakes','grades','syllabus','planner','prefs','setup','search'].includes(h)) return; e.preventDefault(); setTimeout(() => go(h), 0); }, true);
+document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return; const h = a.getAttribute('href').slice(1); if (!['today','cards','quiz','papers','mistakes','grades','syllabus','planner','calendar','prefs','setup','search'].includes(h)) return; e.preventDefault(); setTimeout(() => go(h), 0); }, true);
 
 render();
 { const _ra = renderAsk; renderAsk = function(){ _ra(); askTH(); }; }
