@@ -149,6 +149,17 @@ div.f.schoolpick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;col
 .unirow{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .uok{color:var(--good);font-weight:800}.ulow{color:var(--bad);font-weight:800}
 .regline.warn{color:var(--warn)}.regline.bad{color:var(--bad)}.regline.good{color:var(--good)}
+.blist{display:flex;flex-direction:column;gap:6px}
+.brow{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:12px;border:1px solid var(--line)}
+.brow.me{background:var(--soft)}.brow.live{border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
+.brank{width:18px;text-align:center;font-weight:800;color:var(--muted)}
+.bname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btime{font-size:1.15rem;font-variant-numeric:tabular-nums;margin-left:auto;padding-left:8px}.brow .grow{flex:1 1 0}
+.blive{color:var(--good);font-weight:600;font-variant-numeric:tabular-nums}
+.bdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--good);margin-right:6px;animation:bpulse 1.6s ease-in-out infinite}
+.blivepill{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+@keyframes bpulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.bdot{animation:none}}
 .tgline{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin:4px 0 2px}
 .tgline .tg{white-space:nowrap}.tgline .tg.on{background:color-mix(in srgb,var(--primary) 14%,transparent);border-radius:6px;padding:0 6px}
 .taskcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;align-items:start;margin-top:10px}
@@ -976,7 +987,7 @@ function viewToday(){
 
   return '<div class="stack today">' +
     '<div class="todayhead"><div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#prefs" class="avlink" aria-label="Your profile">' + avatar(44) + '</a>' : '') + '<div><p class="muted small">' + fmtDate(t, {weekday:'long', day:'numeric', month:'long'}) + '</p><h1>' + greet + (firstName() ? ', ' + esc(firstName()) : '') + '</h1></div></div>' + goalRing() + '</div>' + profileNudge() +
-    examTomorrowCard() + nextCard() + friendReqCard() + reviewCard(ui.showReview) + backupNudge() + planCard() + examsTimeline() + buddyCard() +
+    examTomorrowCard() + nextCard() + friendReqCard() + studyBoard() + reviewCard(ui.showReview) + backupNudge() + planCard() + examsTimeline() + buddyCard() +
     '<div class="grid2">' + (ex.length ? '' : exHtml) +
       '<div class="card"><div class="card-h"><h2>Tasks</h2><a class="small muted" href="#planner">' + (openTasks.length > 5 ? 'All ' + openTasks.length : 'Planner') + '</a></div>' +
         '<form data-form="task-quick" class="row" style="margin-bottom:8px"><input type="text" id="tq" placeholder="Quick add, due today" aria-label="New task due today" style="flex:1;min-width:0"><button class="btn" type="submit">Add</button></form>' +
@@ -1372,7 +1383,7 @@ let T = (() => { try { const t = JSON.parse(localStorage.getItem(TKEY)); if (t &
 let audioCtx = null;
 function phaseLen(){ return (T.phase === 'focus' ? state.timerPrefs.focus : state.timerPrefs.brk) * 60000; }
 function remainMs(){ if (T.remain === null) T.remain = phaseLen(); return T.running ? Math.max(0, T.endsAt - Date.now()) : T.remain; }
-function saveT(){ try { localStorage.setItem(TKEY, JSON.stringify(T)); } catch(e){} }
+function saveT(){ try { localStorage.setItem(TKEY, JSON.stringify(T)); } catch(e){} try { frSchedule(); } catch(e){} }
 function fmtClock(ms){ const s = Math.ceil(ms / 1000); return pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
 function beep(){
   try {
@@ -2468,7 +2479,7 @@ function viewGrades(){
 const MKEY = 'ial-study-hub-mock';
 let MOCK = (() => { try { return JSON.parse(localStorage.getItem(MKEY)) || null; } catch(e){ return null; } })();
 let mockBeeped = false;
-function saveMock(){ try { if (MOCK) localStorage.setItem(MKEY, JSON.stringify(MOCK)); else localStorage.removeItem(MKEY); } catch(e){} }
+function saveMock(){ try { if (MOCK) localStorage.setItem(MKEY, JSON.stringify(MOCK)); else localStorage.removeItem(MKEY); } catch(e){} try { frSchedule(); } catch(e){} }
 function mockStart(key){ const mi = mockInfo(key); MOCK = { key, start: Date.now(), ends: Date.now() + mi.min * 60000 }; mockBeeped = false; saveMock(); }
 function mockBar(){
   if (!MOCK) return '';
@@ -3258,7 +3269,7 @@ function fmtMin(m){ m = Math.round(+m || 0); return m >= 60 ? Math.floor(m / 60)
 const FR = { cards: [], unsub: null, status: 'idle', writeOk: true, pair: {}, peers: {}, sent: '', timer: null, priv: null, msg: '' };
 const FR_ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function frOn(){ return !!(state.fr && state.fr.on); }
-function frState(){ state.fr = Object.assign({ on: false, code: '', pub: null, priv: null, share: { school: true, subj: true, year: false, photo: false }, friends: {}, ignored: [] }, state.fr || {}); state.fr.share = Object.assign({ school: true, subj: true, year: false, photo: false }, state.fr.share || {}); return state.fr; }
+function frState(){ state.fr = Object.assign({ on: false, code: '', pub: null, priv: null, share: { school: true, subj: true, year: false, photo: false, act: false }, friends: {}, ignored: [] }, state.fr || {}); state.fr.share = Object.assign({ school: true, subj: true, year: false, photo: false, act: false }, state.fr.share || {}); return state.fr; }
 function frCode(){ let s = ''; const b = crypto.getRandomValues(new Uint8Array(6)); b.forEach(x => s += FR_ALPHA[x % FR_ALPHA.length]); return s; }
 function frFmt(c){ return c ? c.slice(0, 3) + ' ' + c.slice(3) : ''; }
 const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
@@ -3289,13 +3300,13 @@ async function frPair(card){
 function frMine(){
   const f = frState(), p = prof(), sh = f.share, yl = (YEAR_OPTS.find(x => x[0] === p.year) || [, ''])[1];
   const subj = SUBJECTS.filter(s => subjStatus(s.id) !== 'dropped' && s.units.some(u => takes(u.c))).map(s => s.name);
-  return { n: String(p.name || '').slice(0, 40), c: avatarColor(), s: sh.school ? String(p.school || '').slice(0, 60) : '', y: sh.year ? yl : '', sub: sh.subj ? subj : [], ph: sh.photo && p.photo && p.photo.length < 60000 ? p.photo : '' };
+  return { n: String(p.name || '').slice(0, 40), c: avatarColor(), s: sh.school ? String(p.school || '').slice(0, 60) : '', y: sh.year ? yl : '', sub: sh.subj ? subj : [], ph: sh.photo && p.photo && p.photo.length < 60000 ? p.photo : '', act: sh.act ? frActivity() : null };
 }
 function frClean(o){
   if (!o || typeof o !== 'object') return null;
   const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
   const ph = str(o.ph, 60000);
-  return { n: str(o.n, 40), c: /^#[0-9a-fA-F]{6}$/.test(o.c) ? o.c : '#4b5a70', s: str(o.s, 60), y: str(o.y, 40), sub: Array.isArray(o.sub) ? o.sub.filter(x => typeof x === 'string').slice(0, 12).map(x => x.slice(0, 30)) : [], ph: /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(ph) ? ph : '' };
+  return { n: str(o.n, 40), c: /^#[0-9a-fA-F]{6}$/.test(o.c) ? o.c : '#4b5a70', s: str(o.s, 60), y: str(o.y, 40), sub: Array.isArray(o.sub) ? o.sub.filter(x => typeof x === 'string').slice(0, 12).map(x => x.slice(0, 30)) : [], ph: /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(ph) ? ph : '', act: actClean(o.act) };
 }
 function frSchedule(){ if (!frOn() || !cloud.db || !cloud.id) return; clearTimeout(FR.timer); FR.timer = setTimeout(frPublish, 1500); }
 async function frPublish(){
@@ -3511,10 +3522,71 @@ function friendsCard(){
     (L.requests.length ? '<div><b>Friend requests</b><div class="frlist">' + L.requests.map(x => peerCard(x, 'req')).join('') + '</div></div>' : '') +
     '<div><b>Your friends' + (L.friends.length ? ' (' + L.friends.length + ')' : '') + '</b>' + (L.friends.length ? '<div class="frlist">' + L.friends.map(x => peerCard(x, 'friend')).join('') + '</div>' : '<p class="small muted" style="margin:4px 0 0">' + (FR.status === 'loading' ? 'Loading…' : 'No friends yet. Swap codes with a classmate: you add theirs, they accept.') + '</p>') + '</div>' +
     (L.waiting.length ? '<div class="small muted">Waiting for ' + L.waiting.map(x => '<span class="frwait">' + esc(frFmt(x.code) || 'a friend') + ' <button class="linkbtn small" data-act="fr-cancel" data-id="' + esc(x.id) + '">Cancel</button></span>').join(', ') + ' to accept.</div>' : '') +
-    '<details class="small"' + (ui.frShareOpen ? ' open' : '') + '><summary style="cursor:pointer;font-weight:700">What friends see</summary><p class="muted" style="margin:6px 0">Your name and avatar colour, plus anything you tick:</p><div class="chips">' + chk('school', 'School') + chk('subj', 'Subjects') + chk('year', 'Year') + chk('photo', 'Photo') + '</div>' +
+    '<details class="small"' + (ui.frShareOpen ? ' open' : '') + '><summary style="cursor:pointer;font-weight:700">What friends see</summary><p class="muted" style="margin:6px 0">Your name and avatar colour, plus anything you tick:</p><div class="chips">' + chk('act', 'Study activity') + chk('school', 'School') + chk('subj', 'Subjects') + chk('year', 'Year') + chk('photo', 'Photo') + '</div>' +
       '<p class="muted" style="margin:6px 0 0">Friends see your profile as it is now, and it updates when you change it. Your marks, mistakes and notes are never shared. ' + (ACCT ? 'Your friend needs to sign in too.' : 'Your friend needs access to this site too: the owner invites them with Share (as Editor).') + '</p></details>' +
     '<div class="row"><button class="btn ghost sm" data-act="fr-off">Turn off Friends</button></div></div>';
 }
+/* ---- Study board: friends' live study status and study time (shared only if 'Study activity' is ticked) ---- */
+function weekDates(){ const t = todayStr(), wd = (new Date(t + 'T12:00:00').getDay() + 6) % 7, out = []; for (let i = 0; i <= wd; i++) out.push(addDays(t, i - wd)); return out; }
+function frLive(){
+  if (typeof MOCK !== 'undefined' && MOCK && Date.now() < MOCK.ends) return { since: MOCK.start, until: MOCK.ends, subj: 'Mock paper' };
+  if (T.running && T.phase === 'focus'){ const sid = state.timerPrefs.subject; return { since: T.endsAt - phaseLen(), until: T.endsAt, subj: SUBJ[sid] ? SUBJ[sid].short : '' }; }
+  return null;
+}
+function frActivity(){
+  const days = {}; weekDates().forEach(d => { const m = minutesOn(d); if (m) days[d] = m; });
+  const wk = new Set(weekDates());
+  const pp = Object.values(state.papers || {}).filter(r => r && r.d && wk.has(r.d)).length + Object.values(state.oldDone || {}).filter(r => r && r.d && wk.has(r.d)).length;
+  return { days, st: streak(), pp, live: frLive() };
+}
+function actClean(a){
+  if (!a || typeof a !== 'object') return null;
+  const days = {}; if (a.days && typeof a.days === 'object') Object.keys(a.days).slice(0, 8).forEach(d => { const m = +a.days[d]; if (/^\d{4}-\d\d-\d\d$/.test(d) && m > 0 && m < 1440) days[d] = Math.round(m); });
+  let live = null; const l = a.live;
+  if (l && typeof l === 'object' && +l.since > 0 && +l.until > +l.since && +l.until - +l.since < 6 * 3600000) live = { since: +l.since, until: +l.until, subj: typeof l.subj === 'string' ? l.subj.slice(0, 20) : '' };
+  return { days, st: Math.max(0, Math.min(9999, Math.round(+a.st || 0))), pp: Math.max(0, Math.min(99, Math.round(+a.pp || 0))), live };
+}
+function actStats(act){
+  const t = todayStr(), wk = weekDates(); const now = Date.now();
+  const live = act && act.live && now >= act.live.since - 60000 && now < act.live.until ? act.live : null;
+  const liveMin = live ? Math.max(0, (now - live.since) / 60000) : 0;
+  const today = (act && act.days[t] || 0) + liveMin, week = wk.reduce((a, d) => a + (act && act.days[d] || 0), 0) + liveMin;
+  return { today, week, st: act ? act.st : 0, pp: act ? act.pp : 0, live };
+}
+function fmtHM(m){ m = Math.floor(m); return Math.floor(m / 60) + ':' + pad(m % 60); }
+function liveClock(l){ const s = Math.max(0, Math.floor((Date.now() - l.since) / 1000)); return (s >= 3600 ? Math.floor(s / 3600) + ':' + pad(Math.floor(s / 60) % 60) : pad(Math.floor(s / 60))) + ':' + pad(s % 60); }
+function boardRows(){
+  const f = frState(), rows = [];
+  rows.push({ id: 'me', me: true, p: { n: prof().name || 'You', c: avatarColor(), ph: prof().photo || '' }, shares: !!f.share.act, a: actStats(f.share.act ? actClean(frActivity()) : null) });
+  frLists().friends.forEach(x => rows.push({ id: x.id, p: x.p, shares: !!x.p.act, a: actStats(x.p.act) }));
+  const k = ui.boardBy === 'week' ? 'week' : 'today';
+  return rows.sort((a, b) => (b.shares - a.shares) || (b.a[k] - a.a[k]) || a.p.n.localeCompare(b.p.n));
+}
+function studyBoard(){
+  if (LOCAL_ONLY || !frOn() || !cloud.db) return '';
+  const f = frState(), rows = boardRows(), by = ui.boardBy === 'week' ? 'week' : 'today';
+  if (rows.length < 2 && f.share.act) return '';
+  const liveN = rows.filter(r => r.shares && r.a.live).length;
+  let rank = 0;
+  const list = rows.map(r => { const a = r.a; if (r.shares) rank++;
+    return '<div class="brow' + (r.me ? ' me' : '') + (a.live && r.shares ? ' live' : '') + '"><span class="brank">' + (r.shares ? rank : '–') + '</span>' + peerAvatar(r.p, 36) +
+      '<div class="grow" style="min-width:0"><div class="bname"><b>' + esc(r.p.n || 'A friend') + '</b>' + (r.me ? ' <span class="small muted">(you)</span>' : '') + '</div>' +
+      (!r.shares ? '<div class="small muted">' + (r.me ? 'Not sharing your study time' : 'Not sharing study time') + '</div>'
+        : a.live ? '<div class="small blive"><span class="bdot" aria-hidden="true"></span>Studying <span class="notr" data-live-since="' + a.live.since + '" data-live-until="' + a.live.until + '">' + liveClock(a.live) + '</span>' + (a.live.subj ? ' · ' + esc(a.live.subj) : '') + '</div>'
+        : '<div class="small muted">' + (a.st ? a.st + '-day streak' : 'Not studying now') + (a.pp ? ' · ' + a.pp + ' paper' + (a.pp === 1 ? '' : 's') + ' this week' : '') + '</div>') + '</div>' +
+      (r.shares ? '<div class="btime notr"><b>' + fmtHM(a[by]) + '</b></div>' : '') + '</div>'; }).join('');
+  return '<div class="card stack" id="board"><div class="card-h"><h2>Study board</h2>' + (liveN ? '<span class="pill blivepill"><span class="bdot" aria-hidden="true"></span>' + liveN + ' studying now</span>' : '') + '</div>' +
+    '<div class="seg2" role="group" aria-label="Rank by"><button type="button" data-act="board-by" data-v="today" aria-pressed="' + (by === 'today') + '">Today</button><button type="button" data-act="board-by" data-v="week" aria-pressed="' + (by === 'week') + '">This week</button></div>' +
+    '<div class="blist">' + list + '</div>' +
+    (f.share.act ? '<p class="small muted" style="margin:0">Time comes from the focus timer and timed mocks. Start the timer and your friends see you studying live.</p>'
+      : '<div class="row" style="align-items:center"><span class="small muted grow">Share your study time to join the board. Friends see your time today and this week, your streak, and when your timer is running. Never your marks.</span><button class="btn primary sm" data-act="board-join">Share my study time</button></div>') + '</div>';
+}
+function liveTick(){
+  const now = Date.now(); let stale = false;
+  document.querySelectorAll('[data-live-since]').forEach(e => { if (now >= +e.dataset.liveUntil) stale = true; else e.textContent = liveClock({ since: +e.dataset.liveSince }); });
+  if (stale && route() === 'today' && !(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render();
+}
+setInterval(liveTick, 1000);
 function friendReqCard(){
   if (LOCAL_ONLY || !frOn()) return '';
   const r = frLists().requests; if (!r.length) return '';
@@ -3907,6 +3979,8 @@ document.addEventListener('click', e => {
     case 'uni-form': ui.uniForm = !ui.uniForm; render(); break;
     case 'uni-del': state.unis = (state.unis || []).filter(x => x.id !== id); commit(); break;
     case 'goto-reg': setTimeout(() => { const e = document.getElementById('reg'); if (e) e.scrollIntoView({ block: 'start' }); }, 80); break;
+    case 'board-by': ui.boardBy = v; render(); break;
+    case 'board-join': frState().share.act = true; commit(); frPublish(); toast('You’re on the study board. Start the focus timer to show up as studying.'); break;
     case 'nx-more': ui.nxMore = !ui.nxMore; render(); break;
     case 'ed-preview': ui.edPreview = true; render(); window.scrollTo(0, 0); break;
     case 'ed-close': ui.edPreview = false; render(); window.scrollTo(0, 0); break;
