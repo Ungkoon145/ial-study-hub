@@ -196,6 +196,7 @@ const TH = {
 "Dropped and finished subjects leave Today, Planner, flashcards and suggestions. Finished subjects keep their grade on the Grades page. To change every subject and exam series at once,":"วิชาที่เลิกเรียนหรือเรียนจบแล้วจะหายจากหน้าวันนี้ แพลนเนอร์ แฟลชการ์ด และคำแนะนำ วิชาที่เรียนจบยังคงแสดงเกรดในหน้าเกรด หากต้องการเปลี่ยนทุกวิชาและรอบสอบพร้อมกัน",
 "Today: no focus logged yet":"วันนี้: ยังไม่มีการบันทึกโฟกัส","Afternoon session ·":"รอบบ่าย ·","Morning session ·":"รอบเช้า ·",
 "Add your exam dates":"เพิ่มวันสอบของคุณ","With dates set, this card plans what to revise and when to sit mocks for each exam.":"เมื่อใส่วันสอบแล้ว การ์ดนี้จะวางแผนว่าควรทบทวนอะไรและทำสอบจำลองเมื่อไรสำหรับแต่ละวิชา","Choose exam series":"เลือกรอบสอบ",
+"Notes ↗":"โน้ต ↗","Paper ↗":"ข้อสอบ ↗","Paper only ↗":"เปิดข้อสอบอย่างเดียว ↗","Topic page":"หน้าหัวข้อ","Open papers":"เปิดข้อสอบ","Open notes":"เปิดโน้ต","Start mock":"เริ่มสอบจำลอง",
 // ---- toasts ----
 "Exam added":"เพิ่มการสอบแล้ว","Saved":"บันทึกแล้ว","Copied":"คัดลอกแล้ว","Nothing due right now. Come back later.":"ตอนนี้ยังไม่มีอะไรถึงรอบ กลับมาใหม่ภายหลัง",
 "Mistake saved. It comes back for review tomorrow.":"บันทึกข้อผิดแล้ว จะกลับมาให้ทบทวนพรุ่งนี้","Mark it with the mark scheme, then enter your score.":"ตรวจด้วยเฉลย แล้วใส่คะแนนของคุณ"

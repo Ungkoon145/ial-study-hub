@@ -998,6 +998,21 @@ function dueLabel(x){
 function urgency(x){ const days = x.d ? daysBetween(todayStr(), x.d) : 14; return (days < 0 ? days - 20 : Math.min(days, 21)) + (prio(x) - 1) * 4; } // overdue always first
 function byUrgency(a, b){ return urgency(a) - urgency(b) || prio(a) - prio(b) || (a.d || '9999').localeCompare(b.d || '9999'); }
 
+/* Direct PDF links for Today and tasks */
+function topicPdf(c, i){ const N = (typeof PMT_NOTES !== 'undefined' && PMT_NOTES[c]) || null; const pick = a => (a || []).find(x => x.k !== 'cards'); return N ? (pick(N.t && N.t[i]) || pick(N.unit)) : null; }
+function topicQPdf(c, i){ const p = pmtPacks(c, i)[0]; return p && p.qp ? p.qp : null; }
+function paperRow(c, sr){ return (typeof PAPERS !== 'undefined' && PAPERS[c] && sr) ? PAPERS[c].find(x => x[0] === sr) || null : null; }
+function taskSeries(x){ if (x.sr) return x.sr; const rows = (typeof PAPERS !== 'undefined' && PAPERS[x.u]) || []; let best = null; rows.forEach(r => { if (x.t.includes(r[0]) && (!best || r[0].length > best.length)) best = r[0]; }); return best; }
+function pdfBtn(url, label, cls){ return url ? '<a class="btn ' + (cls || 'sm') + '" href="' + esc(url) + '" target="_blank" rel="noopener">' + label + ' ↗</a>' : ''; }
+function taskLinks(x){
+  if (!x.u || !UNIT[x.u] || x.done) return '';
+  if (x.k === 'paper' || x.k === 'mock'){
+    const row = paperRow(x.u, taskSeries(x));
+    return row ? pdfBtn(row[1], 'Paper') + pdfBtn(row[2], 'Mark scheme') : '<a class="btn sm" href="#papers" data-act="goto-papers" data-u="' + x.u + '">Open papers</a>';
+  }
+  if (x.ti != null){ const n = topicPdf(x.u, x.ti), q = topicQPdf(x.u, x.ti); if (n || q) return pdfBtn(n && n.url, 'Notes') + pdfBtn(q, 'Questions'); }
+  return '<a class="btn sm" href="#syllabus" data-act="goto-rev" data-u="' + x.u + '">Open notes</a>';
+}
 function taskRow(x){
   if (ui.editTask === x.id && !x.done){
     return '<div class="li"><form class="editbox" data-form="edit-task" data-id="' + x.id + '">' +
@@ -1012,7 +1027,7 @@ function taskRow(x){
   const p = prio(x);
   return '<div class="li' + (x.done ? ' done' : '') + (p === 1 ? ' p1' : '') + '"><button class="check" role="checkbox" aria-checked="' + !!x.done + '" aria-label="Mark done" data-act="task-toggle" data-id="' + x.id + '">' + (x.done ? '✓' : '') + '</button>' +
     '<div class="grow"><button class="tasktext t" data-act="task-edit" data-id="' + x.id + '" aria-label="Edit task: ' + esc(x.t) + '">' + esc(x.t) + '</button>' +
-      '<div class="meta"><button class="prio" data-v="' + p + '" data-act="task-prio" data-id="' + x.id + '" aria-label="Priority ' + PRIO_LABEL[p] + '. Tap to change">' + PRIO_LABEL[p] + '</button>' + (x.u && UNIT[x.u] && !x.done ? (x.k === 'paper' || x.k === 'mock' ? '<a class="btn sm" href="#papers" data-act="goto-papers" data-u="' + x.u + '">Open papers</a>' : '<a class="btn sm" href="#syllabus" data-act="goto-rev" data-u="' + x.u + '">Open notes</a>') : '') +
+      '<div class="meta"><button class="prio" data-v="' + p + '" data-act="task-prio" data-id="' + x.id + '" aria-label="Priority ' + PRIO_LABEL[p] + '. Tap to change">' + PRIO_LABEL[p] + '</button>' + taskLinks(x) +
       '<span class="' + due.cls + '">' + due.text + '</span>' + (x.s && SUBJ[x.s] ? subjPill(x.s) : '') + '</div></div>' +
     '<button class="x" aria-label="Delete task" data-act="task-del" data-id="' + x.id + '">×</button></div>';
 }
@@ -2482,7 +2497,7 @@ function nextSteps(){
     const w = weakestTopic(c);
     const cover = unitProgress(u);
     if (w) add(55 + urgency * 35 - k * 4 + (w.lost ? 6 : 0), 'Revise ' + w.name, label + ' exam in ' + days + ' day' + (days === 1 ? '' : 's') + '. ' + (w.lost ? 'You’ve lost ' + w.lost + ' mark' + (w.lost === 1 ? '' : 's') + ' on this topic in your mistake log.' : 'This topic is still marked “' + ['Not started','Learning','Revising','Confident'][w.st] + '”.'),
-      '<a class="btn primary" href="#syllabus" data-act="goto-rev" data-u="' + c + '">Notes</a>' + (pmtPacks(c, w.i).length ? '<button class="btn" data-act="goto-tq" data-u="' + c + '">Topic questions</button>' : ''));
+      (topicPdf(c, w.i) ? pdfBtn(topicPdf(c, w.i).url, 'Notes', 'primary') : '<a class="btn primary" href="#syllabus" data-act="goto-rev" data-u="' + c + '">Notes</a>') + (topicQPdf(c, w.i) ? pdfBtn(topicQPdf(c, w.i), 'Questions', '') : pmtPacks(c, w.i).length ? '<button class="btn" data-act="goto-tq" data-u="' + c + '">Topic questions</button>' : '') + '<a class="btn ghost" href="#syllabus" data-act="goto-rev" data-u="' + c + '">Topic page</a>');
     const last = lastPaperDate(c), since = last ? daysBetween(last, t) : 999;
     let p = pickPaper(c, days);
     if (p && p.reserved && days > 14 && OLD_EQ[c] && since >= 7){
@@ -2490,14 +2505,14 @@ function nextSteps(){
       p = null;
     }
     if (p && since >= 7 && (cover >= 0.5 || days <= 28)) add(50 + urgency * 40 - k * 4, 'Timed mock: ' + label + ', ' + p.sr, (last ? 'Your last ' + label + ' paper was ' + since + ' days ago. ' : 'You haven’t done a ' + label + ' paper yet. ') + (p.reserved ? 'This is one of the newest papers, saved for close to the exam.' : 'Sit it at full exam length (' + fmtDur(PAPER_MIN[c]) + '), then log your mistakes.'),
-      '<button class="btn primary" data-act="mock-start" data-key="' + esc(paperKey(c, p.sr)) + '">Start mock</button>');
+      '<button class="btn primary" data-act="mock-start" data-key="' + esc(paperKey(c, p.sr)) + '">Start mock</button>' + (paperRow(c, p.sr) ? pdfBtn(paperRow(c, p.sr)[1], 'Paper only', '') : ''));
   });
   { const pe = ex.find(e => /^W(PH|CH|BI)1[36]$/.test(e.u) && daysBetween(t, e.d) <= 45); if (pe){ const sid = UNIT_SUBJ[pe.u], left = cpList(sid).filter(p => p.p === pe.u && !state.cp[cpKey(sid, p.n)]); if (left.length){ const d = daysBetween(t, pe.d), p0 = left[0]; add(52 + Math.max(0, 45 - d) / 45 * 30, 'Core practical ' + p0.n + ': ' + p0.t, UNIT[pe.u].l + ' (practical skills) is in ' + d + ' day' + (d === 1 ? '' : 's') + '. ' + left.length + ' core practical' + (left.length === 1 ? '' : 's') + ' still to revise. Test yourself on the method, analysis and pitfalls, then tick it off.', '<a class="btn primary" href="#syllabus" data-act="goto-cp" data-v="' + cpKey(sid, p0.n) + '">Revise it</a>'); } } }
   { const rb = rtBehind(); if (rb >= 3) add(75, 'You’re ' + rb + ' sessions behind your timetable', 'Rebuild it to spread what’s left over the days before your exams, using your latest progress.', '<a class="btn primary" href="#planner">Open Planner</a>'); }
   if (!ex.length && setupDone()) add(60, 'Add your exam dates', 'With dates set, this card plans what to revise and when to sit mocks for each exam.', '<a class="btn primary" href="#setup" data-act="su-open">Choose exam series</a>');
   else if (ex.length && !out.some(x => x.score >= 60)){
     const c = ex[0].u, p = pickPaper(c, daysBetween(t, ex[0].d));
-    if (p) add(45, 'Past paper: ' + UNIT[c].l + ', ' + p.sr, 'Steady practice for your next exam. Mark it and log your mistakes afterwards.', '<button class="btn primary" data-act="mock-start" data-key="' + esc(paperKey(c, p.sr)) + '">Start mock</button>');
+    if (p) add(45, 'Past paper: ' + UNIT[c].l + ', ' + p.sr, 'Steady practice for your next exam. Mark it and log your mistakes afterwards.', '<button class="btn primary" data-act="mock-start" data-key="' + esc(paperKey(c, p.sr)) + '">Start mock</button>' + (paperRow(c, p.sr) ? pdfBtn(paperRow(c, p.sr)[1], 'Paper only', '') : ''));
   }
   return out.sort((a, b) => b.score - a.score);
 }
@@ -3476,14 +3491,14 @@ function rtBuild(min, rest){
       const dl = daysBetween(d, pick.exam), lab = pick.u.l + (UNIT_SUBJ[pick.c] === 'math' || UNIT_SUBJ[pick.c] === 'fm' ? '' : ' ' + SUBJ[UNIT_SUBJ[pick.c]].short);
       let task = null;
       if (dl === 1 && !pick.reviewDone){ pick.reviewDone = true; task = { k: 'review', m: 30, t: 'Final review for ' + lab + ': mistake log, phrase cards and formulae' }; }
-      else if (dl <= 8 && !pick.mockDone && pick.mocks.length && left >= pick.pmin * 0.75){ pick.mockDone = true; task = { k: 'mock', m: pick.pmin, t: 'Timed mock: ' + lab + ' ' + pick.mocks[0] + ' (saved for this), then mark it' }; }
-      else if (dl <= 35 && pick.practice.length && (!pick.lastPaper || daysBetween(pick.lastPaper, d) >= 5) && left >= pick.pmin * 0.75){ pick.lastPaper = d; const sr = pick.practice.shift(); task = { k: 'paper', m: pick.pmin, t: 'Past paper: ' + lab + ' ' + sr + ', timed, then mark it and log mistakes' }; }
+      else if (dl <= 8 && !pick.mockDone && pick.mocks.length && left >= pick.pmin * 0.75){ pick.mockDone = true; task = { k: 'mock', m: pick.pmin, sr: pick.mocks[0], t: 'Timed mock: ' + lab + ' ' + pick.mocks[0] + ' (saved for this), then mark it' }; }
+      else if (dl <= 35 && pick.practice.length && (!pick.lastPaper || daysBetween(pick.lastPaper, d) >= 5) && left >= pick.pmin * 0.75){ pick.lastPaper = d; const sr = pick.practice.shift(); task = { k: 'paper', m: pick.pmin, sr, t: 'Past paper: ' + lab + ' ' + sr + ', timed, then mark it and log mistakes' }; }
       else if (pick.topics.length){ const tp = pick.topics.shift(); task = { k: 'topic', m: Math.min(RT_LEN, left), t: 'Revise ' + tp.n + ' (' + lab + ')', ti: tp.i }; }
-      else if (pick.practice.length && left >= pick.pmin * 0.75){ pick.lastPaper = d; const sr = pick.practice.shift(); task = { k: 'paper', m: pick.pmin, t: 'Past paper: ' + lab + ' ' + sr + ', timed, then mark it' }; }
+      else if (pick.practice.length && left >= pick.pmin * 0.75){ pick.lastPaper = d; const sr = pick.practice.shift(); task = { k: 'paper', m: pick.pmin, sr, t: 'Past paper: ' + lab + ' ' + sr + ', timed, then mark it' }; }
       else if (!used.has(pick.c)){ task = { k: 'review', m: 30, t: 'Mixed review for ' + lab + ': topic questions on your weakest topic' }; }
       else break;
       used.add(pick.c); left -= task.m;
-      out.push({ id: uid(), t: task.t + ' · ' + task.m + ' min', d, s: UNIT_SUBJ[pick.c], p: (task.k === 'mock' || dl <= 14) ? 1 : 2, done: false, gen: 'rt', k: task.k, u: pick.c, ti: task.ti === undefined ? null : task.ti, min: task.m });
+      out.push({ id: uid(), t: task.t + ' · ' + task.m + ' min', d, s: UNIT_SUBJ[pick.c], p: (task.k === 'mock' || dl <= 14) ? 1 : 2, done: false, gen: 'rt', k: task.k, u: pick.c, ti: task.ti === undefined ? null : task.ti, sr: task.sr || null, min: task.m });
     }
   }
   state.tasks = state.tasks.concat(out);
@@ -3801,7 +3816,7 @@ document.addEventListener('click', e => {
     case 'goto-cp': { const sid = v.split('-')[0]; ui.syllabus.subj = sid; ui.syllabus.open = 'cp-' + sid; ui.cpOpen = v; ui.scrollCp = true; break; }
     case 'cp-toggle': { if (state.cp[v]) delete state.cp[v]; else state.cp[v] = todayStr(); ui.cpOpen = v; commit(); break; }
     case 'paper-remove': delete state.papers[b.dataset.key]; ui.papers.log = null; commit(); break;
-    case 'paper-plan': { const [c, sr] = b.dataset.key.split('|'); state.tasks.push({ id: uid(), t: c + ' ' + sr + ' past paper (' + UNIT[c].l + '), then mark it', d: addDays(todayStr(), 3), s: UNIT_SUBJ[c], p: 2, done: false }); commit(); toast('Added to Planner, due in 3 days. You can change the deadline there.'); break; }
+    case 'paper-plan': { const [c, sr] = b.dataset.key.split('|'); state.tasks.push({ id: uid(), t: c + ' ' + sr + ' past paper (' + UNIT[c].l + '), then mark it', d: addDays(todayStr(), 3), s: UNIT_SUBJ[c], u: c, k: 'paper', sr, p: 2, done: false }); commit(); toast('Added to Planner, due in 3 days. You can change the deadline there.'); break; }
     case 'gr-subj': ui.grades.subj = v; ui.grades.picked = true; ui.grades.add = null; render(); break;
     case 'res-add': ui.grades.add = b.dataset.u; render(); { const el = $('#ar-ums'); if (el) el.focus(); } break;
     case 'res-cancel': ui.grades.add = null; render(); break;
