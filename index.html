@@ -148,6 +148,7 @@ div.f.schoolpick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;col
 .unirows{margin-top:8px;display:flex;flex-direction:column;gap:4px}
 .unirow{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .uok{color:var(--good);font-weight:800}.ulow{color:var(--bad);font-weight:800}
+.regline.warn{color:var(--warn)}.regline.bad{color:var(--bad)}.regline.good{color:var(--good)}
 .tgline{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin:4px 0 2px}
 .tgline .tg{white-space:nowrap}.tgline .tg.on{background:color-mix(in srgb,var(--primary) 14%,transparent);border-radius:6px;padding:0 6px}
 .taskcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;align-items:start;margin-top:10px}
@@ -1453,7 +1454,7 @@ function viewPlanner(){
   const bySubj = {}; state.sessions.forEach(s => { if (daysBetween(s.d, t) < 7) bySubj[s.s] = (bySubj[s.s] || 0) + s.m; });
   return '<div class="stack">' +
     '<div><h1>Planner</h1><p class="muted">Your tasks with deadlines and priorities, exam countdowns, and a focus timer.</p></div>' +
-    rtCard() + tasksCard +
+    rtCard() + tasksCard + regCard() +
     '<div class="grid2">' +
       '<div class="card timer"><span class="phase' + (T.phase === 'break' ? ' brk' : '') + '">' + (T.phase === 'focus' ? 'Focus' : 'Break') + '</span>' +
         '<div class="clock" id="clock">' + fmtClock(ms) + '</div>' +
@@ -2388,6 +2389,48 @@ function uniCard(){
     (items ? '<div class="stack" style="gap:10px">' + items + '</div>' : '') + form +
     (list.length ? '<p class="small muted" style="margin:0">Meeting the minimum doesn’t guarantee a place, and requirements change every year. Always check the official page before you apply.</p>' : '') + '</div>';
 }
+/* ============================================================
+   Exam registration (Thailand): Pearson's entry deadlines for international centres, and
+   centres in Thailand whose own websites say they take private candidates. Checked 16 Nov 2026.
+   ============================================================ */
+const REG_CHECKED = '16 Nov 2026';
+const REG_DATES = {
+  'January 2027': { dl: '2026-10-16', late: '2026-10-17', high: '2026-11-14', first: '2027-01-08' },
+  'June 2027': { dl: '2027-03-21', late: '2027-03-22', high: '2027-04-22', first: '2027-05-04' }
+};
+const REG_SRC = 'https://support.pearson.com/uk/articles/en_US/Knowledge/Entries-International-Centre-Entry-Deadlines';
+const REG_CENTRES = [
+  ['Anglo Singapore International School (Campus 64)', 'Bangkok', 'https://anglosingapore.ac.th/64/exam-centre/'],
+  ['Siam International School', 'Pathum Thani / Bangkok', 'https://siamis.ac.th/exam/'],
+  ['Keaes', 'Bangkok (Ekkamai, Ramkhamhaeng)', 'https://www.keaes.com/igcse-alevel'],
+  ['EFL Learning Center', 'Northern Thailand', 'https://efl.ac.th/pearson-edexcel-exam-centre-2/']
+];
+function examSeriesOf(d){ const m = +d.slice(5, 7), y = d.slice(0, 4); return m === 1 ? 'January ' + y : m >= 5 && m <= 6 ? 'June ' + y : m >= 10 && m <= 11 ? 'October ' + y : ''; }
+function regSeries(){
+  const t = todayStr(), mine = new Set(state.exams.filter(e => e.d >= t).map(e => examSeriesOf(e.d)));
+  return Object.keys(REG_DATES).filter(sr => REG_DATES[sr].first >= t).map(sr => ({ sr, mine: mine.has(sr), done: !!(state.reg && state.reg[sr]), ...REG_DATES[sr] }));
+}
+function regStatus(x){
+  const t = todayStr(), f = d => fmtDate(d, {day:'numeric', month:'long', year:'numeric'});
+  if (x.done) return { cls: 'good', text: 'You’ve marked this as registered.' };
+  if (t <= x.dl){ const n = daysBetween(t, x.dl); return { cls: n <= 21 ? 'warn' : '', text: 'Register by ' + f(x.dl) + ' (' + (n === 0 ? 'today' : n + ' day' + (n === 1 ? '' : 's') + ' left') + '). After that Pearson charges double fees, and triple from ' + f(x.high) + '.' }; }
+  if (t < x.high) return { cls: 'warn', text: 'The normal deadline passed on ' + f(x.dl) + '. Late entries cost double until ' + f(addDays(x.high, -1)) + ', then triple. Contact your centre now.' };
+  return { cls: 'bad', text: 'The normal deadline passed on ' + f(x.dl) + '. Late entries now cost triple fees, and many centres have closed. Ask your centre today, or plan for the next series.' };
+}
+function regCard(){
+  const list = regSeries(); if (!list.length) return '';
+  return '<div class="card stack" id="reg"><div class="card-h"><h2>Exam registration</h2></div>' +
+    '<p class="small muted" style="margin:0">You must be entered for each exam series through a school or exam centre. At a school? Your exams officer usually does this, so check with them. Otherwise, register yourself at a centre as a private candidate.</p>' +
+    list.map(x => { const s = regStatus(x); return '<div class="unibox"><div class="row" style="justify-content:space-between;gap:8px"><b>' + esc(x.sr) + ' exams</b>' + (x.mine ? '<span class="pill">You have exams in this series</span>' : '') + '</div>' +
+      '<p class="small regline ' + s.cls + '" style="margin:6px 0">' + s.text + '</p>' +
+      '<label class="row small" style="gap:8px;align-items:center;cursor:pointer"><input type="checkbox" data-reg="' + esc(x.sr) + '"' + (x.done ? ' checked' : '') + ' style="width:20px;height:20px"> I’m registered for ' + esc(x.sr) + '</label></div>'; }).join('') +
+    '<details class="small"><summary style="cursor:pointer;font-weight:700">Where to register in Thailand</summary>' +
+      '<p class="muted" style="margin:6px 0">These centres say on their own websites that they accept private candidates for Pearson Edexcel. Each sets its own fees and closing dates, often earlier than Pearson’s, so ask before you rely on a date.</p><ul class="edlist">' +
+      REG_CENTRES.map(c => '<li><a href="' + c[2] + '" target="_blank" rel="noopener">' + esc(c[0]) + ' ↗</a> <span class="muted">· ' + esc(c[1]) + '</span></li>').join('') +
+      '<li><a href="https://qualifications.pearson.com/en/support/support-topics/understanding-our-qualifications/find-a-pearson-centre.html?Country=Thailand" target="_blank" rel="noopener">Find more centres on Pearson’s website ↗</a></li></ul>' +
+      '<p class="muted" style="margin:6px 0 0">When you register you choose unit codes (for example WMA11). Ask the centre about “cash-in” too: without it you get unit results but no overall A-level grade.</p></details>' +
+    '<p class="small muted" style="margin:0">Dates are Pearson’s deadlines for international centres. <a href="' + REG_SRC + '" target="_blank" rel="noopener">Source ↗</a> · checked ' + REG_CHECKED + '</p></div>';
+}
 function viewGrades(){
   const g = ui.grades; if (!g.picked){ g.picked = true; g.subj = (gradeSubjects().find(x => gradeSubjHasData(x.id)) || gradeSubjects()[0]).id; } const s = SUBJ[g.subj];
   let body = '';
@@ -2579,6 +2622,9 @@ function nextSteps(){
   const add = (score, title, why, action) => out.push({ score, title, why, action });
   if (!setupDone()) add(state.setup && state.setup.skipped ? 58 : 100, 'Set up your units and exam dates', 'Takes a minute: pick your units and exam series (January or June 2027) and the official Pearson dates fill in. Then this card can plan around your exams.', '<a class="btn primary" href="#setup" data-act="su-open">Start setup</a>');
   targetGaps().forEach(x => { const q = x.q; const short = x.tg === 'A*' ? '' : Math.ceil(gradeFloor(x.tg, q.max) - q.total) + ' UMS'; add(44, x.n + ': below your target ' + x.tg, 'You’re on ' + q.grade + (short ? ', ' + short + ' short' : '') + '. The Grades page shows which units would gain the most.', '<a class="btn primary" href="#grades" data-act="gr-subj" data-v="' + x.sid + '">See the gap</a>'); });
+  regSeries().filter(x => x.mine && !x.done).forEach(x => { const n = daysBetween(t, x.dl);
+    if (n >= 0 && n <= 30) add(n <= 7 ? 96 : 86, 'Register for your ' + x.sr + ' exams', 'Entries close on ' + fmtDate(x.dl, {day:'numeric', month:'long'}) + ' (' + (n === 0 ? 'today' : n + ' day' + (n === 1 ? '' : 's') + ' left') + '). After that the fees double. At a school? Check your exams officer has entered you.', '<a class="btn primary" href="#planner" data-act="goto-reg">Registration info</a>');
+    else if (n < 0 && t < x.first) add(97, 'Check you’re registered for ' + x.sr, 'The normal entry deadline has passed and late fees apply. If you’re already entered, tick it off so this reminder goes away.', '<a class="btn primary" href="#planner" data-act="goto-reg">Registration info</a>'); });
   const dm = dueMistakes().length;
   if (dm) add(92 + Math.min(dm, 8), 'Review ' + dm + ' mistake' + (dm === 1 ? '' : 's'), 'Redoing questions you got wrong is the fastest way to stop losing the same marks.', '<button class="btn primary" data-act="mk-review">Start review</button>');
   const urgentTasks = state.tasks.filter(x => !x.done && x.d && x.d <= t);
@@ -3860,6 +3906,7 @@ document.addEventListener('click', e => {
     case 'fb-del': fbDelete(); break;
     case 'uni-form': ui.uniForm = !ui.uniForm; render(); break;
     case 'uni-del': state.unis = (state.unis || []).filter(x => x.id !== id); commit(); break;
+    case 'goto-reg': setTimeout(() => { const e = document.getElementById('reg'); if (e) e.scrollIntoView({ block: 'start' }); }, 80); break;
     case 'nx-more': ui.nxMore = !ui.nxMore; render(); break;
     case 'ed-preview': ui.edPreview = true; render(); window.scrollTo(0, 0); break;
     case 'ed-close': ui.edPreview = false; render(); window.scrollTo(0, 0); break;
@@ -4057,6 +4104,7 @@ document.addEventListener('change', e => {
   else if (el.id === 'tq-unit'){ ui.quiz.unit = el.value; render(); }
   else if (el.id === 'pp-unit'){ ui.papers.unit = el.value; ui.papers.log = null; render(); }
   else if (el.dataset && el.dataset.wi){ const c = el.dataset.wi; if (el.value === '') delete ui.grades.whatif[c]; else ui.grades.whatif[c] = Math.max(0, Math.min(umsMax(c), Math.round(+el.value))); render(); }
+  else if (el.dataset && el.dataset.reg){ state.reg = state.reg || {}; if (el.checked) state.reg[el.dataset.reg] = true; else delete state.reg[el.dataset.reg]; commit(); }
   else if (el.id === 'un-pick'){ if (el.value === 'own'){ ui.uniForm = true; render(); } else if (el.value){ state.unis = (state.unis || []).concat({ id: uid(), p: el.value }); commit(); } }
   else if (el.dataset && el.dataset.target){ state.targets = state.targets || {}; if (el.value) state.targets[el.dataset.target] = el.value; else delete state.targets[el.dataset.target]; commit(); }
   else if (el.id === 'restore-file' && el.files && el.files[0]){ el.files[0].text().then(txt => { const ta = $('#restore-text'); if (ta) ta.value = txt; toast('Backup loaded. Tap Restore to use it.'); }); }
