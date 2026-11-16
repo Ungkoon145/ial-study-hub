@@ -306,6 +306,9 @@ textarea{min-height:90px;resize:vertical}
 .seg a{padding:8px 14px;border-radius:9px;text-decoration:none;color:var(--muted);font-weight:600;font-size:.9rem}
 .seg a[aria-current="page"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .linkbtn{background:none;border:0;padding:0;color:var(--ink);text-decoration:underline;cursor:pointer;font:inherit;font-size:.82rem}
+.clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
+.morebtn{align-self:flex-start;background:none;border:0;padding:8px 14px 8px 0;margin:-6px 0 -6px;color:var(--ink);text-decoration:underline;cursor:pointer;font:inherit;font-size:.82rem;font-weight:700;min-height:40px;min-width:44px;text-align:left;display:block}
+.stack > .morebtn{margin-top:-16px}
 .pdot{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);flex:none;margin-top:6px}
 .pdot.done{background:var(--good);border-color:var(--good)}
 .answerbox{background:var(--soft);border-radius:10px;padding:10px 12px}
@@ -804,6 +807,7 @@ function setSync(s){
   el.hidden = LOCAL_ONLY || s === 'local' || s === 'slow';
   $('#sync-text').textContent = ({synced:'Synced', saving:'Saving…', pending:'Saving…', connecting:'Connecting…', local:'This device', slow:'This device'})[s] || 'This device';
   el.title = s === 'synced' ? 'Progress is saved to your account and syncs across devices' : 'Progress is saved in this browser';
+  if (typeof isTH === 'function' && isTH()) try { thApply(el); const r = thText(el.title); if (r != null) el.title = r; } catch(e){}
 }
 function commit(){
   state.updatedAt = Date.now();
@@ -1516,7 +1520,7 @@ function viewPlanner(){
         : '<div class="empty" style="margin-top:10px">' + (allOpen.length ? 'No tasks match this filter.' : 'No open tasks. Try one past paper per unit, each with a deadline a week before the exam.') + '</div>') +
       '<p class="small muted" style="margin-top:10px">Tick a task when you finish it. Tap a task to edit it, or its priority to change High → Medium → Low.</p>' +
       '<div class="row" style="align-items:center"><button class="btn sm" data-act="cal-all">📅 All tasks and exams to my calendar</button><span class="small muted">Tap 📅 on a task to add just that one to Google Calendar.</span></div></div>' +
-      '<div><div class="colh fin"><span>Finished</span><span>' + doneAll.length + '</span></div>' +
+      '<div><div class="colh fin"><span data-th="เสร็จแล้ว">Finished</span><span>' + doneAll.length + '</span></div>' +
       (doneAll.length ? '<div class="list">' + done.map(taskDoneRow).join('') + '</div>' + (doneAll.length > done.length ? '<p class="small muted" style="margin:8px 0 0">Showing the latest ' + done.length + '.</p>' : '') + '<div class="row" style="margin-top:10px"><button class="btn sm ghost" data-act="tasks-clear-done">Clear finished</button></div>'
         : '<div class="empty" style="margin-top:10px">Nothing finished yet. Tick a task when you finish it.</div>') + '</div></div>' +
     '</div>';
@@ -2497,7 +2501,7 @@ function regSeries(){
 function regStatus(x){
   const t = todayStr(), f = d => fmtDate(d, {day:'numeric', month:'long', year:'numeric'});
   if (x.done) return { cls: 'good', text: 'You’ve marked this as registered.' };
-  if (t <= x.dl){ const n = daysBetween(t, x.dl); return { cls: n <= 21 ? 'warn' : '', text: 'Register by ' + f(x.dl) + ' (' + (n === 0 ? 'today' : n + ' day' + (n === 1 ? '' : 's') + ' left') + '). After that Pearson charges double fees, and triple from ' + f(x.high) + '.' }; }
+  if (t <= x.dl){ const n = daysBetween(t, x.dl); return { cls: n <= 21 ? 'warn' : '', text: 'Register by ' + f(x.dl) + ' (' + (n === 0 ? 'today' : n + ' day' + (n === 1 ? '' : 's') + ' left') + '). After that Pearson charges double fees, and triple from ' + f(x.high) + '. Centres often close a few days earlier, so ask yours for its own date.' }; }
   if (t < x.high) return { cls: 'warn', text: 'The normal deadline passed on ' + f(x.dl) + '. Late entries cost double until ' + f(addDays(x.high, -1)) + ', then triple. Contact your centre now.' };
   return { cls: 'bad', text: 'The normal deadline passed on ' + f(x.dl) + '. Late entries now cost triple fees, and many centres have closed. Ask your centre today, or plan for the next series.' };
 }
@@ -3687,8 +3691,8 @@ function viewLogin(){
 function accountCard(){
   if (!ACCT) return '';
   const u = FB.user;
-  if (!u) return '<div class="card stack"><div class="card-h"><h2>Account</h2></div><p class="small muted" style="margin:0">Sign in to keep your progress safe and use it on any device. Your progress on this device moves into your account.</p>' + gButton() + (FB.err ? '<p class="small warnline" style="margin:0">' + esc(FB.err) + '</p>' : '') + '</div>';
-  return '<div class="card stack"><div class="card-h"><h2>Account</h2><span class="pill good">' + (cloud.status === 'synced' ? 'Synced' : cloud.status === 'saving' || cloud.status === 'pending' ? 'Saving…' : 'Signed in') + '</span></div>' +
+  if (!u) return '<div class="card stack" id="acct"><div class="card-h"><h2>Account</h2></div><p class="small muted" style="margin:0">Sign in to keep your progress safe and use it on any device. Your progress on this device moves into your account.</p>' + gButton() + (FB.err ? '<p class="small warnline" style="margin:0">' + esc(FB.err) + '</p>' : '') + '</div>';
+  return '<div class="card stack" id="acct"><div class="card-h"><h2>Account</h2><span class="pill good">' + (cloud.status === 'synced' ? 'Synced' : cloud.status === 'saving' || cloud.status === 'pending' ? 'Saving…' : 'Signed in') + '</span></div>' +
     '<div class="row" style="gap:10px;align-items:center">' + G_LOGO + '<div class="grow" style="min-width:0"><div class="small muted">Signed in with Google</div><div style="overflow-wrap:anywhere"><b>' + esc(u.email || u.displayName || '') + '</b></div></div></div>' +
     '<div class="row"><button class="btn" data-act="fb-out">Sign out</button><button class="btn ghost danger" data-act="fb-del">Delete account</button></div>' +
     '<p class="small muted" style="margin:0">Signing out also removes your progress from this browser (it stays safe in your account). Use this on shared computers.</p></div>';
@@ -4088,7 +4092,36 @@ function render(){
   document.documentElement.lang = uiLang() === 'th' ? 'th' : 'en';
   if (isTH()) try { thApply(document.body); } catch(err){ console.error(err); }
   else if (uiLang() === 'th') lazy('i18n.js', render);
+  try { clampLong($('#view')); } catch(err){ console.error(err); }
 }
+/* Long explanations: shown as two lines with "Show more". Short text, warnings, privacy notes and
+   anything with a control inside are left alone. Opened ones stay open while the page is in use. */
+const MORE_OPEN = new Set();
+function moreKey(p){ return route() + '|' + p.textContent.trim().slice(0, 48); }
+function moreLabel(open){ const t = open ? 'Show less' : 'Show more'; return isTH() ? (thText(t) || t) : t; }
+function clampLong(root){
+  if (!root) return;
+  root.querySelectorAll('p.muted').forEach(p => {
+    if (p.classList.contains('warnline') || p.classList.contains('regline') || p.classList.contains('tline') || p.classList.contains('noclamp')) return;
+    if (p.closest('.login, #friends, #buddy, #acct, #asksheet, .noclamp, form, details') || p.querySelector('button, input, select, textarea')) return;
+    if (p.textContent.trim().length < 80 || p.offsetParent === null) return;
+    const key = moreKey(p), open = MORE_OPEN.has(key);
+    p.classList.add('clamp');
+    const over = p.scrollHeight >= p.clientHeight * 1.9;   // four lines or more: hiding one line isn't worth a button
+    if (!over){ p.classList.remove('clamp'); return; }
+    if (open) p.classList.remove('clamp');
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'morebtn'; b.dataset.more = key; b.setAttribute('aria-expanded', String(open)); b.textContent = moreLabel(open);
+    p.insertAdjacentElement('afterend', b);
+  });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-more]'); if (!b) return;
+  const p = b.previousElementSibling; if (!p) return;
+  const open = p.classList.contains('clamp');
+  p.classList.toggle('clamp', !open); b.setAttribute('aria-expanded', String(open)); b.textContent = moreLabel(open);
+  if (open) MORE_OPEN.add(b.dataset.more); else MORE_OPEN.delete(b.dataset.more);
+});
 let toastTimer;
 function toast(msg){ const el = $('#toast'); if (isTH()){ const r = thText(String(msg)); if (r != null) msg = r; } el.textContent = msg; el.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.style.display = 'none', 3200); }
 
