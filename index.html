@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <script>window.__FB_CONFIG__ = {"apiKey": "AIzaSyCLV3j6Jx-v9w98q4jn5ISis6v_hSNS-oU", "authDomain": "ial-revise.firebaseapp.com", "projectId": "ial-revise", "storageBucket": "ial-revise.firebasestorage.app", "messagingSenderId": "667083166512", "appId": "1:667083166512:web:becb6975ac3aedcb0b6ef5"};</script>
 <script>window.__STANDALONE__ = true;</script>
 <link rel="manifest" href="manifest.webmanifest">
@@ -15,6 +16,16 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="IAL Revise">
 <title>IAL Revise</title>
+<link rel="preload" as="script" href="papers.js">
+<link rel="preload" as="script" href="topicqs.js">
+<link rel="preload" as="script" href="notes.js">
+<link rel="preload" as="script" href="decks.js">
+<link rel="preload" as="script" href="boundaries.js">
+<link rel="preload" as="script" href="reports.js">
+<link rel="preload" as="script" href="timetable.js">
+<link rel="preload" as="script" href="tips.js">
+<link rel="preload" as="script" href="practicals.js">
+<link rel="preload" as="script" href="keyphrases.js">
 <style>
 /* Thai text uses Sarabun (the open web version of the TH Sarabun typeface, SIL OFL); Latin text keeps Gill Sans */
 @font-face{font-family:"IAL Thai";font-style:normal;font-weight:300 499;font-display:swap;src:url(fonts/sarabun-thai-400-normal.woff2) format("woff2");unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
@@ -602,7 +613,7 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
   </div>
   <div class="wrap"><nav class="tabs" id="tabs" aria-label="Sections"></nav></div>
 </header>
-<main class="wrap" id="view"></main>
+<main class="wrap" id="view"><p class="muted" style="padding:48px 0;text-align:center">Loading IAL Revise…</p></main>
 <button class="mini" id="mini" type="button" aria-label="Open focus timer"></button>
 <footer class="foot wrap" id="foot" hidden><p class="small muted">IAL Revise is an independent study tool, not affiliated with Pearson Edexcel or Physics &amp; Maths Tutor. Papers, mark schemes, examiner reports and notes open from their sites. Your progress stays in your browser.</p></footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -617,8 +628,6 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 <script src="tips.js"></script>
 <script src="practicals.js"></script>
 <script src="keyphrases.js"></script>
-<script src="schools.js"></script>
-<script src="i18n.js"></script>
 <script>
 /* ============================================================
    CONTENT: Pearson Edexcel International A Level units
@@ -1541,6 +1550,17 @@ function viewPlanner(){
    Worked solutions (PMT solution banks) · Ask Claude (claude.ai only)
    ============================================================ */
 let SB_STATE = typeof SOLBANK !== 'undefined' ? 'ready' : 'idle';
+/* Load a data file only when it is needed (Thai text, school list) */
+const LAZY = {};
+function lazy(src, cb){
+  if (LAZY[src] === 'ready'){ return; }
+  if (LAZY[src]) return;
+  LAZY[src] = 'loading';
+  const sc = document.createElement('script'); sc.src = src;
+  sc.onload = () => { LAZY[src] = 'ready'; if (cb) cb(); };
+  sc.onerror = () => { LAZY[src] = ''; };
+  document.head.appendChild(sc);
+}
 function sbLoad(){
   if (SB_STATE !== 'idle') return;
   SB_STATE = 'loading';
@@ -1843,7 +1863,7 @@ function scRender(){
   const ul = $('#pf-school-list'), inp = $('#pf-school'); if (!ul || !inp) return;
   const q = inp.value.trim();
   if (!SC.hits.length){
-    const show = scNorm(q).length >= 2 && !SCHOOLS.some(x => x[0] === q);
+    const show = scNorm(q).length >= 2 && typeof SCHOOLS !== 'undefined' && !SCHOOLS.some(x => x[0] === q);
     ul.hidden = !show; inp.setAttribute('aria-expanded', String(show));
     ul.innerHTML = show ? '<li class="scnone">Not in the list? That’s fine: what you type is saved as your school.</li>' : '';
     return;
@@ -1864,6 +1884,7 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Escape'){ scClose(); }
 });
 document.addEventListener('mousedown', e => { const li = e.target.closest && e.target.closest('#pf-school-list [data-sc]'); if (li){ e.preventDefault(); scPick(+li.dataset.sc); } else if (!(e.target.closest && e.target.closest('.schoolpick'))) scClose(); });
+document.addEventListener('focusin', e => { if (e.target && e.target.id === 'pf-school') lazy('schools.js', () => { const i = $('#pf-school'); if (i && document.activeElement === i && i.value){ SC.hits = scSearch(i.value); scRender(); } }); });
 document.addEventListener('focusout', e => { if (e.target && e.target.id === 'pf-school') setTimeout(scClose, 150); });
 function pfRead(){ const p = prof(), g = id => $('#' + id); if (!g('pf-name')) return; p.name = g('pf-name').value.trim().slice(0, 40); p.school = g('pf-school').value.trim().slice(0, 80); p.year = g('pf-year').value; p.session = g('pf-session').value; p.goal = g('pf-goal').value.trim().slice(0, 100); }
 function profileSave(f){
@@ -4066,6 +4087,7 @@ function render(){
   try { renderRet(); } catch(err){}
   document.documentElement.lang = uiLang() === 'th' ? 'th' : 'en';
   if (isTH()) try { thApply(document.body); } catch(err){ console.error(err); }
+  else if (uiLang() === 'th') lazy('i18n.js', render);
 }
 let toastTimer;
 function toast(msg){ const el = $('#toast'); if (isTH()){ const r = thText(String(msg)); if (r != null) msg = r; } el.textContent = msg; el.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.style.display = 'none', 3200); }
