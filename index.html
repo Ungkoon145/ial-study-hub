@@ -306,6 +306,9 @@ textarea{min-height:90px;resize:vertical}
 .seg a{padding:8px 14px;border-radius:9px;text-decoration:none;color:var(--muted);font-weight:600;font-size:.9rem}
 .seg a[aria-current="page"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .linkbtn{background:none;border:0;padding:0;color:var(--ink);text-decoration:underline;cursor:pointer;font:inherit;font-size:.82rem}
+.gainu + .gainu{border-top:1px solid var(--line);padding-top:12px}
+.chk{display:flex;gap:8px;align-items:flex-start;min-height:32px;font-size:.92rem}
+.chk input{margin-top:3px;width:18px;height:18px;flex:none}
 .clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
 .morebtn{align-self:flex-start;background:none;border:0;padding:8px 14px 8px 0;margin:-6px 0 -6px;color:var(--ink);text-decoration:underline;cursor:pointer;font:inherit;font-size:.82rem;font-weight:700;min-height:40px;min-width:44px;text-align:left;display:block}
 .stack > .morebtn{margin-top:-16px}
@@ -815,6 +818,7 @@ function commit(){
   scheduleSave();
   buddySchedule();
   frSchedule();
+  notifSchedule();
   render();
 }
 function scheduleSave(delay = 1200){
@@ -1096,10 +1100,11 @@ function calBtn(x){ return '<a class="btn sm calbtn" href="' + esc(gcalUrl(x.t, 
 function icsEsc(t){ return String(t).replace(/\\/g, '\\\\').replace(/[,;]/g, m => '\\' + m).replace(/\n/g, '\\n'); }
 function icsAll(){
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, ''), t = todayStr();
-  const ev = (id, title, d, desc) => ['BEGIN:VEVENT', 'UID:ial-' + id + '@ialrevise', 'DTSTAMP:' + stamp, 'DTSTART;VALUE=DATE:' + d.replace(/-/g, ''), 'DTEND;VALUE=DATE:' + addDays(d, 1).replace(/-/g, ''), 'SUMMARY:' + icsEsc(title), 'DESCRIPTION:' + icsEsc(desc), 'END:VEVENT'];
+  const ev = (id, title, d, desc, alarm) => ['BEGIN:VEVENT', 'UID:ial-' + id + '@ialrevise', 'DTSTAMP:' + stamp, 'DTSTART;VALUE=DATE:' + d.replace(/-/g, ''), 'DTEND;VALUE=DATE:' + addDays(d, 1).replace(/-/g, ''), 'SUMMARY:' + icsEsc(title), 'DESCRIPTION:' + icsEsc(desc)].concat(alarm ? ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(title), 'TRIGGER:' + alarm, 'END:VALARM'] : [], ['END:VEVENT']);
   const out = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//IAL Revise//EN', 'CALSCALE:GREGORIAN'];
   state.tasks.filter(x => !x.done && x.d && x.d >= t).forEach(x => out.push(...ev('task-' + x.id, x.t, x.d, 'Task from IAL Revise')));
-  state.exams.filter(e => e.d >= t).forEach(e => { const u = UNIT[e.u]; out.push(...ev('exam-' + e.id, 'EXAM: ' + (u ? u.l + ' ' + u.n : e.u) + (e.sess ? ' (' + (e.sess === 'PM' ? 'afternoon' : 'morning') + ')' : ''), e.d, 'Exam date from IAL Revise. Check the start time on your statement of entry.')); });
+  state.exams.filter(e => e.d >= t).forEach(e => { const u = UNIT[e.u]; out.push(...ev('exam-' + e.id, 'EXAM: ' + (u ? u.l + ' ' + u.n : e.u) + (e.sess ? ' (' + (e.sess === 'PM' ? 'afternoon' : 'morning') + ')' : ''), e.d, 'Exam date from IAL Revise. Check the start time on your statement of entry.', '-PT7H')); });
+  regSeries().filter(x => x.mine && !x.done && x.dl >= t).forEach(x => out.push(...ev('reg-' + x.sr.replace(/\s/g, ''), 'Exam registration deadline: ' + x.sr, x.dl, 'Pearson’s normal entry deadline. Your school or exam centre may close earlier, so ask for its own date.', '-P7D')));
   out.push('END:VCALENDAR'); return out.join('\r\n');
 }
 function taskDoneRow(x){
@@ -2088,6 +2093,140 @@ function lookCard(){
     '<label class="toggle"><input type="checkbox" data-pref-motion="1"' + (p.motion ? ' checked' : '') + '><span>Reduce motion (no animations)</span></label></div>';
 }
 /* ---- Daily reminder as a calendar event (works on every phone) ---- */
+/* ---------- Reminders by notification ----------
+   Made on this device only: nothing is sent to a server, and no one else can see them.
+   The page writes a small list of upcoming reminders; the page and the service worker both show the ones that are due. */
+const NOTIF_API = STANDALONE && typeof Notification !== 'undefined' && 'serviceWorker' in navigator && 'caches' in window && location.protocol.startsWith('http');
+const NOTIF = { bg: null };
+function notifPrefs(){ const p = prefs(); if (!p.notif || typeof p.notif !== 'object') p.notif = { on: false, exam: true, reg: true, daily: true }; return p.notif; }
+function notifOn(){ return NOTIF_API && notifPrefs().on && Notification.permission === 'granted'; }
+function notifTr(s){ try { return (typeof isTH === 'function' && isTH() && thText(s)) || s; } catch(e){ return s; } }
+function notifPlan(){
+  const n = notifPrefs(), out = [], t = todayStr();
+  const at = (d, hm) => { const x = parseD(d), a = hm.split(':'); x.setHours(+a[0], +a[1], 0, 0); return x.getTime(); };
+  const add = (id, when, title, body, url) => out.push({ id, at: when, title: notifTr(title), body: notifTr(body), url: url || '#today' });
+  if (n.exam){
+    const days = [...new Set(state.exams.filter(e => e.d >= t && e.d <= addDays(t, 120) && (!UNIT[e.u] || !isHidden(e.u))).map(e => e.d))];
+    days.forEach(d => {
+      const list = examsOn(d), names = list.map(e => edName(e.u)).join(' and '), am = list.some(e => e.sess !== 'PM');
+      add('ex1|' + d, at(addDays(d, -1), '17:00'), 'Exam tomorrow', names + '. Pack your bag tonight and get a proper night’s sleep.');
+      add('ex0|' + d, at(d, am ? '06:30' : '10:30'), 'Exam today', names + '. Take your statement of entry and photo ID. Good luck!');
+    });
+  }
+  if (n.reg) regSeries().filter(x => x.mine && !x.done && x.dl >= t).forEach(x => [7, 3, 1, 0].forEach(k => {
+    const d = addDays(x.dl, -k); if (d < t) return;
+    add('reg|' + x.sr + '|' + k, at(d, '09:00'), k ? 'Exam registration closes in ' + k + ' day' + (k === 1 ? '' : 's') : 'Exam registration closes today', x.sr + ' exams. Ask your school or exam centre. Late fees start after the deadline.', '#planner');
+  }));
+  if (n.daily){
+    const p = prefs(), hm = p.remind || '19:00';
+    for (let i = 0; i < 7; i++){
+      const d = addDays(t, i);
+      if (p.offDays.includes(parseD(d).getDay()) || (p.busy || []).includes(d)) continue;
+      if (i === 0 && studyMinutes(d) >= goalMin()) continue;
+      add('day|' + d, at(d, hm), 'Time to study', 'You haven’t reached today’s goal yet. Open IAL Revise to see what to do next.');
+    }
+  }
+  return out.sort((a, b) => a.at - b.at);
+}
+async function notifStore(key, val){
+  const c = await caches.open('ial-notif');
+  if (val === undefined){ const r = await c.match('./__notif/' + key); return r ? r.json() : null; }
+  await c.put('./__notif/' + key, new Response(JSON.stringify(val), { headers: { 'Content-Type': 'application/json' } }));
+}
+let notifTimer = null;
+function notifSchedule(){ if (!NOTIF_API) return; clearTimeout(notifTimer); notifTimer = setTimeout(notifSync, 1500); }
+async function notifSync(){
+  if (!NOTIF_API) return;
+  try {
+    if (!notifOn()){ await notifStore('plan', []); return; }
+    const plan = notifPlan(); await notifStore('plan', plan);
+    const sent = (await notifStore('sent')) || {}, now = Date.now(); let changed = false;
+    const reg = await navigator.serviceWorker.ready;
+    for (const x of plan){
+      if (x.at > now || now - x.at > 12 * 3600e3 || sent[x.id]) continue;
+      sent[x.id] = now; changed = true;
+      if (x.id.indexOf('day|') === 0 && document.visibilityState === 'visible') continue;   // they're already here
+      await reg.showNotification(x.title, { body: x.body, tag: x.id, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: x.url } });
+    }
+    if (changed){ Object.keys(sent).forEach(k => { if (now - sent[k] > 45 * 86400e3) delete sent[k]; }); await notifStore('sent', sent); }
+  } catch(e){}
+}
+async function notifBackground(){
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (!('periodicSync' in reg)) return false;
+    const st = await navigator.permissions.query({ name: 'periodic-background-sync' });
+    if (st.state !== 'granted') return false;
+    await reg.periodicSync.register('ial-remind', { minInterval: 4 * 3600e3 });
+    return true;
+  } catch(e){ return false; }
+}
+async function notifEnable(){
+  if (!NOTIF_API) return;
+  let perm = Notification.permission;
+  if (perm === 'default') try { perm = await Notification.requestPermission(); } catch(e){}
+  if (perm !== 'granted'){ toast('Notifications are blocked for this site. Allow them in your browser’s site settings, then try again.'); render(); return; }
+  notifPrefs().on = true; NOTIF.bg = await notifBackground(); commit(); notifSync(); toast('Reminders are on.');
+}
+async function notifTest(){
+  try { const reg = await navigator.serviceWorker.ready; await reg.showNotification(notifTr('IAL Revise reminder'), { body: notifTr('This is what a reminder looks like.'), tag: 'test', icon: 'icons/icon-192.png', data: { url: '#today' } }); }
+  catch(e){ toast('Couldn’t show a notification on this device.'); }
+}
+function notifCard(){
+  if (!STANDALONE) return '';
+  const head = '<div class="card stack" id="notif"><div class="card-h"><h2>Reminders</h2>';
+  const calRow = '<div class="row"><button class="btn sm" data-act="cal-all">Add exams and deadlines to my calendar</button></div>';
+  if (!NOTIF_API){
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    return head + '</div><p class="small muted noclamp" style="margin:0">' + (ios && !IS_INSTALLED ? 'On iPhone and iPad, reminders only work in the installed app. Add IAL Revise to your Home Screen (see “Install the app” below), open it from there, then turn reminders on here.' : 'This browser can’t show reminders from this site.') + ' Your calendar can remind you instead.</p>' + calRow + '</div>';
+  }
+  const n = notifPrefs(), on = notifOn(), blocked = Notification.permission === 'denied';
+  const box = (k, label) => '<label class="chk"><input type="checkbox" data-notif="' + k + '"' + (n[k] ? ' checked' : '') + '> <span>' + label + '</span></label>';
+  return head + (on ? '<span class="pill good">On</span>' : '') + '</div>' +
+    '<p class="small muted noclamp" style="margin:0">Get a notification on this device the evening before an exam, before exam registration closes, and when you haven’t reached your daily goal. They are made on this device: nothing is sent anywhere.</p>' +
+    (on ? '<div class="stack" style="gap:6px">' + box('exam', 'Exam tomorrow and exam today') + box('reg', 'Exam registration closing (7, 3 and 1 days before)') + box('daily', 'Daily goal not reached, at ' + esc(prefs().remind || '19:00')) + '</div>' +
+      '<p class="small muted noclamp" style="margin:0">' + (NOTIF.bg ? 'This device also checks a few times a day while the app is closed.' : 'On this device a reminder appears the next time IAL Revise is open or running in the background, so it can arrive late. For reminders that always arrive on time, add your exams to your calendar too.') + '</p>' +
+      '<div class="row"><button class="btn sm" data-act="notif-test">Send a test</button><button class="btn sm" data-act="notif-off">Turn off</button></div>' + calRow
+    : (blocked ? '<p class="small noclamp" style="margin:0">Notifications are blocked for this site. Allow them in your browser’s site settings, then come back here.</p>' : '<div class="row"><button class="btn primary" data-act="notif-on">Turn on reminders</button></div>') + calRow) + '</div>';
+}
+document.addEventListener('change', e => { const el = e.target; if (!el || !el.dataset || !el.dataset.notif) return; notifPrefs()[el.dataset.notif] = el.checked; commit(); });
+if (NOTIF_API){
+  document.addEventListener('visibilitychange', notifSchedule);
+  setInterval(notifSync, 5 * 60e3);
+  window.addEventListener('load', () => { setTimeout(async () => { if (notifOn()) NOTIF.bg = await notifBackground(); notifSync(); }, 2500); });
+}
+
+/* ---------- Marks to win back: which topics cost a grade, from the mistake log ---------- */
+function topicGains(c){
+  const ms = state.mistakes.filter(m => m.u === c && !m.fixed && m.t !== null && m.t !== undefined && m.lost > 0 && !/^UK /.test(m.sr || ''));
+  if (!ms.length || !UNIT[c]) return null;
+  const papers = new Set(ms.map(m => m.sr).filter(Boolean)).size, n = Math.max(1, papers), by = {};
+  ms.forEach(m => { by[m.t] = (by[m.t] || 0) + m.lost; });
+  const top = Object.entries(by).map(([t, lost]) => ({ t: +t, lost, per: lost / n })).filter(x => UNIT[c].t[x.t]).sort((a, b) => b.lost - a.lost).slice(0, 3);
+  if (!top.length) return null;
+  const gain = Math.max(1, Math.round(top.reduce((a, x) => a + x.per, 0))), max = PAPER_MAX[c];
+  const recs = Object.entries(state.papers).filter(([k]) => k.indexOf(c + '|') === 0).map(([k, r]) => ({ sr: k.slice(c.length + 1), r })).sort((a, b) => (a.r.d || '').localeCompare(b.r.d || '')).slice(-3);
+  let now = null, then = null;
+  if (max && recs.length){
+    const raw = Math.round(recs.reduce((a, x) => a + x.r.s / x.r.m * max, 0) / recs.length), sr = recs[recs.length - 1].sr, up = Math.min(max, raw + gain);
+    const a = rawToUms(c, sr, raw), b = rawToUms(c, sr, up);
+    if (a && b){ now = { raw, g: unitGrade(c, a.ums) }; then = { raw: up, g: unitGrade(c, b.ums) }; }
+  }
+  return { c, n, papers, top, gain, now, then, max };
+}
+function gainCard(sid){
+  const s = SUBJ[sid]; if (!s) return '';
+  const list = s.units.filter(u => takes(u.c)).map(u => topicGains(u.c)).filter(Boolean);
+  if (!list.length) return '<div class="card stack" id="gains"><h2>Marks to win back</h2><p class="small muted" style="margin:0">After a past paper, use “Mark question by question”. This card then shows which topics cost you the most marks, and the grade you’d reach by fixing them.</p></div>';
+  return '<div class="card stack" id="gains"><div class="card-h"><h2>Marks to win back</h2><span class="small muted">From your mistake log</span></div>' + list.map(x => {
+    const u = UNIT[x.c];
+    const line = x.now ? 'Your papers average ' + x.now.raw + '/' + x.max + ' (grade ' + x.now.g + '). These topics cost you about <b>' + x.gain + ' mark' + (x.gain === 1 ? '' : 's') + ' a paper</b>. Win them back and you’d score about ' + x.then.raw + '/' + x.max + (x.then.g !== x.now.g ? ', <b>grade ' + x.then.g + '</b>.' : ', still grade ' + x.then.g + ' but closer to the next one.')
+      : 'These topics cost you about <b>' + x.gain + ' mark' + (x.gain === 1 ? '' : 's') + ' a paper</b>. Log a paper mark to see what grade that is worth.';
+    return '<div class="gainu"><div class="gainh"><b>' + esc(u.l) + '</b> <span class="muted">' + esc(u.n) + '</span></div><p class="small noclamp" style="margin:2px 0 6px">' + line + '</p><div class="list">' +
+      x.top.map(w => { const per = Math.round(w.per * 10) / 10; return '<div class="li mktopic"><div class="grow"><div class="t">' + esc(u.t[w.t]) + '</div><div class="small muted">' + w.lost + ' mark' + (w.lost === 1 ? '' : 's') + ' lost' + (x.papers > 1 ? ' over ' + x.papers + ' papers' : '') + '</div></div><span class="muted small">−' + per + ' a paper</span>' +
+        (topicPdf(x.c, w.t) ? pdfBtn(topicPdf(x.c, w.t).url, 'Notes', '') : '<a class="btn sm" href="#syllabus" data-act="goto-rev" data-u="' + x.c + '">Notes</a>') + (topicQPdf(x.c, w.t) ? pdfBtn(topicQPdf(x.c, w.t), 'Questions', '') : '') + '</div>'; }).join('') + '</div></div>';
+  }).join('') + '</div>';
+}
 function reminderCard(){
   const p = prefs();
   return '<div class="card stack"><h2>Daily study reminder</h2><p class="small muted" style="margin:0">Adds a repeating event to your phone’s calendar, so you get a reminder every day even when this app is closed.</p>' +
@@ -2165,7 +2304,7 @@ function dataCard(){
 function viewSettings(){
   return '<div class="stack">' +
     '<div><h1>Settings</h1><p class="muted">Your profile, subjects, study habits and how the app looks.</p></div>' +
-    accountCard() + profileCard() + friendsCard() + shareCard() + mySubjectsCard() + habitsCard() + lookCard() + reminderCard() + buddySettings() + installCard() +
+    accountCard() + profileCard() + friendsCard() + shareCard() + mySubjectsCard() + habitsCard() + lookCard() + notifCard() + reminderCard() + buddySettings() + installCard() +
     ((state.linkReports || []).length ? '<div class="card stack"><div class="card-h"><h2>Broken links (' + state.linkReports.length + ')</h2></div><p class="small muted" style="margin:0">Links you reported. Copy the list and paste it to Claude, and they’ll be fixed in one go.</p><div class="list">' + state.linkReports.map(x => '<div class="li"><div class="grow"><div class="t">' + esc(x.where) + '</div><div class="small muted">Reported ' + fmtDate(x.at, {day:'numeric', month:'short'}) + '</div></div><button class="x" data-act="report-del" data-id="' + x.id + '" aria-label="Remove report">×</button></div>').join('') + '</div><div class="row"><button class="btn primary" data-act="report-copy">Copy list</button><button class="btn ghost" data-act="report-clear">Clear all</button></div><textarea readonly rows="3" aria-label="Broken links list">' + esc(reportsText()) + '</textarea></div>' : '') +
     dataCard() + '</div>';
 }
@@ -2661,7 +2800,7 @@ function viewGrades(){
   const anyWi = Object.keys(g.whatif).length;
   return '<div class="stack"><div><h1>Grades</h1><p class="muted">Your unit results and past-paper marks turned into UMS and an overall grade, using Pearson’s rules. Try “what if” marks to plan resits.</p></div>' +
     '<div class="chips" role="group" aria-label="Subject">' + gradeSubjects().map(x => '<button class="chip" data-act="gr-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === g.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') +
-    (anyWi ? '<button class="chip" data-act="wi-clear">Clear what-ifs</button>' : '') + '</div>' + body.replace('<div class="card"><div class="list">', trendCard(g.subj) + essayCard(g.subj) + '<div class="card"><div class="list">') +
+    (anyWi ? '<button class="chip" data-act="wi-clear">Clear what-ifs</button>' : '') + '</div>' + body.replace('<div class="card"><div class="list">', trendCard(g.subj) + gainCard(g.subj) + essayCard(g.subj) + '<div class="card"><div class="list">') +
     uniCard() +
     '<p class="small muted">Estimates from past papers use the official grade boundaries for that paper’s series (or the nearest series if none were published) and assume the main paper, not the time-zone variant. Real UMS comes from your results slip. Grade boundaries © Pearson Education.</p></div>';
 }
@@ -4251,6 +4390,9 @@ document.addEventListener('click', e => {
     case 'offday': { const p = prefs(), d = +v; p.offDays = p.offDays.includes(d) ? p.offDays.filter(x => x !== d) : p.offDays.concat(d); commit(); break; }
     case 'busy-del': prefs().busy = prefs().busy.filter(x => x !== v); commit(); break;
     case 'pref-set': { const k = b.dataset.k; prefs()[k] = k === 'text' ? +v : v; commit(); break; }
+    case 'notif-on': notifEnable(); break;
+    case 'notif-off': notifPrefs().on = false; commit(); notifSync(); toast('Reminders are off.'); break;
+    case 'notif-test': notifTest(); break;
     case 'cal-reminder': saveFile('study-reminder.ics', icsText(), 'text/calendar', 'Reminder saved. Open the file to add it to your calendar.'); break;
     case 'summary-download': saveFile('ial-progress-summary-' + todayStr() + '.html', summaryHtml(), 'text/html', 'Summary saved. Open it to view or print.'); break;
     case 'summary-copy': { const txt = summaryText(); try { navigator.clipboard.writeText(txt).then(() => toast('Summary copied'), () => toast('Copy blocked here')); } catch(e){ toast('Copy blocked here'); } break; }
