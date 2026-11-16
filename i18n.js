@@ -199,6 +199,10 @@ const TH = {
 "Notes ↗":"โน้ต ↗","Paper ↗":"ข้อสอบ ↗","Paper only ↗":"เปิดข้อสอบอย่างเดียว ↗","Topic page":"หน้าหัวข้อ","Open papers":"เปิดข้อสอบ","Open notes":"เปิดโน้ต","Start mock":"เริ่มสอบจำลอง",
 "To do":"ต้องทำ","Finished today":"เสร็จวันนี้","Clear finished":"ล้างงานที่เสร็จแล้ว","Nothing finished yet. Tick a task when you finish it.":"ยังไม่มีงานที่เสร็จ ติ๊กงานเมื่อทำเสร็จ","Tick a task when you finish it.":"ติ๊กงานเมื่อทำเสร็จ","Mark as finished":"ทำเครื่องหมายว่าเสร็จแล้ว","Move back to To do":"ย้ายกลับไปต้องทำ","Moved to Finished":"ย้ายไปที่เสร็จแล้ว","Tick a task when you finish it. Tap a task to edit it, or its priority to change High → Medium → Low.":"ติ๊กงานเมื่อทำเสร็จ แตะงานเพื่อแก้ไข หรือแตะความสำคัญเพื่อเปลี่ยน สูง → กลาง → ต่ำ",
 "Marks needed:":"คะแนนที่ต้องได้:","Marks needed (≈):":"คะแนนที่ต้องได้ (≈):","Official Pearson grade boundaries for this paper":"เกณฑ์เกรดทางการของ Pearson สำหรับข้อสอบฉบับนี้",
+"Can I get in?":"ฉันจะเข้าได้ไหม?","Pick a programme to see what it asks for next to your current grades. Your grades here come from your results and logged past papers.":"เลือกหลักสูตรเพื่อดูเกณฑ์ที่ต้องการเทียบกับเกรดปัจจุบันของคุณ เกรดที่ใช้มาจากผลสอบและข้อสอบเก่าที่คุณบันทึก",
+"Add a university target":"เพิ่มเป้าหมายมหาวิทยาลัย","Choose a programme…":"เลือกหลักสูตร…","My own offer or target (UK and others)…":"ข้อเสนอหรือเป้าหมายของฉันเอง (UK และอื่น ๆ)…","On track":"อยู่ในเกณฑ์","Not yet":"ยังไม่ถึง","Needs more marks":"ต้องมีคะแนนเพิ่ม","Info":"ข้อมูล",
+"no marks yet":"ยังไม่มีคะแนน","Official requirements ↗":"เกณฑ์ทางการ ↗","My own target":"เป้าหมายของฉันเอง","Programme or university":"หลักสูตรหรือมหาวิทยาลัย","Grade needed in each subject (leave the others as None)":"เกรดที่ต้องได้ในแต่ละวิชา (วิชาอื่นปล่อยเป็น ไม่มี)","Save target":"บันทึกเป้าหมาย","Remove target":"ลบเป้าหมาย",
+"Meeting the minimum doesn’t guarantee a place, and requirements change every year. Always check the official page before you apply.":"การผ่านเกณฑ์ขั้นต่ำไม่ได้รับประกันว่าจะได้ที่นั่ง และเกณฑ์เปลี่ยนทุกปี ตรวจสอบหน้าทางการทุกครั้งก่อนสมัคร","Choose a grade for at least one subject.":"เลือกเกรดอย่างน้อยหนึ่งวิชา",
 // ---- toasts ----
 "Exam added":"เพิ่มการสอบแล้ว","Saved":"บันทึกแล้ว","Copied":"คัดลอกแล้ว","Nothing due right now. Come back later.":"ตอนนี้ยังไม่มีอะไรถึงรอบ กลับมาใหม่ภายหลัง",
 "Mistake saved. It comes back for review tomorrow.":"บันทึกข้อผิดแล้ว จะกลับมาให้ทบทวนพรุ่งนี้","Mark it with the mark scheme, then enter your score.":"ตรวจด้วยเฉลย แล้วใส่คะแนนของคุณ"
@@ -247,6 +251,7 @@ const TH_RX = [
 [/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), (\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4}) · (Morning|Afternoon)$/, (m, d, n, mo, y, s) => TH_DAY[d] + ' ' + n + ' ' + TH_MONTH[mo] + ' ' + y + ' · ' + (s === 'Morning' ? 'ช่วงเช้า' : 'ช่วงบ่าย')],
 [/^(.+) \((\d+)\/(\d+) done\)$/, "$1 (ทำแล้ว $2/$3)"], [/^(.+) \((\d+)\/(\d+) packs\)$/, "$1 (ทำแล้ว $2/$3 ชุด)"],
 [/^Finished (\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$/, (m, d, mo) => "เสร็จ " + d + " " + TH_MONTH[mo]], [/^Showing the latest (\d+)\.$/, "แสดง $1 รายการล่าสุด"],
+[/^needs (A\*|[A-E])$/, "ต้องได้ $1"], [/^you: (.+) \(AS\)$/, "คุณ: $1 (AS)"], [/^you: (\d+) so far$/, "คุณ: ตอนนี้ $1"], [/^you: (.+)$/, "คุณ: $1"], [/^(\d+) A levels at ([A-E]) or above$/, "A level $1 วิชา เกรด $2 ขึ้นไป"], [/^· checked (.+)$/, "· ตรวจสอบเมื่อ $1"],
 [/^Code copied: (.+)$/, "คัดลอกรหัสแล้ว: $1"], [/^Your code is (.+)$/, "รหัสของคุณคือ $1"]
 ];
 const TH_MONTH = {January:"มกราคม",February:"กุมภาพันธ์",March:"มีนาคม",April:"เมษายน",May:"พฤษภาคม",June:"มิถุนายน",July:"กรกฎาคม",August:"สิงหาคม",September:"กันยายน",October:"ตุลาคม",November:"พฤศจิกายน",December:"ธันวาคม",

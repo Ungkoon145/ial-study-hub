@@ -143,6 +143,11 @@ div.f.schoolpick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;col
 .frcard{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
 .frsubs{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .frwait{white-space:nowrap}
+.unibox{border:1px solid var(--line);border-radius:12px;padding:12px}
+.unibox .pill.good{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}.unibox .pill.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}.unibox .pill{white-space:nowrap}
+.unirows{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.unirow{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.uok{color:var(--good);font-weight:800}.ulow{color:var(--bad);font-weight:800}
 .tgline{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin:4px 0 2px}
 .tgline .tg{white-space:nowrap}.tgline .tg.on{background:color-mix(in srgb,var(--primary) 14%,transparent);border-radius:6px;padding:0 6px}
 .taskcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;align-items:start;margin-top:10px}
@@ -2324,6 +2329,65 @@ function todayGrades(){
   if (!items.length) return '';
   return '<div class="card"><div class="card-h"><h2>On track for</h2><a class="small muted" href="#grades">Grades</a></div><div class="row">' + items.map(([sid, n, gr, tg]) => '<a class="tgr" href="#grades" data-act="gr-subj" data-v="' + sid + '">' + gradePill(gr) + '<span>' + esc(n) + (tg ? ' <span class="small ' + (gIdx(gr) >= gIdx(tg) ? 'muted' : 'below') + '">target ' + esc(tg) + '</span>' : '') + '</span></a>').join('') + '</div></div>';
 }
+/* ============================================================
+   University targets ("Can I get in?"): compare predicted grades with what a programme asks for.
+   Requirements come from each programme's own page (checked on the date shown) and change yearly.
+   ============================================================ */
+const UNI_CHECKED = '16 Nov 2026';
+const UNI_PRESETS = [
+  { id: 'cu-ise', uni: 'Chulalongkorn', name: 'ISE: International School of Engineering', year: '2027 entry', req: [['math','B'],['phys','B'],['chem','B']],
+    notes: ['Applying with predicted grades instead? ISE asks for A in each.', 'You also need an English score (IELTS 6.0, TOEFL iBT 80 or CU-TEP 80) and an interview.'], url: 'https://www.ise.eng.chula.ac.th/prospective-student/admission-criteria' },
+  { id: 'cu-eba', uni: 'Chulalongkorn', name: 'EBA: Economics (International Program)', year: '2027 entry', req: [['math','B']],
+    notes: ['You also need GPAX 3.00 or higher and an English score (IELTS 6.5 with no band below 6.0).', 'Maths counts for 40% of the ranking, so a higher grade helps.'], url: 'https://www.eba.econ.chula.ac.th/news/admission-requirements-academic-year-2025/' },
+  { id: 'cu-bba', uni: 'Chulalongkorn', name: 'BBA: Business Administration (International Program)', year: '2027 entry', req: [], info: 'A-level grades aren’t the test score here. BBA asks for SAT 1300 or higher (Maths + Reading & Writing) or CU-AAT 1270 or higher, plus a video resume, portfolio and interview.',
+    notes: [], url: 'https://bba.acc.chula.ac.th/bba-nextgen-admission' },
+  { id: 'cu-eq', uni: 'Chulalongkorn', name: 'High-school equivalence (needed for any programme)', year: '', any: { n: 3, g: 'E' },
+    notes: ['This only shows your A levels count as finishing high school. Each programme then has its own requirements.'], url: 'https://atc.chula.ac.th/pdf2024/HSCES_criteria.pdf' },
+  { id: 'muic', uni: 'Mahidol', name: 'MUIC: Mahidol University International College', year: '', any: { n: 3, g: 'C' },
+    notes: ['MUIC also asks for your IGCSE certificate. Check its page for the English and entrance test rules for your programme.'], url: 'https://muic.mahidol.ac.th/file/pdf/High_School_Qualification.pdf' }
+];
+function gIdx2(g){ return GRADES.indexOf(g); }
+function predGrades(){
+  const saved = ui.grades.whatif; ui.grades.whatif = {}; const out = {};
+  try {
+    const a = mathAward();
+    [['math', a.m, a.asM], ['fm', a.f, a.asF]].forEach(([k, full, as]) => { const q = full || as; if (q && q.grade) out[k] = { g: q.grade, as: !full }; });
+    SUBJECTS.forEach(s => { if (s.id === 'math' || s.id === 'fm') return; const r = sciAward(s.id); if (r.grade) out[s.id] = { g: r.grade, part: !r.complete }; });
+  } catch(e){}
+  ui.grades.whatif = saved; return out;
+}
+function uniEval(t){
+  const P = predGrades(), p = t.p ? UNI_PRESETS.find(x => x.id === t.p) : null, src = p || t;
+  if (t.p && !p) return null;
+  const rows = (src.req || []).map(([sid, g]) => { const have = P[sid]; return { sid, need: g, have: have ? have.g : '', as: have && have.as, st: !have ? 'none' : gIdx2(have.g) >= gIdx2(g) ? 'ok' : 'low' }; });
+  let any = null;
+  if (src.any){ const full = Object.keys(P).filter(k => !P[k].as), n = full.filter(k => gIdx2(P[k].g) >= gIdx2(src.any.g)).length; any = { n: src.any.n, g: src.any.g, got: n, st: n >= src.any.n ? 'ok' : full.length < src.any.n ? 'none' : 'low' }; }
+  const all = rows.map(r => r.st).concat(any ? [any.st] : []);
+  const st = !all.length ? 'info' : all.every(x => x === 'ok') ? 'ok' : all.some(x => x === 'low') ? 'low' : 'none';
+  return { src, p, rows, any, st };
+}
+function uniPill(st){ return st === 'ok' ? '<span class="pill good">On track</span>' : st === 'low' ? '<span class="pill warn">Not yet</span>' : st === 'none' ? '<span class="pill">Needs more marks</span>' : '<span class="pill">Info</span>'; }
+function uniCard(){
+  const list = state.unis || [], f = ui.uniForm;
+  const items = list.map(t => { const e = uniEval(t); if (!e) return '';
+    const s = e.src, mark = st => st === 'ok' ? '<span class="uok" aria-label="met">✓</span>' : st === 'low' ? '<span class="ulow" aria-label="below">✗</span>' : '<span class="muted" aria-label="no marks yet">?</span>';
+    return '<div class="unibox"><div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap;gap:8px"><div style="min-width:0"><div class="small muted">' + esc(s.uni || 'My own target') + (s.year ? ' · ' + esc(s.year) : '') + '</div><b>' + esc(s.name) + '</b></div><div class="row" style="gap:6px;flex-wrap:nowrap">' + uniPill(e.st) + '<button class="x" aria-label="Remove target" data-act="uni-del" data-id="' + t.id + '">×</button></div></div>' +
+      (s.info ? '<p class="small" style="margin:6px 0 0">' + esc(s.info) + '</p>' : '') +
+      (e.rows.length ? '<div class="unirows">' + e.rows.map(r => '<div class="unirow">' + mark(r.st) + '<span class="grow">' + esc(SUBJ[r.sid].name) + '</span><span class="small muted">needs ' + r.need + '</span><span class="small"><b>' + (r.have ? 'you: ' + r.have + (r.as ? ' (AS)' : '') : 'no marks yet') + '</b></span></div>').join('') + '</div>' : '') +
+      (e.any ? '<div class="unirows"><div class="unirow">' + mark(e.any.st) + '<span class="grow">' + e.any.n + ' A levels at ' + e.any.g + ' or above</span><span class="small"><b>you: ' + e.any.got + ' so far</b></span></div></div>' : '') +
+      (s.notes || []).map(n => '<p class="small muted" style="margin:6px 0 0">' + esc(n) + '</p>').join('') +
+      (s.url ? '<p class="small" style="margin:6px 0 0"><a href="' + esc(s.url) + '" target="_blank" rel="noopener">Official requirements ↗</a> <span class="muted">· checked ' + UNI_CHECKED + '</span></p>' : '') + '</div>';
+  }).join('');
+  const left = UNI_PRESETS.filter(p => !list.some(t => t.p === p.id));
+  const form = f ? '<form class="editbox" data-form="uni-own"><label class="f">Programme or university<input type="text" id="un-name" maxlength="80" required placeholder="e.g. UCL Economics offer"></label>' +
+      '<div class="small muted">Grade needed in each subject (leave the others as None)</div><div class="row">' + gradeSubjects().map(s => '<label class="f" style="min-width:110px">' + esc(s.short) + '<select data-unreq="' + s.id + '"><option value="">None</option>' + ['A*','A','B','C','D','E'].map(g => '<option>' + g + '</option>').join('') + '</select></label>').join('') + '</div>' +
+      '<div class="row"><button class="btn primary" type="submit">Save target</button><button class="btn" type="button" data-act="uni-form">Cancel</button></div></form>'
+    : '<div class="row" style="align-items:flex-end"><label class="f" style="flex:1;min-width:200px">Add a university target<select id="un-pick"><option value="">Choose a programme…</option>' + left.map(p => '<option value="' + p.id + '">' + esc(p.uni + ' · ' + p.name) + '</option>').join('') + '<option value="own">My own offer or target (UK and others)…</option></select></label></div>';
+  return '<div class="card stack" id="unis"><div class="card-h"><h2>Can I get in?</h2></div>' +
+    '<p class="small muted" style="margin:0">Pick a programme to see what it asks for next to your current grades. Your grades here come from your results and logged past papers.</p>' +
+    (items ? '<div class="stack" style="gap:10px">' + items + '</div>' : '') + form +
+    (list.length ? '<p class="small muted" style="margin:0">Meeting the minimum doesn’t guarantee a place, and requirements change every year. Always check the official page before you apply.</p>' : '') + '</div>';
+}
 function viewGrades(){
   const g = ui.grades; if (!g.picked){ g.picked = true; g.subj = (gradeSubjects().find(x => gradeSubjHasData(x.id)) || gradeSubjects()[0]).id; } const s = SUBJ[g.subj];
   let body = '';
@@ -2353,6 +2417,7 @@ function viewGrades(){
   return '<div class="stack"><div><h1>Grades</h1><p class="muted">Your unit results and past-paper marks turned into UMS and an overall grade, using Pearson’s rules. Try “what if” marks to plan resits.</p></div>' +
     '<div class="chips" role="group" aria-label="Subject">' + gradeSubjects().map(x => '<button class="chip" data-act="gr-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === g.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') +
     (anyWi ? '<button class="chip" data-act="wi-clear">Clear what-ifs</button>' : '') + '</div>' + body.replace('<div class="card"><div class="list">', trendCard(g.subj) + essayCard(g.subj) + '<div class="card"><div class="list">') +
+    uniCard() +
     '<p class="small muted">Estimates from past papers use the official grade boundaries for that paper’s series (or the nearest series if none were published) and assume the main paper, not the time-zone variant. Real UMS comes from your results slip. Grade boundaries © Pearson Education.</p></div>';
 }
 
@@ -3793,6 +3858,8 @@ document.addEventListener('click', e => {
     case 'fb-skip': try { localStorage.setItem('ial-fb-skip', '1'); } catch(e){} FB.err = ''; render(); window.scrollTo(0, 0); break;
     case 'fb-out': fbSignOut(); break;
     case 'fb-del': fbDelete(); break;
+    case 'uni-form': ui.uniForm = !ui.uniForm; render(); break;
+    case 'uni-del': state.unis = (state.unis || []).filter(x => x.id !== id); commit(); break;
     case 'nx-more': ui.nxMore = !ui.nxMore; render(); break;
     case 'ed-preview': ui.edPreview = true; render(); window.scrollTo(0, 0); break;
     case 'ed-close': ui.edPreview = false; render(); window.scrollTo(0, 0); break;
@@ -3990,6 +4057,7 @@ document.addEventListener('change', e => {
   else if (el.id === 'tq-unit'){ ui.quiz.unit = el.value; render(); }
   else if (el.id === 'pp-unit'){ ui.papers.unit = el.value; ui.papers.log = null; render(); }
   else if (el.dataset && el.dataset.wi){ const c = el.dataset.wi; if (el.value === '') delete ui.grades.whatif[c]; else ui.grades.whatif[c] = Math.max(0, Math.min(umsMax(c), Math.round(+el.value))); render(); }
+  else if (el.id === 'un-pick'){ if (el.value === 'own'){ ui.uniForm = true; render(); } else if (el.value){ state.unis = (state.unis || []).concat({ id: uid(), p: el.value }); commit(); } }
   else if (el.dataset && el.dataset.target){ state.targets = state.targets || {}; if (el.value) state.targets[el.dataset.target] = el.value; else delete state.targets[el.dataset.target]; commit(); }
   else if (el.id === 'restore-file' && el.files && el.files[0]){ el.files[0].text().then(txt => { const ta = $('#restore-text'); if (ta) ta.value = txt; toast('Backup loaded. Tap Restore to use it.'); }); }
   else if (el.dataset && el.dataset.su){ const c = el.dataset.su; if (el.checked) ui.setup.units.add(c); else ui.setup.units.delete(c); render(); }
@@ -4065,6 +4133,7 @@ document.addEventListener('submit', e => {
   else if (kind === 'edit-task'){ const x = state.tasks.find(k => k.id === f.dataset.id); const t = $('#et-text').value.trim(); if (!x || !t) return; x.t = t; x.d = $('#et-date').value || ''; x.p = +$('#et-prio').value; x.s = $('#et-subj').value; ui.editTask = null; commit(); }
   else if (kind === 'add-exam'){ const u = $('#ex-unit').value, d = $('#ex-date').value; if (!u || !d) return; state.exams.push({ id: uid(), u, d }); commit(); toast('Exam added'); }
   else if (kind === 'rt-build'){ const n = rtBuild(+$('#rt-min').value, +$('#rt-rest').value); commit(); toast(n ? n + ' sessions planned. They’re in your tasks, by day.' : 'Nothing to plan: add exam dates first.'); }
+  else if (kind === 'uni-own'){ const name = $('#un-name').value.trim(); const req = [...document.querySelectorAll('[data-unreq]')].filter(e => e.value).map(e => [e.dataset.unreq, e.value]); if (!name) return; if (!req.length){ toast('Choose a grade for at least one subject.'); return; } state.unis = (state.unis || []).concat({ id: uid(), name, req }); ui.uniForm = false; commit(); }
   else if (kind === 'fr-add'){ const err = frAdd($('#fr-in').value); FR.msg = err; if (!err){ toast('Request sent. You’ll see their profile once they add you back.'); } render(); }
   else if (kind === 'buddy'){ const nick = $('#bd-nick').value.trim().slice(0, 24); const was = buddyOn(); state.buddy = { on: true, nick }; BUD.writeOk = true; commit(); if (!was) buddyStart(); else { BUD.sent = ''; buddyPublish(); } toast(was ? 'Name saved.' : 'Study buddy is on.'); }
   else if (kind === 'add-card'){ const u = $('#nc-unit').value, fr = $('#nc-front').value.trim(), bk = $('#nc-back').value.trim(); if (!fr || !bk) return; state.custom.push({ id: 'u' + uid(), u, f: fr, b: bk, mine: true }); commit(); toast('Card saved. It will appear in your next review.'); }
