@@ -2088,7 +2088,7 @@ function dataCard(){
 function viewSettings(){
   return '<div class="stack">' +
     '<div><h1>Settings</h1><p class="muted">Your profile, subjects, study habits and how the app looks.</p></div>' +
-    accountCard() + profileCard() + friendsCard() + mySubjectsCard() + habitsCard() + lookCard() + reminderCard() + buddySettings() + installCard() +
+    accountCard() + profileCard() + friendsCard() + shareCard() + mySubjectsCard() + habitsCard() + lookCard() + reminderCard() + buddySettings() + installCard() +
     ((state.linkReports || []).length ? '<div class="card stack"><div class="card-h"><h2>Broken links (' + state.linkReports.length + ')</h2></div><p class="small muted" style="margin:0">Links you reported. Copy the list and paste it to Claude, and they’ll be fixed in one go.</p><div class="list">' + state.linkReports.map(x => '<div class="li"><div class="grow"><div class="t">' + esc(x.where) + '</div><div class="small muted">Reported ' + fmtDate(x.at, {day:'numeric', month:'short'}) + '</div></div><button class="x" data-act="report-del" data-id="' + x.id + '" aria-label="Remove report">×</button></div>').join('') + '</div><div class="row"><button class="btn primary" data-act="report-copy">Copy list</button><button class="btn ghost" data-act="report-clear">Clear all</button></div><textarea readonly rows="3" aria-label="Broken links list">' + esc(reportsText()) + '</textarea></div>' : '') +
     dataCard() + '</div>';
 }
@@ -3503,6 +3503,13 @@ function accountCard(){
     '<div class="row"><button class="btn" data-act="fb-out">Sign out</button><button class="btn ghost danger" data-act="fb-del">Delete account</button></div>' +
     '<p class="small muted" style="margin:0">Signing out also removes your progress from this browser (it stays safe in your account). Use this on shared computers.</p></div>';
 }
+const MAIN_URL = 'https://ungkoon145.github.io/ial-study-hub/';
+function shareCard(){
+  return '<div class="card stack" id="share"><div class="card-h"><h2>Share IAL Revise</h2></div>' +
+    '<p class="small muted" style="margin:0">Send classmates this link. It’s free, opens on any phone or computer, and they sign in with Google to save progress and add you as a friend.</p>' +
+    '<div class="frcode"><div style="min-width:0"><div class="small muted">Link to share</div><div class="notr" style="font-weight:700;overflow-wrap:anywhere">' + MAIN_URL.replace('https://', '') + '</div></div><div class="row"><button class="btn sm primary" data-act="share-copy">Copy link</button>' + (navigator.share ? '<button class="btn sm" data-act="share-send">Share…</button>' : '') + '</div></div>' +
+    (STANDALONE ? '' : '<p class="small" style="margin:0">You’re on the claude.ai copy, which only people you invite can open. The link above is the main site for everyone else. To carry your progress over, use <b>Download backup file</b> below, then <b>Restore</b> it on the main site. Ask Claude and essay feedback only work here.</p><div class="row"><a class="btn sm" href="' + MAIN_URL + '" target="_blank" rel="noopener">Open the main site ↗</a></div>') + '</div>';
+}
 function friendsCard(){
   if (LOCAL_ONLY) return '';
   const on = frOn(), f = frState();
@@ -3981,6 +3988,8 @@ document.addEventListener('click', e => {
     case 'goto-reg': setTimeout(() => { const e = document.getElementById('reg'); if (e) e.scrollIntoView({ block: 'start' }); }, 80); break;
     case 'board-by': ui.boardBy = v; render(); break;
     case 'board-join': frState().share.act = true; commit(); frPublish(); toast('You’re on the study board. Start the focus timer to show up as studying.'); break;
+    case 'share-copy': try { navigator.clipboard.writeText(MAIN_URL).then(() => toast('Link copied'), () => toast(MAIN_URL)); } catch(e){ toast(MAIN_URL); } break;
+    case 'share-send': try { navigator.share({ title: 'IAL Revise', text: 'Free revision site for Edexcel International A Level: past papers, notes, planner and grade tracking.', url: MAIN_URL }).catch(() => {}); } catch(e){} break;
     case 'nx-more': ui.nxMore = !ui.nxMore; render(); break;
     case 'ed-preview': ui.edPreview = true; render(); window.scrollTo(0, 0); break;
     case 'ed-close': ui.edPreview = false; render(); window.scrollTo(0, 0); break;
