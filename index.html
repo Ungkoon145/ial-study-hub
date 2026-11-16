@@ -143,6 +143,8 @@ div.f.schoolpick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;col
 .frcard{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
 .frsubs{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .frwait{white-space:nowrap}
+.tgline{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin:4px 0 2px}
+.tgline .tg{white-space:nowrap}.tgline .tg.on{background:color-mix(in srgb,var(--primary) 14%,transparent);border-radius:6px;padding:0 6px}
 .taskcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;align-items:start;margin-top:10px}
 .taskcols > div{min-width:0}
 .colh{display:flex;justify-content:space-between;font-weight:700;font-size:.85rem;letter-spacing:.03em;padding:6px 10px;border-radius:8px;background:var(--soft);margin-bottom:6px}
@@ -1308,7 +1310,7 @@ function viewPapers(){
       status = '<div class="meta pp3"><button class="btn sm primary" data-act="mock-start" data-key="' + esc(key) + '">Timed mock (' + fmtDur(PAPER_MIN[u.c]) + ')</button><button class="btn sm" data-act="paper-log" data-key="' + esc(key) + '">Log mark</button><button class="btn sm ghost planbtn" data-act="paper-plan" data-key="' + esc(key) + '" title="Add to Planner" aria-label="Add to Planner">+ Plan</button></div>';
     }
     return '<div class="li" style="align-items:flex-start' + (rec ? '' : '') + '"><span class="pdot' + (rec ? ' done' : '') + '" aria-hidden="true"></span><div class="grow"><div class="t"><b>' + esc(sr) + '</b>' + (older ? ' <span class="pill" title="Sat before the 2018 specification; most questions still useful">Older spec</span>' : '') + (isReserved(u.c, sr) ? ' <span class="pill keep" title="One of the two newest papers. Save it for a timed mock close to your exam.">Save for a mock</span>' : '') + '</div>' +
-      '<div class="meta pp3 pplinks">' + links + '</div>' + status + '</div></div>';
+      (rec ? '' : paperTargets(u.c, sr)) + '<div class="meta pp3 pplinks">' + links + '</div>' + status + '</div></div>';
   }).join('');
   return '<div class="stack">' + qSeg('papers') + modeSeg('ial') +
     '<div><h1>Past papers</h1><p class="muted">Sit a paper timed, mark it, log your mark: you’ll see the UMS and grade it would have got. <details class="howto"><summary>How it works</summary>Each link opens the PDF from Physics &amp; Maths Tutor (examiner reports from Pearson). The two newest papers per unit are marked “Save for a mock”: keep them for timed practice close to your exam. Logged marks feed your <a href="#grades">Grades</a>, and the examiner report explains the most common mistakes on each question.</details></p></div>' +
@@ -2101,6 +2103,19 @@ function boundsFor(c, sr){
   const k = /^\w+ \d{4}$/.test(sr) ? seriesSortKey(sr) : 1e9; let best = null, bd = Infinity;
   GB_SERIES.forEach(s => { if (!GBS[s][c]) return; const d = Math.abs(seriesSortKey(s) - k); if (d <= bd){ bd = d; best = s; } });
   return best ? { b: GBS[best][c], sr: best, est: true } : null;
+}
+/* Raw marks needed for each grade on one paper, from that series' boundaries */
+function gradeTargets(c, sr){
+  const x = boundsFor(c, sr); if (!x) return null;
+  const [R, U] = x.b, out = [];
+  [['A*', .9], ['A', .8], ['B', .7], ['C', .6]].forEach(([g, f]) => { const i = U.findIndex(u => Math.abs(u / U[0] - f) < 1e-9); if (i > 0) out.push([g, R[i]]); });
+  return out.length ? { list: out, max: R[0], sr: x.sr, est: x.est } : null;
+}
+function paperTargets(c, sr){
+  const g = gradeTargets(c, sr); if (!g) return '';
+  const want = (state.targets && state.targets[UNIT_SUBJ[c]]) || '';
+  return '<div class="tgline small" title="' + (g.est ? 'No boundaries were published for this paper, so these use ' + esc(g.sr) : 'Official Pearson grade boundaries for this paper') + '"><span class="muted">Marks needed' + (g.est ? ' (≈)' : '') + ':</span> ' +
+    g.list.map(([gr, r]) => '<span class="tg' + (gr === want ? ' on' : '') + '"><b>' + gr + '</b> ' + r + '</span>').join('') + '<span class="muted">/ ' + g.max + '</span></div>';
 }
 function rawToUms(c, sr, raw){
   const x = boundsFor(c, sr); if (!x) return null;

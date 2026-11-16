@@ -198,6 +198,7 @@ const TH = {
 "Add your exam dates":"เพิ่มวันสอบของคุณ","With dates set, this card plans what to revise and when to sit mocks for each exam.":"เมื่อใส่วันสอบแล้ว การ์ดนี้จะวางแผนว่าควรทบทวนอะไรและทำสอบจำลองเมื่อไรสำหรับแต่ละวิชา","Choose exam series":"เลือกรอบสอบ",
 "Notes ↗":"โน้ต ↗","Paper ↗":"ข้อสอบ ↗","Paper only ↗":"เปิดข้อสอบอย่างเดียว ↗","Topic page":"หน้าหัวข้อ","Open papers":"เปิดข้อสอบ","Open notes":"เปิดโน้ต","Start mock":"เริ่มสอบจำลอง",
 "To do":"ต้องทำ","Finished today":"เสร็จวันนี้","Clear finished":"ล้างงานที่เสร็จแล้ว","Nothing finished yet. Tick a task when you finish it.":"ยังไม่มีงานที่เสร็จ ติ๊กงานเมื่อทำเสร็จ","Tick a task when you finish it.":"ติ๊กงานเมื่อทำเสร็จ","Mark as finished":"ทำเครื่องหมายว่าเสร็จแล้ว","Move back to To do":"ย้ายกลับไปต้องทำ","Moved to Finished":"ย้ายไปที่เสร็จแล้ว","Tick a task when you finish it. Tap a task to edit it, or its priority to change High → Medium → Low.":"ติ๊กงานเมื่อทำเสร็จ แตะงานเพื่อแก้ไข หรือแตะความสำคัญเพื่อเปลี่ยน สูง → กลาง → ต่ำ",
+"Marks needed:":"คะแนนที่ต้องได้:","Marks needed (≈):":"คะแนนที่ต้องได้ (≈):","Official Pearson grade boundaries for this paper":"เกณฑ์เกรดทางการของ Pearson สำหรับข้อสอบฉบับนี้",
 // ---- toasts ----
 "Exam added":"เพิ่มการสอบแล้ว","Saved":"บันทึกแล้ว","Copied":"คัดลอกแล้ว","Nothing due right now. Come back later.":"ตอนนี้ยังไม่มีอะไรถึงรอบ กลับมาใหม่ภายหลัง",
 "Mistake saved. It comes back for review tomorrow.":"บันทึกข้อผิดแล้ว จะกลับมาให้ทบทวนพรุ่งนี้","Mark it with the mark scheme, then enter your score.":"ตรวจด้วยเฉลย แล้วใส่คะแนนของคุณ"
