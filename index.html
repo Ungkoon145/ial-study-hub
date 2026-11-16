@@ -143,6 +143,10 @@ div.f.schoolpick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;col
 .frcard{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
 .frsubs{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .frwait{white-space:nowrap}
+.taskcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;align-items:start;margin-top:10px}
+.taskcols > div{min-width:0}
+.colh{display:flex;justify-content:space-between;font-weight:700;font-size:.85rem;letter-spacing:.03em;padding:6px 10px;border-radius:8px;background:var(--soft);margin-bottom:6px}
+.colh.fin{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
 .nxmore{margin-top:6px;display:inline-block;min-height:40px;padding:10px 2px}.langsw{min-height:40px;padding:10px 6px}
 .askmodes{display:grid;grid-template-columns:repeat(3,1fr);width:100%}.askmodes button{padding:8px 6px;line-height:1.2}.seg2 button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .edlist{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
@@ -922,6 +926,7 @@ function viewToday(){
   const st = streak();
   const openTasks = state.tasks.filter(x => !x.done).sort(byUrgency);
   const nextTasks = openTasks.slice(0, 5);
+  const doneToday = finishedTasks().filter(x => x.doneAt === t);
   const greet = (h => h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening')(new Date().getHours());
 
   let exHtml;
@@ -967,7 +972,8 @@ function viewToday(){
     '<div class="grid2">' + (ex.length ? '' : exHtml) +
       '<div class="card"><div class="card-h"><h2>Tasks</h2><a class="small muted" href="#planner">' + (openTasks.length > 5 ? 'All ' + openTasks.length : 'Planner') + '</a></div>' +
         '<form data-form="task-quick" class="row" style="margin-bottom:8px"><input type="text" id="tq" placeholder="Quick add, due today" aria-label="New task due today" style="flex:1;min-width:0"><button class="btn" type="submit">Add</button></form>' +
-        '<div class="list">' + (nextTasks.length ? nextTasks.map(taskRow).join('') : '<div class="empty">No tasks. Add one here, or set deadlines in Planner.</div>') + '</div></div>' +
+        '<div class="taskcols"><div><div class="colh"><span>To do</span><span>' + openTasks.length + '</span></div><div class="list">' + (nextTasks.length ? nextTasks.map(taskRow).join('') : '<div class="empty">No tasks. Add one here, or set deadlines in Planner.</div>') + '</div></div>' +
+        '<div><div class="colh fin"><span>Finished today</span><span>' + doneToday.length + '</span></div>' + (doneToday.length ? '<div class="list">' + doneToday.map(taskDoneRow).join('') + '</div>' : '<div class="empty">Tick a task when you finish it.</div>') + '</div></div></div>' +
     '</div>' +
     '<div class="grid2">' + (todayGrades() || '') +
       (weakHtml ? '<div class="card"><div class="card-h"><h2>Needs work</h2><a class="small muted" href="#syllabus">Revise</a></div><div class="list">' + weakHtml + '</div></div>' : '') +
@@ -1013,7 +1019,15 @@ function taskLinks(x){
   if (x.ti != null){ const n = topicPdf(x.u, x.ti), q = topicQPdf(x.u, x.ti); if (n || q) return pdfBtn(n && n.url, 'Notes') + pdfBtn(q, 'Questions'); }
   return '<a class="btn sm" href="#syllabus" data-act="goto-rev" data-u="' + x.u + '">Open notes</a>';
 }
+function taskDoneRow(x){
+  const when = x.doneAt ? (x.doneAt === todayStr() ? 'Finished today' : 'Finished ' + fmtDate(x.doneAt, {day:'numeric', month:'short'})) : 'Finished';
+  return '<div class="li done"><button class="check" role="checkbox" aria-checked="true" aria-label="Move back to To do" title="Move back to To do" data-act="task-toggle" data-id="' + x.id + '">✓</button>' +
+    '<div class="grow"><div class="t">' + esc(x.t) + '</div><div class="meta"><span class="small muted">' + when + '</span>' + (x.s && SUBJ[x.s] ? subjPill(x.s) : '') + '</div></div>' +
+    '<button class="x" aria-label="Delete task" data-act="task-del" data-id="' + x.id + '">×</button></div>';
+}
+function finishedTasks(){ return state.tasks.filter(x => x.done).sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || '')); }
 function taskRow(x){
+  if (x.done) return taskDoneRow(x);
   if (ui.editTask === x.id && !x.done){
     return '<div class="li"><form class="editbox" data-form="edit-task" data-id="' + x.id + '">' +
       '<label class="f">Task<input type="text" id="et-text" required value="' + esc(x.t) + '"></label>' +
@@ -1025,7 +1039,7 @@ function taskRow(x){
   }
   const due = dueLabel(x);
   const p = prio(x);
-  return '<div class="li' + (x.done ? ' done' : '') + (p === 1 ? ' p1' : '') + '"><button class="check" role="checkbox" aria-checked="' + !!x.done + '" aria-label="Mark done" data-act="task-toggle" data-id="' + x.id + '">' + (x.done ? '✓' : '') + '</button>' +
+  return '<div class="li' + (x.done ? ' done' : '') + (p === 1 ? ' p1' : '') + '"><button class="check" role="checkbox" aria-checked="' + !!x.done + '" aria-label="Mark as finished" title="Mark as finished" data-act="task-toggle" data-id="' + x.id + '">' + (x.done ? '✓' : '') + '</button>' +
     '<div class="grow"><button class="tasktext t" data-act="task-edit" data-id="' + x.id + '" aria-label="Edit task: ' + esc(x.t) + '">' + esc(x.t) + '</button>' +
       '<div class="meta"><button class="prio" data-v="' + p + '" data-act="task-prio" data-id="' + x.id + '" aria-label="Priority ' + PRIO_LABEL[p] + '. Tap to change">' + PRIO_LABEL[p] + '</button>' + taskLinks(x) +
       '<span class="' + due.cls + '">' + due.text + '</span>' + (x.s && SUBJ[x.s] ? subjPill(x.s) : '') + '</div></div>' +
@@ -1401,7 +1415,7 @@ function viewPlanner(){
   const f = ui.plan.filter;
   const allOpen = state.tasks.filter(x => !x.done);
   const open = allOpen.filter(x => f === 'all' || (f === 'high' ? prio(x) === 1 : x.s === f));
-  const done = state.tasks.filter(x => x.done).slice(-8).reverse();
+  const doneAll = finishedTasks(), done = doneAll.slice(0, 30);
   const groups = [
     ['Overdue', x => x.d && x.d < t, 'late'],
     ['Today', x => x.d === t, ''],
@@ -1418,10 +1432,13 @@ function viewPlanner(){
       '<label class="f" style="min-width:110px">Subject<select id="tk-subj"><option value="">None</option>' + mySubjects().map(s => '<option value="' + s.id + '">' + esc(s.short) + '</option>').join('') + '</select></label>' +
       '<button class="btn primary" type="submit">Add task</button></form>' +
       '<div class="chips" role="group" aria-label="Filter tasks">' + [['all','All'],['high','High priority']].concat(mySubjects().map(s => [s.id, s.short])).map(([v, l]) => '<button class="chip" data-act="plan-filter" data-v="' + v + '" aria-pressed="' + (f === v) + '">' + esc(l) + '</button>').join('') + '</div>' +
+      '<div class="taskcols"><div><div class="colh"><span>To do</span><span>' + open.length + '</span></div>' +
       (open.length ? groups.map(([label, test, cls]) => { const g = open.filter(test).sort((a, b) => prio(a) - prio(b) || (a.d || '').localeCompare(b.d || '')); return g.length ? '<div class="grouph ' + cls + '"><span>' + label + '</span><span>' + g.length + '</span></div><div class="list">' + g.map(taskRow).join('') + '</div>' : ''; }).join('')
         : '<div class="empty" style="margin-top:10px">' + (allOpen.length ? 'No tasks match this filter.' : 'No open tasks. Try one past paper per unit, each with a deadline a week before the exam.') + '</div>') +
-      '<p class="small muted" style="margin-top:10px">Tap a task to edit it. Tap its priority to change High → Medium → Low.</p>' +
-      (done.length ? '<details style="margin-top:6px"><summary class="small muted" style="cursor:pointer">Recently completed (' + done.length + ')</summary><div class="list">' + done.map(taskRow).join('') + '</div></details>' : '') +
+      '<p class="small muted" style="margin-top:10px">Tick a task when you finish it. Tap a task to edit it, or its priority to change High → Medium → Low.</p></div>' +
+      '<div><div class="colh fin"><span>Finished</span><span>' + doneAll.length + '</span></div>' +
+      (doneAll.length ? '<div class="list">' + done.map(taskDoneRow).join('') + '</div>' + (doneAll.length > done.length ? '<p class="small muted" style="margin:8px 0 0">Showing the latest ' + done.length + '.</p>' : '') + '<div class="row" style="margin-top:10px"><button class="btn sm ghost" data-act="tasks-clear-done">Clear finished</button></div>'
+        : '<div class="empty" style="margin-top:10px">Nothing finished yet. Tick a task when you finish it.</div>') + '</div></div>' +
     '</div>';
   const todays = state.sessions.filter(s => s.d === t);
   const p = state.timerPrefs;
@@ -3916,7 +3933,8 @@ document.addEventListener('click', e => {
     }
     case 'quiz-exit': ui.quiz.run = null; render(); break;
     case 'topic': { const cur = state.topics[id] || 0; state.topics[id] = (cur + 1) % 4; if (state.topics[id] > cur){ state.topicAt = state.topicAt || {}; state.topicAt[id] = todayStr(); } const det = b.closest('details'); ui.syllabus.open = det ? det.dataset.unit : null; commit(); break; }
-    case 'task-toggle': { const x = state.tasks.find(k => k.id === id); if (x){ x.done = !x.done; commit(); } break; }
+    case 'task-toggle': { const x = state.tasks.find(k => k.id === id); if (x){ x.done = !x.done; if (x.done){ x.doneAt = todayStr(); toast('Moved to Finished'); } else delete x.doneAt; commit(); } break; }
+    case 'tasks-clear-done': if (confirm('Remove all finished tasks from the list?')){ state.tasks = state.tasks.filter(x => !x.done); commit(); } break;
     case 'task-del': state.tasks = state.tasks.filter(k => k.id !== id); ui.editTask = null; commit(); break;
     case 'task-prio': { const x = state.tasks.find(k => k.id === id); if (x){ x.p = prio(x) % 3 + 1; commit(); } break; }
     case 'task-edit': ui.editTask = id; render(); { const el = $('#et-text'); if (el) el.focus(); } break;
