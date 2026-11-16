@@ -160,6 +160,7 @@ div.f.schoolpick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;col
 .blivepill{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
 @keyframes bpulse{0%,100%{opacity:1}50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.bdot{animation:none}}
+.calbtn{white-space:nowrap}
 .tgline{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin:4px 0 2px}
 .tgline .tg{white-space:nowrap}.tgline .tg.on{background:color-mix(in srgb,var(--primary) 14%,transparent);border-radius:6px;padding:0 6px}
 .taskcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;align-items:start;margin-top:10px}
@@ -1038,6 +1039,21 @@ function taskLinks(x){
   if (x.ti != null){ const n = topicPdf(x.u, x.ti), q = topicQPdf(x.u, x.ti); if (n || q) return pdfBtn(n && n.url, 'Notes') + pdfBtn(q, 'Questions'); }
   return '<a class="btn sm" href="#syllabus" data-act="goto-rev" data-u="' + x.u + '">Open notes</a>';
 }
+/* Google Calendar: a prefilled 'new event' link (the student taps Save in Google Calendar), plus an .ics file for everything at once */
+function gcalUrl(title, d, details){
+  const a = (d || todayStr()).replace(/-/g, ''), b = addDays(d || todayStr(), 1).replace(/-/g, '');
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(title) + '&dates=' + a + '/' + b + '&details=' + encodeURIComponent((details ? details + '\n' : '') + 'From IAL Revise: ' + MAIN_URL);
+}
+function calBtn(x){ return '<a class="btn sm calbtn" href="' + esc(gcalUrl(x.t, x.d, x.s && SUBJ[x.s] ? SUBJ[x.s].name : '')) + '" target="_blank" rel="noopener" data-act="task-cal" data-id="' + x.id + '" title="Add to Google Calendar" aria-label="Add to Google Calendar">' + (x.cal ? '📅 ✓' : '📅 Calendar') + '</a>'; }
+function icsEsc(t){ return String(t).replace(/\\/g, '\\\\').replace(/[,;]/g, m => '\\' + m).replace(/\n/g, '\\n'); }
+function icsAll(){
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, ''), t = todayStr();
+  const ev = (id, title, d, desc) => ['BEGIN:VEVENT', 'UID:ial-' + id + '@ialrevise', 'DTSTAMP:' + stamp, 'DTSTART;VALUE=DATE:' + d.replace(/-/g, ''), 'DTEND;VALUE=DATE:' + addDays(d, 1).replace(/-/g, ''), 'SUMMARY:' + icsEsc(title), 'DESCRIPTION:' + icsEsc(desc), 'END:VEVENT'];
+  const out = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//IAL Revise//EN', 'CALSCALE:GREGORIAN'];
+  state.tasks.filter(x => !x.done && x.d && x.d >= t).forEach(x => out.push(...ev('task-' + x.id, x.t, x.d, 'Task from IAL Revise')));
+  state.exams.filter(e => e.d >= t).forEach(e => { const u = UNIT[e.u]; out.push(...ev('exam-' + e.id, 'EXAM: ' + (u ? u.l + ' ' + u.n : e.u) + (e.sess ? ' (' + (e.sess === 'PM' ? 'afternoon' : 'morning') + ')' : ''), e.d, 'Exam date from IAL Revise. Check the start time on your statement of entry.')); });
+  out.push('END:VCALENDAR'); return out.join('\r\n');
+}
 function taskDoneRow(x){
   const when = x.doneAt ? (x.doneAt === todayStr() ? 'Finished today' : 'Finished ' + fmtDate(x.doneAt, {day:'numeric', month:'short'})) : 'Finished';
   return '<div class="li done"><button class="check" role="checkbox" aria-checked="true" aria-label="Move back to To do" title="Move back to To do" data-act="task-toggle" data-id="' + x.id + '">✓</button>' +
@@ -1060,7 +1076,7 @@ function taskRow(x){
   const p = prio(x);
   return '<div class="li' + (x.done ? ' done' : '') + (p === 1 ? ' p1' : '') + '"><button class="check" role="checkbox" aria-checked="' + !!x.done + '" aria-label="Mark as finished" title="Mark as finished" data-act="task-toggle" data-id="' + x.id + '">' + (x.done ? '✓' : '') + '</button>' +
     '<div class="grow"><button class="tasktext t" data-act="task-edit" data-id="' + x.id + '" aria-label="Edit task: ' + esc(x.t) + '">' + esc(x.t) + '</button>' +
-      '<div class="meta"><button class="prio" data-v="' + p + '" data-act="task-prio" data-id="' + x.id + '" aria-label="Priority ' + PRIO_LABEL[p] + '. Tap to change">' + PRIO_LABEL[p] + '</button>' + taskLinks(x) +
+      '<div class="meta"><button class="prio" data-v="' + p + '" data-act="task-prio" data-id="' + x.id + '" aria-label="Priority ' + PRIO_LABEL[p] + '. Tap to change">' + PRIO_LABEL[p] + '</button>' + taskLinks(x) + calBtn(x) +
       '<span class="' + due.cls + '">' + due.text + '</span>' + (x.s && SUBJ[x.s] ? subjPill(x.s) : '') + '</div></div>' +
     '<button class="x" aria-label="Delete task" data-act="task-del" data-id="' + x.id + '">×</button></div>';
 }
@@ -1454,7 +1470,8 @@ function viewPlanner(){
       '<div class="taskcols"><div><div class="colh"><span>To do</span><span>' + open.length + '</span></div>' +
       (open.length ? groups.map(([label, test, cls]) => { const g = open.filter(test).sort((a, b) => prio(a) - prio(b) || (a.d || '').localeCompare(b.d || '')); return g.length ? '<div class="grouph ' + cls + '"><span>' + label + '</span><span>' + g.length + '</span></div><div class="list">' + g.map(taskRow).join('') + '</div>' : ''; }).join('')
         : '<div class="empty" style="margin-top:10px">' + (allOpen.length ? 'No tasks match this filter.' : 'No open tasks. Try one past paper per unit, each with a deadline a week before the exam.') + '</div>') +
-      '<p class="small muted" style="margin-top:10px">Tick a task when you finish it. Tap a task to edit it, or its priority to change High → Medium → Low.</p></div>' +
+      '<p class="small muted" style="margin-top:10px">Tick a task when you finish it. Tap a task to edit it, or its priority to change High → Medium → Low.</p>' +
+      '<div class="row" style="align-items:center"><button class="btn sm" data-act="cal-all">📅 All tasks and exams to my calendar</button><span class="small muted">Tap 📅 on a task to add just that one to Google Calendar.</span></div></div>' +
       '<div><div class="colh fin"><span>Finished</span><span>' + doneAll.length + '</span></div>' +
       (doneAll.length ? '<div class="list">' + done.map(taskDoneRow).join('') + '</div>' + (doneAll.length > done.length ? '<p class="small muted" style="margin:8px 0 0">Showing the latest ' + done.length + '.</p>' : '') + '<div class="row" style="margin-top:10px"><button class="btn sm ghost" data-act="tasks-clear-done">Clear finished</button></div>'
         : '<div class="empty" style="margin-top:10px">Nothing finished yet. Tick a task when you finish it.</div>') + '</div></div>' +
@@ -3990,6 +4007,8 @@ document.addEventListener('click', e => {
     case 'board-join': frState().share.act = true; commit(); frPublish(); toast('You’re on the study board. Start the focus timer to show up as studying.'); break;
     case 'share-copy': try { navigator.clipboard.writeText(MAIN_URL).then(() => toast('Link copied'), () => toast(MAIN_URL)); } catch(e){ toast(MAIN_URL); } break;
     case 'share-send': try { navigator.share({ title: 'IAL Revise', text: 'Free revision site for Edexcel International A Level: past papers, notes, planner and grade tracking.', url: MAIN_URL }).catch(() => {}); } catch(e){} break;
+    case 'task-cal': { const x = state.tasks.find(k => k.id === id); if (x && !x.cal){ x.cal = true; setTimeout(commit, 400); } break; }
+    case 'cal-all': { const n = state.tasks.filter(x => !x.done && x.d && x.d >= todayStr()).length + state.exams.filter(e => e.d >= todayStr()).length; if (!n){ toast('Nothing to add yet. Give a task a deadline or add an exam date first.'); break; } saveFile('ial-revise-calendar.ics', icsAll(), 'text/calendar', 'Calendar file saved. Open it and choose Google Calendar to add everything.'); break; }
     case 'nx-more': ui.nxMore = !ui.nxMore; render(); break;
     case 'ed-preview': ui.edPreview = true; render(); window.scrollTo(0, 0); break;
     case 'ed-close': ui.edPreview = false; render(); window.scrollTo(0, 0); break;

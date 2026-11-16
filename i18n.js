@@ -214,6 +214,7 @@ const TH = {
 "You’re on the study board. Start the focus timer to show up as studying.":"คุณอยู่บนกระดานการเรียนแล้ว เริ่มตัวจับเวลาโฟกัสเพื่อแสดงว่ากำลังเรียน",
 "Share IAL Revise":"แชร์ IAL Revise","Send classmates this link. It’s free, opens on any phone or computer, and they sign in with Google to save progress and add you as a friend.":"ส่งลิงก์นี้ให้เพื่อนร่วมชั้น ใช้ฟรี เปิดได้บนโทรศัพท์หรือคอมพิวเตอร์ทุกเครื่อง และลงชื่อเข้าใช้ด้วย Google เพื่อบันทึกความคืบหน้าและเพิ่มคุณเป็นเพื่อน",
 "Link to share":"ลิงก์สำหรับแชร์","Copy link":"คัดลอกลิงก์","Share…":"แชร์…","Link copied":"คัดลอกลิงก์แล้ว","Open the main site ↗":"เปิดเว็บไซต์หลัก ↗",
+"📅 Calendar":"📅 ปฏิทิน","Add to Google Calendar":"เพิ่มใน Google Calendar","📅 All tasks and exams to my calendar":"📅 เพิ่มงานและวันสอบทั้งหมดในปฏิทิน","Tap 📅 on a task to add just that one to Google Calendar.":"แตะ 📅 ที่งานเพื่อเพิ่มเฉพาะงานนั้นใน Google Calendar","Nothing to add yet. Give a task a deadline or add an exam date first.":"ยังไม่มีอะไรให้เพิ่ม กำหนดเส้นตายให้งานหรือเพิ่มวันสอบก่อน","Calendar file saved. Open it and choose Google Calendar to add everything.":"บันทึกไฟล์ปฏิทินแล้ว เปิดไฟล์แล้วเลือก Google Calendar เพื่อเพิ่มทั้งหมด",
 // ---- toasts ----
 "Exam added":"เพิ่มการสอบแล้ว","Saved":"บันทึกแล้ว","Copied":"คัดลอกแล้ว","Nothing due right now. Come back later.":"ตอนนี้ยังไม่มีอะไรถึงรอบ กลับมาใหม่ภายหลัง",
 "Mistake saved. It comes back for review tomorrow.":"บันทึกข้อผิดแล้ว จะกลับมาให้ทบทวนพรุ่งนี้","Mark it with the mark scheme, then enter your score.":"ตรวจด้วยเฉลย แล้วใส่คะแนนของคุณ"
