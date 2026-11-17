@@ -137,6 +137,16 @@ details.howto{display:inline}details.howto>summary{display:inline;cursor:pointer
 .gbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:48px;padding:10px 16px;border-radius:12px;border:1px solid #dadce0;background:#fff;color:#1f1f1f;font:inherit;font-weight:700;cursor:pointer}
 .gbtn:hover{background:#f8f9fa}.gbtn:disabled{opacity:.6;cursor:default}
 .login{max-width:440px;margin:24px auto 0}
+.ordiv{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.85rem}.ordiv::before,.ordiv::after{content:"";flex:1;height:1px;background:var(--line)}
+.authtabs{display:grid;grid-template-columns:1fr 1fr;width:100%;align-self:stretch}
+.pwwrap{position:relative;display:flex}.pwwrap input{flex:1;padding-right:68px}
+.pweye{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--ink);font:inherit;font-size:.82rem;font-weight:700;text-decoration:underline;cursor:pointer;min-height:40px;min-width:56px}
+.pwhint{font-weight:500}
+.goodline{color:var(--good);font-weight:600}
+.sentic{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--soft)}.sentic svg{width:26px;height:26px}
+.vfybar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-color:color-mix(in srgb,var(--warn) 50%,var(--line))}
+.provrow{align-items:center}.provic{width:28px;display:grid;place-items:center;flex:none}
+.subpanel{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
 .loginbrand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.25rem}
 .loginperks{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .btn.danger{color:var(--bad)}
@@ -244,7 +254,7 @@ body.asking{overflow:hidden}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:.88rem;font-weight:500;display:inline-flex;align-items:center;gap:7px}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 label.f{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted);font-weight:500;flex:1;min-width:140px}
-input:not([type]),input[type=text],input[type=date],input[type=number],select,textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 11px;font-size:16px;width:100%;min-height:42px}
+input:not([type]),input[type=text],input[type=email],input[type=password],input[type=date],input[type=number],select,textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 11px;font-size:16px;width:100%;min-height:42px}
 textarea{min-height:90px;resize:vertical}
 .empty{padding:18px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);text-align:center;font-size:.92rem}
 
@@ -1064,7 +1074,7 @@ function viewToday(){
 
   return '<div class="stack today">' +
     '<div class="todayhead"><div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#prefs" class="avlink" aria-label="Your profile">' + avatar(44) + '</a>' : '') + '<div><p class="muted small">' + fmtDate(t, {weekday:'long', day:'numeric', month:'long'}) + '</p><h1>' + greet + (firstName() ? ', ' + esc(firstName()) : '') + '</h1></div></div>' + goalRing() + '</div>' + profileNudge() +
-    examTomorrowCard() + nextCard() + meetInviteCard() + friendReqCard() + studyBoard() + reviewCard(ui.showReview) + backupNudge() + planCard() + examsTimeline() + buddyCard() +
+    verifyBanner() + examTomorrowCard() + nextCard() + meetInviteCard() + friendReqCard() + studyBoard() + reviewCard(ui.showReview) + backupNudge() + planCard() + examsTimeline() + buddyCard() +
     '<div class="grid2">' + (ex.length ? '' : exHtml) +
       '<div class="card"><div class="card-h"><h2>Tasks</h2><a class="small muted" href="#planner">' + (openTasks.length > 5 ? 'All ' + openTasks.length : 'Planner') + '</a></div>' +
         '<form data-form="task-quick" class="row" style="margin-bottom:8px"><input type="text" id="tq" placeholder="Quick add, due today" aria-label="New task due today" style="flex:1;min-width:0"><button class="btn" type="submit">Add</button></form>' +
@@ -1348,6 +1358,11 @@ function viewDeckQuiz(){
       : '<button class="btn primary big" data-act="dq-show" style="width:100%">Show answer</button>') +
     '<p class="small muted noclamp" style="margin:0;text-align:center">Written for IAL Revise on the same topics as this set. <a href="' + esc(pdf) + '" target="_blank" rel="noopener">Open the PMT flashcards ↗</a></p></div>';
 }
+document.addEventListener('input', e => {
+  const t = e.target; if (!t || !t.dataset) return;
+  if (t.dataset.fbk) FB.f[t.dataset.fbk] = t.value;
+  if (t.hasAttribute && t.hasAttribute('data-pwmeter')){ const h = t.closest('label').querySelector('.pwhint'); if (h){ const m = pwStrength(t.value); h.textContent = isTH() ? (thText(m) || m) : m; } }
+});
 document.addEventListener('input', e => { if (e.target && e.target.id === 'dq-ans' && ui.cards && ui.cards.dq) ui.cards.dq.typed = e.target.value; });
 document.addEventListener('keydown', e => {
   const q = ui.cards && ui.cards.dq; if (!q || route() !== 'cards' || q.i >= q.list.length) return;
@@ -3926,7 +3941,8 @@ function peerCard(x, kind){
    claude.ai version has, so sync, Friends and Study buddies all work.
    ============================================================ */
 const FB_V = '13.3.0';
-const FB = { ready: false, user: null, auth: null, A: null, F: null, fs: null, busy: false, err: '' };
+const FB = { ready: false, user: null, auth: null, A: null, F: null, fs: null, busy: false, err: '', note: '', mode: 'signin', f: {}, action: null, panel: null, reauth: null, confirm: null };
+const FB_MS = false;  // Microsoft sign-in (needs the provider switched on in Firebase)
 function fbHint(){ try { return localStorage.getItem('ial-fb-in') === '1'; } catch(e){ return false; } }
 function fbSkipped(){ try { return localStorage.getItem('ial-fb-skip') === '1'; } catch(e){ return false; } }
 function needLogin(){ return ACCT && !FB.user && !fbSkipped() && !(fbHint() && !FB.ready); }
@@ -3952,7 +3968,9 @@ async function fbInit(){
     const [app, A, F] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
     const a = app.initializeApp(FB_CONFIG);
     FB.A = A; FB.F = F; FB.auth = A.getAuth(a); FB.fs = F.getFirestore(a);
+    fbLang();
     try { await A.getRedirectResult(FB.auth); } catch(e){ FB.err = fbMsg(e); }
+    try { await fbHandleLink(A); } catch(e){ console.error(e); }
     A.onAuthStateChanged(FB.auth, u => {
       const was = FB.user && FB.user.uid;
       FB.user = u; FB.ready = true;
@@ -3967,25 +3985,6 @@ async function fbInit(){
       render();
     });
   } catch(e){ FB.ready = true; FB.err = 'Couldn’t load sign-in. Check your internet connection and refresh.'; render(); }
-}
-function fbMsg(e){
-  const c = String(e && e.code || '');
-  if (/popup-closed|cancelled-popup|user-cancelled/.test(c)) return '';
-  if (/network/.test(c)) return 'No internet connection. Try again when you’re online.';
-  if (/unauthorized-domain/.test(c)) return 'Sign-in isn’t set up for this web address yet.';
-  if (/account-exists-with-different-credential/.test(c)) return 'You already have an account with that email using a different sign-in. Use that one.';
-  return 'Sign-in didn’t work. Please try again.';
-}
-async function fbSignIn(){
-  if (!FB.auth || FB.busy) return;
-  FB.busy = true; FB.err = ''; render();
-  const p = new FB.A.GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' });
-  try { await FB.A.signInWithPopup(FB.auth, p); try { localStorage.removeItem('ial-fb-skip'); } catch(e){} }
-  catch(e){
-    if (/popup-blocked|operation-not-supported/.test(String(e && e.code))){ try { await FB.A.signInWithRedirect(FB.auth, p); return; } catch(e2){ FB.err = fbMsg(e2); } }
-    else FB.err = fbMsg(e);
-  }
-  FB.busy = false; render();
 }
 function fbForgetDevice(){
   try { localStorage.removeItem(LS_KEY); localStorage.removeItem('ial-fb-in'); } catch(e){}
@@ -4002,34 +4001,259 @@ async function fbDelete(){
   if (!confirm('Delete your account? This permanently removes your saved progress, profile and friends from IAL Revise, on every device. It can’t be undone.')) return;
   const db = fbDb();
   try {
+    if (!fbRecent(u)) await fbReauth();
     await Promise.all(['data/users/' + u.uid + '/state', 'cards/' + u.uid, 'buddies/' + u.uid].map(p => db.doc(p).delete().catch(() => {})));
     try { await u.delete(); }
     catch(e){
-      if (/requires-recent-login/.test(String(e && e.code))){ await FB.A.reauthenticateWithPopup(u, new FB.A.GoogleAuthProvider()); await u.delete(); }
+      if (/requires-recent-login/.test(String(e && e.code))){ await fbReauth(); await u.delete(); }
       else throw e;
     }
     fbForgetDevice(); location.hash = ''; location.reload();
   } catch(e){ toast('Couldn’t delete the account. Try again, or sign out and back in first.'); }
 }
 const G_LOGO = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
-function gButton(label){ return '<button class="gbtn" data-act="fb-in"' + (!FB.ready || FB.busy ? ' disabled' : '') + '>' + G_LOGO + '<span>' + (FB.busy ? 'Signing in…' : !FB.ready ? 'Loading…' : (label || 'Continue with Google')) + '</span></button>'; }
 function langSwitch(){ return '<div class="row notr" style="justify-content:flex-end;gap:6px"><button class="linkbtn small langsw" data-act="pref-set" data-k="lang" data-v="' + (uiLang() === 'th' ? 'en' : 'th') + '">' + (uiLang() === 'th' ? 'English' : 'ภาษาไทย') + '</button></div>'; }
-function viewLogin(){
-  return '<div class="login stack">' + langSwitch() +
-    '<div><h1>Sign in to IAL Revise</h1><p class="muted" style="margin:6px 0 0">Past papers, notes, flashcards, a planner and grade tracking for Pearson Edexcel International A Level.</p></div>' +
-    '<ul class="loginperks"><li>Your progress follows you to any phone, tablet or computer</li><li>Add friends and see each other’s subjects</li><li>Nothing lost if you clear your browser</li></ul>' +
-    gButton() +
-    (FB.err ? '<p class="small warnline" role="alert" style="margin:0">' + esc(FB.err) + '</p>' : '') +
-    '<button class="linkbtn" data-act="fb-skip">Continue without an account</button>' +
-    '<p class="small muted" style="margin:0">Without an account, progress stays in this browser only. Signing in saves your email, name and study progress so they can sync. We never sell or share it, and you can delete it any time in Settings. <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>' +
-  '</div>';
+function fbMsg(e){
+  const c = String(e && e.code || '');
+  if (/popup-closed|cancelled-popup|user-cancelled/.test(c)) return '';
+  if (/network/.test(c)) return 'No internet connection. Try again when you’re online.';
+  if (/unauthorized-domain/.test(c)) return 'Sign-in isn’t set up for this web address yet.';
+  if (/account-exists-with-different-credential|credential-already-in-use/.test(c)) return 'You already have an account with this email that uses a different sign-in. Sign in that way, then link this one in Settings.';
+  if (/invalid-credential|wrong-password|user-not-found|invalid-login/.test(c)) return 'The email or password is wrong. Check them, or reset your password.';
+  if (/email-already-in-use/.test(c)) return 'There’s already an account with this email. Sign in instead, or reset your password.';
+  if (/invalid-email|missing-email/.test(c)) return 'That email address doesn’t look right.';
+  if (/weak-password|password-does-not-meet/.test(c)) return 'Choose a longer password: at least 8 characters.';
+  if (/missing-password/.test(c)) return 'Enter your password.';
+  if (/too-many-requests/.test(c)) return 'Too many tries. Wait a few minutes, or reset your password.';
+  if (/user-disabled/.test(c)) return 'This account has been turned off.';
+  if (/operation-not-allowed|configuration-not-found|admin-restricted/.test(c)) return 'This way of signing in isn’t switched on yet. Use another option for now.';
+  if (/expired-action-code|invalid-action-code/.test(c)) return 'This link has expired or has already been used. Ask for a new one.';
+  if (/provider-already-linked/.test(c)) return 'That sign-in is already linked to your account.';
+  if (/requires-recent-login/.test(c)) return 'For your security, sign in again first.';
+  return 'Sign-in didn’t work. Please try again.';
 }
+const MS_LOGO = '<svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>';
+const MAIL_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
+function fbProvider(kind){
+  if (kind === 'microsoft'){ const p = new FB.A.OAuthProvider('microsoft.com'); p.setCustomParameters({ prompt: 'select_account' }); return p; }
+  const p = new FB.A.GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' }); return p;
+}
+function fbLang(){ try { FB.auth.languageCode = uiLang() === 'th' ? 'th' : 'en'; } catch(e){} }
+function fbHome(){ return location.origin + location.pathname; }
+function fbProviders(u){ return ((u || FB.user || {}).providerData || []).map(p => p.providerId); }
+function fbSignedIn(){ try { localStorage.removeItem('ial-fb-skip'); } catch(e){} FB.mode = 'signin'; FB.f = { email: FB.f.email || '' }; }
+async function fbSignIn(kind){
+  if (!FB.auth || FB.busy) return;
+  FB.busy = kind || 'google'; FB.err = ''; render();
+  const p = fbProvider(kind);
+  try { await FB.A.signInWithPopup(FB.auth, p); fbSignedIn(); }
+  catch(e){
+    if (/popup-blocked|operation-not-supported/.test(String(e && e.code))){ try { await FB.A.signInWithRedirect(FB.auth, p); return; } catch(e2){ FB.err = fbMsg(e2); } }
+    else FB.err = fbMsg(e);
+  }
+  FB.busy = false; render();
+}
+/* Email and password, reset, email links. Passwords go straight to Firebase; this page never stores them. */
+function fbClearQuery(){ try { history.replaceState(null, '', location.pathname + location.hash); } catch(e){} }
+async function fbHandleLink(A){
+  const q = new URLSearchParams(location.search), mode = q.get('mode'), code = q.get('oobCode');
+  if (A.isSignInWithEmailLink(FB.auth, location.href)){
+    let email = ''; try { email = localStorage.getItem('ial-fb-linkmail') || ''; } catch(e){}
+    if (!email){ FB.action = { mode: 'emaillink', href: location.href }; return; }
+    await fbFinishEmailLink(email, location.href); return;
+  }
+  if (!mode || !code) return;
+  FB.action = { mode, code, busy: true };
+  try {
+    if (mode === 'resetPassword'){ FB.action.email = await A.verifyPasswordResetCode(FB.auth, code); FB.action.busy = false; return; }
+    if (mode === 'verifyEmail'){ await A.applyActionCode(FB.auth, code); if (FB.auth.currentUser) try { await FB.auth.currentUser.reload(); } catch(e){} FB.action = { mode: 'done', msg: 'Your email is verified. Thank you!' }; }
+    else if (mode === 'recoverEmail'){ const info = await A.checkActionCode(FB.auth, code); await A.applyActionCode(FB.auth, code); FB.action = { mode: 'done', msg: 'Your sign-in email has been changed back to ' + ((info && info.data && info.data.email) || 'your old email') + '. If you didn’t ask for the change, reset your password now.', email: info && info.data && info.data.email, offerReset: true }; }
+    else if (mode === 'verifyAndChangeEmail'){ await A.applyActionCode(FB.auth, code); FB.action = { mode: 'done', msg: 'Your sign-in email has been changed. Sign in again with your new email.' }; }
+    else FB.action = null;
+  } catch(e){ FB.action = { mode: 'done', bad: true, msg: fbMsg(e) }; }
+  fbClearQuery();
+}
+async function fbFinishEmailLink(email, href){
+  try {
+    await FB.A.signInWithEmailLink(FB.auth, email, href);
+    try { localStorage.removeItem('ial-fb-linkmail'); } catch(e){}
+    FB.action = null; fbSignedIn(); fbClearQuery(); toast('You’re signed in.');
+  } catch(e){ FB.action = { mode: 'done', bad: true, msg: fbMsg(e) }; fbClearQuery(); }
+  render();
+}
+function pwOk(p){ return typeof p === 'string' && p.length >= 8; }
+function pwField(name, label, auto, hint){
+  return '<label class="f" style="margin:0">' + label + '<span class="pwwrap"><input type="password" name="' + name + '" autocomplete="' + auto + '" required minlength="' + (auto === 'current-password' ? 1 : 8) + '"' + (auto === 'new-password' ? ' data-pwmeter' : '') + '><button type="button" class="pweye" data-act="pw-eye" aria-label="Show password">Show</button></span>' +
+    (hint ? '<span class="small muted pwhint" aria-live="polite">' + hint + '</span>' : '') + '</label>';
+}
+function pwStrength(p){
+  if (!p) return 'At least 8 characters.';
+  if (p.length < 8) return 'Too short: ' + p.length + ' of 8 characters.';
+  const kinds = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter(r => r.test(p)).length;
+  return p.length >= 12 && kinds >= 3 ? 'Strong password.' : kinds >= 2 || p.length >= 12 ? 'OK. Longer or mixed characters is stronger.' : 'Weak. Add numbers, capitals or more characters.';
+}
+function emailField(auto){ return '<label class="f" style="margin:0">Email<input type="email" name="email" autocomplete="' + (auto || 'email') + '" inputmode="email" autocapitalize="off" spellcheck="false" required value="' + esc(FB.f.email || '') + '" data-fbk="email"></label>'; }
+async function fbForm(kind, f){
+  const A = FB.A, val = n => (f.elements[n] ? f.elements[n].value : '').trim(), raw = n => f.elements[n] ? f.elements[n].value : '';
+  if (!A || FB.busy) return;
+  const run = async (fn, keepBusy) => { FB.busy = kind; FB.err = ''; FB.note = ''; render(); try { await fn(); } catch(e){ FB.err = fbMsg(e); } if (!keepBusy) FB.busy = false; render(); };
+  fbLang();
+  if (kind === 'fb-email-in'){ FB.f.email = val('email'); return run(async () => { await A.signInWithEmailAndPassword(FB.auth, val('email'), raw('password')); fbSignedIn(); }); }
+  if (kind === 'fb-create'){
+    const name = val('name'), email = val('email'), pw = raw('password');
+    FB.f.email = email; FB.f.name = name;
+    if (!pwOk(pw)){ FB.err = 'Choose a longer password: at least 8 characters.'; render(); return; }
+    return run(async () => {
+      const cr = await A.createUserWithEmailAndPassword(FB.auth, email, pw);
+      if (name){ try { await A.updateProfile(cr.user, { displayName: name }); } catch(e){} const pr = prof(); if (!pr.name){ pr.name = name.slice(0, 40); saveLocal(); } }
+      try { await A.sendEmailVerification(cr.user, { url: fbHome() }); } catch(e){}
+      fbSignedIn(); toast('Account created. We’ve sent you an email to verify your address.');
+    });
+  }
+  if (kind === 'fb-forgot'){ FB.f.email = val('email'); return run(async () => {
+    try { await A.sendPasswordResetEmail(FB.auth, val('email'), { url: fbHome() }); }
+    catch(e){ if (!/user-not-found/.test(String(e && e.code))) throw e; }
+    FB.mode = 'forgot-sent';
+  }); }
+  if (kind === 'fb-link'){ FB.f.email = val('email'); return run(async () => {
+    await A.sendSignInLinkToEmail(FB.auth, val('email'), { url: fbHome(), handleCodeInApp: true });
+    try { localStorage.setItem('ial-fb-linkmail', val('email')); } catch(e){}
+    FB.mode = 'link-sent';
+  }); }
+  if (kind === 'fb-linkmail'){ FB.f.email = val('email'); FB.busy = kind; render(); await fbFinishEmailLink(val('email'), FB.action.href); FB.busy = false; render(); return; }
+  if (kind === 'fb-reset'){
+    const pw = raw('password'), a = FB.action;
+    if (!pwOk(pw)){ FB.err = 'Choose a longer password: at least 8 characters.'; render(); return; }
+    return run(async () => {
+      await A.confirmPasswordReset(FB.auth, a.code, pw);
+      try { await A.signInWithEmailAndPassword(FB.auth, a.email, pw); fbSignedIn(); FB.action = null; fbClearQuery(); toast('Password changed. You’re signed in.'); }
+      catch(e){ FB.action = { mode: 'done', msg: 'Password changed. Sign in with your new password.' }; fbClearQuery(); }
+    });
+  }
+  const u = FB.user; if (!u) return;
+  const cred = pw => A.EmailAuthProvider.credential(u.email, pw);
+  if (kind === 'fb-reauth') return run(async () => { await A.reauthenticateWithCredential(u, cred(raw('password'))); const r = FB.reauth; FB.reauth = null; r && r.res(); });
+  if (kind === 'fb-chpw'){
+    if (!pwOk(raw('new'))){ FB.err = 'Choose a longer password: at least 8 characters.'; render(); return; }
+    return run(async () => { await A.reauthenticateWithCredential(u, cred(raw('current'))); await A.updatePassword(u, raw('new')); FB.panel = null; toast('Password changed.'); });
+  }
+  if (kind === 'fb-addpw'){
+    if (!pwOk(raw('new'))){ FB.err = 'Choose a longer password: at least 8 characters.'; render(); return; }
+    return run(async () => { try { await A.linkWithCredential(u, cred(raw('new'))); } catch(e){ if (!/requires-recent-login/.test(String(e && e.code))) throw e; await fbReauth(); await A.linkWithCredential(u, cred(raw('new'))); } await fbRefresh(); FB.panel = null; toast('Password added. You can now sign in with your email and password too.'); });
+  }
+  if (kind === 'fb-chemail'){
+    const to = val('email');
+    return run(async () => {
+      if (fbProviders(u).includes('password')) await A.reauthenticateWithCredential(u, cred(raw('password')));
+      await A.verifyBeforeUpdateEmail(u, to, { url: fbHome() });
+      FB.panel = null; FB.note = 'We’ve sent a link to ' + to + '. Your email changes when you open it.';
+    });
+  }
+}
+async function fbRefresh(){ try { await FB.user.reload(); FB.user = FB.auth.currentUser; } catch(e){} }
+/* Some changes need a fresh sign-in. Google or Microsoft users get a popup; password users type their password. */
+function fbReauth(){
+  const u = FB.user, ps = fbProviders(u);
+  if (ps.includes('password')) return new Promise((res, rej) => { FB.reauth = { res, rej }; FB.err = ''; render(); setTimeout(() => { const i = document.querySelector('form[data-form="fb-reauth"] input'); if (i) i.focus(); }, 60); });
+  return FB.A.reauthenticateWithPopup(u, fbProvider(ps.includes('microsoft.com') && !ps.includes('google.com') ? 'microsoft' : 'google'));
+}
+function fbRecent(u){ const t = Date.parse(u && u.metadata && u.metadata.lastSignInTime || ''); return t && Date.now() - t < 4 * 60e3; }
+async function fbLinkProvider(kind){
+  if (!FB.user || FB.busy) return; FB.busy = 'link-' + kind; FB.err = ''; render();
+  try { await FB.A.linkWithPopup(FB.user, fbProvider(kind)); await fbRefresh(); toast(kind === 'microsoft' ? 'Microsoft linked.' : 'Google linked.'); }
+  catch(e){ FB.err = fbMsg(e); }
+  FB.busy = false; render();
+}
+async function fbUnlink(id){
+  if (!FB.user || fbProviders().length < 2) return;
+  if (FB.confirm !== 'unlink-' + id){ FB.confirm = 'unlink-' + id; render(); return; }
+  FB.confirm = null;
+  try { await FB.A.unlink(FB.user, id); await fbRefresh(); toast('Removed.'); } catch(e){ FB.err = fbMsg(e); }
+  render();
+}
+async function fbResendVerify(){
+  try { fbLang(); await FB.A.sendEmailVerification(FB.user, { url: fbHome() }); toast('Sent. Check your inbox and spam folder.'); }
+  catch(e){ toast(fbMsg(e) || 'Couldn’t send the email.'); }
+}
+function fbNeedsVerify(){ const u = FB.user; return !!(ACCT && u && !u.emailVerified && fbProviders(u).includes('password')); }
+function verifyBanner(){
+  if (!fbNeedsVerify()) return '';
+  try { if (sessionStorage.getItem('ial-vfy-hide')) return ''; } catch(e){}
+  return '<div class="card vfybar" role="status"><div class="grow"><b>Verify your email</b><div class="small muted">We sent a link to <span class="notr">' + esc(FB.user.email) + '</span>. You need a real email to reset a forgotten password.</div></div>' +
+    '<div class="row"><button class="btn sm" data-act="fb-vfy-check">I’ve verified</button><button class="btn sm ghost" data-act="fb-vfy-send">Resend</button><button class="btn sm ghost" data-act="fb-vfy-hide" aria-label="Hide">✕</button></div></div>';
+}
+function gButton(label){ return '<button class="gbtn" data-act="fb-in" data-v="google"' + (!FB.ready || FB.busy ? ' disabled' : '') + '>' + G_LOGO + '<span>' + (FB.busy === 'google' ? 'Signing in…' : !FB.ready ? 'Loading…' : (label || 'Continue with Google')) + '</span></button>'; }
+function msButton(label){ return FB_MS ? '<button class="gbtn" data-act="fb-in" data-v="microsoft"' + (!FB.ready || FB.busy ? ' disabled' : '') + '>' + MS_LOGO + '<span>' + (FB.busy === 'microsoft' ? 'Signing in…' : (label || 'Continue with Microsoft')) + '</span></button>' : ''; }
+function fbErrLine(){ return (FB.err ? '<p class="small warnline" role="alert" style="margin:0">' + esc(FB.err) + '</p>' : '') + (FB.note ? '<p class="small goodline" role="status" style="margin:0">' + esc(FB.note) + '</p>' : ''); }
+function busyLabel(k, idle, doing){ return FB.busy === k ? doing : idle; }
+function viewAuthAction(){
+  const a = FB.action, back = '<button class="linkbtn" data-act="fb-act-close">Continue to IAL Revise</button>';
+  let body;
+  if (a.busy) body = '<p class="muted">Checking your link…</p>';
+  else if (a.mode === 'resetPassword') body = '<h1>Choose a new password</h1><p class="muted" style="margin:0">For <b class="notr">' + esc(a.email || '') + '</b></p>' +
+    '<form class="stack" data-form="fb-reset" novalidate>' + pwField('password', 'New password', 'new-password', pwStrength('')) + fbErrLine() +
+    '<button class="btn primary big" type="submit"' + (FB.busy ? ' disabled' : '') + '>' + busyLabel('fb-reset', 'Save password and sign in', 'Saving…') + '</button></form>';
+  else if (a.mode === 'emaillink') body = '<h1>Confirm your email</h1><p class="muted" style="margin:0">You opened the sign-in link on a different device or browser. Type the email you used so we can sign you in.</p>' +
+    '<form class="stack" data-form="fb-linkmail" novalidate>' + emailField() + fbErrLine() + '<button class="btn primary big" type="submit"' + (FB.busy ? ' disabled' : '') + '>' + busyLabel('fb-linkmail', 'Sign in', 'Signing in…') + '</button></form>';
+  else body = '<h1>' + (a.bad ? 'That link didn’t work' : 'Done') + '</h1><p style="margin:0">' + esc(a.msg || '') + '</p>' +
+    (a.offerReset && a.email ? '<button class="btn" data-act="fb-act-reset" data-v="' + esc(a.email) + '">Reset my password</button>' : '');
+  return '<div class="login stack">' + langSwitch() + '<div class="loginbrand"><span class="logo">IAL</span> Revise</div>' + body + back + '</div>';
+}
+function viewLogin(){
+  const m = FB.mode || 'signin', dis = FB.busy ? ' disabled' : '';
+  const head = '<div class="login stack">' + langSwitch();
+  const foot = '<button class="linkbtn" data-act="fb-skip">Continue without an account</button>' +
+    '<p class="small muted" style="margin:0">Without an account, progress stays in this browser only. Signing in saves your email, name and study progress so they can sync. Passwords are handled by Google Firebase and never seen by IAL Revise. We never sell or share your data, and you can delete it any time in Settings. <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p></div>';
+  const backLink = '<button class="linkbtn" data-act="fb-mode" data-v="signin">← Back to sign in</button>';
+  if (m === 'forgot') return head + '<div><h1>Reset your password</h1><p class="muted" style="margin:6px 0 0">Type the email you signed up with. We’ll send you a link to choose a new password.</p></div>' +
+    '<form class="stack" data-form="fb-forgot" novalidate>' + emailField() + fbErrLine() + '<button class="btn primary big" type="submit"' + dis + '>' + busyLabel('fb-forgot', 'Send reset link', 'Sending…') + '</button></form>' + backLink + foot;
+  if (m === 'forgot-sent' || m === 'link-sent') return head + '<div class="stack" style="gap:10px"><div class="sentic" aria-hidden="true">' + MAIL_ICON + '</div><h1>Check your email</h1>' +
+    '<p style="margin:0">' + (m === 'forgot-sent' ? 'If there’s an account for <b class="notr">' + esc(FB.f.email || '') + '</b>, we’ve sent a link to reset the password.' : 'We’ve sent a sign-in link to <b class="notr">' + esc(FB.f.email || '') + '</b>. Open it on this device to sign in.') + '</p>' +
+    '<p class="small muted" style="margin:0">It can take a minute. Check your spam or junk folder too. The link works once and expires after a while.</p></div>' +
+    '<div class="row"><button class="btn" data-act="fb-mode" data-v="' + (m === 'forgot-sent' ? 'forgot' : 'link') + '">Send again</button></div>' + backLink + foot;
+  if (m === 'link') return head + '<div><h1>Sign in with an email link</h1><p class="muted" style="margin:6px 0 0">No password needed. We’ll email you a link that signs you in. If you don’t have an account yet, this creates one.</p></div>' +
+    '<form class="stack" data-form="fb-link" novalidate>' + emailField() + fbErrLine() + '<button class="btn primary big" type="submit"' + dis + '>' + busyLabel('fb-link', 'Email me a sign-in link', 'Sending…') + '</button></form>' + backLink + foot;
+  const create = m === 'create';
+  return head +
+    '<div><h1>' + (create ? 'Create your IAL Revise account' : 'Sign in to IAL Revise') + '</h1><p class="muted" style="margin:6px 0 0">Past papers, notes, flashcards, a planner and grade tracking for Pearson Edexcel International A Level.</p></div>' +
+    (create ? '' : '<ul class="loginperks"><li>Your progress follows you to any phone, tablet or computer</li><li>Add friends and see each other’s subjects</li><li>Nothing lost if you clear your browser</li></ul>') +
+    '<div class="stack" style="gap:10px">' + gButton() + msButton() + '</div>' +
+    '<div class="ordiv"><span>or use your email</span></div>' +
+    '<div class="seg2 authtabs" role="tablist"><button role="tab" data-act="fb-mode" data-v="signin" aria-pressed="' + !create + '" aria-selected="' + !create + '">Sign in</button><button role="tab" data-act="fb-mode" data-v="create" aria-pressed="' + create + '" aria-selected="' + create + '">Create account</button></div>' +
+    (create
+      ? '<form class="stack" data-form="fb-create" novalidate><label class="f" style="margin:0">Your name<input name="name" autocomplete="name" maxlength="40" value="' + esc(FB.f.name || prof().name || '') + '" data-fbk="name" placeholder="Shown to friends you add"></label>' + emailField() + pwField('password', 'Password', 'new-password', pwStrength('')) + fbErrLine() +
+        '<button class="btn primary big" type="submit"' + dis + '>' + busyLabel('fb-create', 'Create account', 'Creating…') + '</button></form>'
+      : '<form class="stack" data-form="fb-email-in" novalidate>' + emailField('username') + pwField('password', 'Password', 'current-password') + fbErrLine() +
+        '<button class="btn primary big" type="submit"' + dis + '>' + busyLabel('fb-email-in', 'Sign in', 'Signing in…') + '</button></form>' +
+        '<div class="row" style="justify-content:space-between"><button class="linkbtn" data-act="fb-mode" data-v="forgot">Forgot password?</button><button class="linkbtn" data-act="fb-mode" data-v="link">Email me a sign-in link</button></div>') +
+    foot;
+}
+const PROV_NAME = { 'google.com': 'Google', 'microsoft.com': 'Microsoft', 'password': 'Email and password' };
 function accountCard(){
   if (!ACCT) return '';
   const u = FB.user;
-  if (!u) return '<div class="card stack" id="acct"><div class="card-h"><h2>Account</h2></div><p class="small muted" style="margin:0">Sign in to keep your progress safe and use it on any device. Your progress on this device moves into your account.</p>' + gButton() + (FB.err ? '<p class="small warnline" style="margin:0">' + esc(FB.err) + '</p>' : '') + '</div>';
+  if (!u) return '<div class="card stack" id="acct"><div class="card-h"><h2>Account</h2></div><p class="small muted" style="margin:0">Sign in to keep your progress safe and use it on any device. Your progress on this device moves into your account.</p>' +
+    '<div class="row"><button class="btn primary" data-act="fb-gate">Sign in or create an account</button></div></div>';
+  const ps = fbProviders(u), hasPw = ps.includes('password'), icon = ps.includes('google.com') ? G_LOGO : ps.includes('microsoft.com') ? MS_LOGO : MAIL_ICON;
+  const row = (id, logo, linked) => '<div class="li provrow"><span class="provic">' + logo + '</span><div class="grow"><b>' + PROV_NAME[id] + '</b>' + (linked ? '<div class="small muted">Linked</div>' : '') + '</div>' +
+    (linked ? (ps.length > 1 ? '<button class="btn sm ghost' + (FB.confirm === 'unlink-' + id ? ' danger' : '') + '" data-act="fb-unlink" data-v="' + id + '">' + (FB.confirm === 'unlink-' + id ? 'Tap again to remove' : 'Remove') + '</button>' : '')
+      : id === 'password' ? '<button class="btn sm" data-act="fb-panel" data-v="addpw">Add a password</button>' : '<button class="btn sm" data-act="fb-link" data-v="' + (id === 'google.com' ? 'google' : 'microsoft') + '"' + (FB.busy ? ' disabled' : '') + '>' + (FB.busy === 'link-' + (id === 'google.com' ? 'google' : 'microsoft') ? 'Linking…' : 'Link') + '</button>') + '</div>';
+  const panel = FB.panel === 'pw' ? '<form class="stack subpanel" data-form="fb-chpw" novalidate><b>Change password</b>' + pwField('current', 'Current password', 'current-password') + pwField('new', 'New password', 'new-password', pwStrength('')) +
+      '<div class="row"><button class="btn primary" type="submit"' + (FB.busy ? ' disabled' : '') + '>' + busyLabel('fb-chpw', 'Save new password', 'Saving…') + '</button><button class="btn ghost" type="button" data-act="fb-panel" data-v="">Cancel</button></div><button class="linkbtn small" type="button" data-act="fb-forgot-me">Forgot your current password?</button></form>'
+    : FB.panel === 'addpw' ? '<form class="stack subpanel" data-form="fb-addpw" novalidate><b>Add a password</b><p class="small muted" style="margin:0">Then you can also sign in with <span class="notr">' + esc(u.email || '') + '</span> and this password.</p>' + pwField('new', 'Password', 'new-password', pwStrength('')) +
+      '<div class="row"><button class="btn primary" type="submit"' + (FB.busy ? ' disabled' : '') + '>' + busyLabel('fb-addpw', 'Add password', 'Saving…') + '</button><button class="btn ghost" type="button" data-act="fb-panel" data-v="">Cancel</button></div></form>'
+    : FB.panel === 'email' ? '<form class="stack subpanel" data-form="fb-chemail" novalidate><b>Change sign-in email</b><label class="f" style="margin:0">New email<input type="email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" required></label>' + (hasPw ? pwField('password', 'Current password', 'current-password') : '') +
+      '<p class="small muted" style="margin:0">We’ll send a link to the new address. Your email changes when you open it.</p><div class="row"><button class="btn primary" type="submit"' + (FB.busy ? ' disabled' : '') + '>' + busyLabel('fb-chemail', 'Send link', 'Sending…') + '</button><button class="btn ghost" type="button" data-act="fb-panel" data-v="">Cancel</button></div></form>' : '';
+  const reauth = FB.reauth ? '<form class="stack subpanel" data-form="fb-reauth" novalidate><b>Enter your password to continue</b>' + pwField('password', 'Password', 'current-password') +
+      '<div class="row"><button class="btn primary" type="submit"' + (FB.busy ? ' disabled' : '') + '>Continue</button><button class="btn ghost" type="button" data-act="fb-reauth-cancel">Cancel</button></div></form>' : '';
   return '<div class="card stack" id="acct"><div class="card-h"><h2>Account</h2><span class="pill good">' + (cloud.status === 'synced' ? 'Synced' : cloud.status === 'saving' || cloud.status === 'pending' ? 'Saving…' : 'Signed in') + '</span></div>' +
-    '<div class="row" style="gap:10px;align-items:center">' + G_LOGO + '<div class="grow" style="min-width:0"><div class="small muted">Signed in with Google</div><div style="overflow-wrap:anywhere"><b>' + esc(u.email || u.displayName || '') + '</b></div></div></div>' +
+    '<div class="row" style="gap:10px;align-items:center">' + icon + '<div class="grow" style="min-width:0"><div class="small muted">Signed in as</div><div style="overflow-wrap:anywhere"><b class="notr">' + esc(u.email || u.displayName || '') + '</b>' +
+      (hasPw ? (u.emailVerified ? ' <span class="pill good">Verified</span>' : ' <span class="pill warn">Not verified</span>') : '') + '</div></div></div>' +
+    (fbNeedsVerify() ? '<div class="row"><span class="small muted grow">Check your inbox for the verification link.</span><button class="btn sm" data-act="fb-vfy-check">I’ve verified</button><button class="btn sm ghost" data-act="fb-vfy-send">Resend</button></div>' : '') +
+    reauth + fbErrLine() +
+    '<div><div class="small muted" style="font-weight:600;margin-bottom:4px">Ways to sign in</div><div class="list">' + row('google.com', G_LOGO, ps.includes('google.com')) + (FB_MS || ps.includes('microsoft.com') ? row('microsoft.com', MS_LOGO, ps.includes('microsoft.com')) : '') + row('password', MAIL_ICON, hasPw) + '</div></div>' +
+    panel +
+    (!FB.panel ? '<div class="row">' + (hasPw ? '<button class="btn sm" data-act="fb-panel" data-v="pw">Change password</button>' : '') + (hasPw ? '<button class="btn sm" data-act="fb-panel" data-v="email">Change email</button>' : '') + '</div>' : '') +
     '<div class="row"><button class="btn" data-act="fb-out">Sign out</button><button class="btn ghost danger" data-act="fb-del">Delete account</button></div>' +
     '<p class="small muted" style="margin:0">Signing out also removes your progress from this browser (it stays safe in your account). Use this on shared computers.</p></div>';
 }
@@ -4420,8 +4644,8 @@ function render(){
   $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && r === 'cards') ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
   $('#nav-settings').setAttribute('aria-current', r === 'prefs' ? 'page' : 'false'); { const ns = $('#nav-search'); if (ns) ns.setAttribute('aria-current', r === 'search' ? 'page' : 'false'); } fsSync();
   const v = { today:viewToday, cards:viewCards, quiz:viewQuiz, papers:viewPapers, syllabus:viewSyllabus, planner:viewPlanner, calendar:viewCalendar, prefs:viewSettings, search:viewSearch, grades:viewGrades, mistakes:viewMistakes, setup:viewSetup }[r];
-  const gate = needLogin(); document.body.classList.toggle('gate', gate);
-  try { $('#view').innerHTML = gate ? viewLogin() : mockBar() + (route() === 'today' && shouldWelcome() ? viewWelcome() : v()); }
+  const gate = needLogin() || !!(ACCT && FB.action); document.body.classList.toggle('gate', gate);
+  try { $('#view').innerHTML = ACCT && FB.action ? viewAuthAction() : gate ? viewLogin() : mockBar() + (route() === 'today' && shouldWelcome() ? verifyBanner() + viewWelcome() : v()); }
   catch(err){ console.error(err); $('#view').innerHTML = '<div class="card" role="alert"><h2>Something went wrong on this page</h2><p class="muted">' + esc(String(err && err.message || err)) + '</p><div class="row"><button class="btn primary" data-act="err-reload">Reload</button></div></div>'; }
   try { tick(true); } catch(err){ console.error(err); }
   try { renderRet(); } catch(err){}
@@ -4545,7 +4769,20 @@ document.addEventListener('click', e => {
     case 'fr-ignore': frDrop(id); break;
     case 'fr-remove': frDrop(id); toast('Removed. They can no longer see your profile.'); break;
     case 'fr-cancel': delete frState().friends[id]; commit(); frPublish(); break;
-    case 'fb-in': fbSignIn(); break;
+    case 'fb-in': fbSignIn(v || 'google'); break;
+    case 'fb-mode': FB.mode = v; FB.err = ''; FB.note = ''; render(); window.scrollTo(0, 0); setTimeout(() => { const i = document.querySelector('.login form input:not([value=""]) ~ * input, .login form input[name=email]'); if (i && v !== 'signin' && v !== 'create') i.focus(); }, 50); break;
+    case 'fb-gate': try { localStorage.removeItem('ial-fb-skip'); } catch(e){} FB.mode = 'signin'; FB.err = ''; render(); window.scrollTo(0, 0); break;
+    case 'pw-eye': { const i = b.parentElement.querySelector('input'); if (!i) break; const show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.textContent = isTH() ? (show ? 'ซ่อน' : 'แสดง') : (show ? 'Hide' : 'Show'); b.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); i.focus(); break; }
+    case 'fb-act-close': FB.action = null; FB.err = ''; fbClearQuery(); render(); break;
+    case 'fb-act-reset': FB.action = null; FB.mode = 'forgot'; FB.f.email = v; fbClearQuery(); render(); break;
+    case 'fb-link': fbLinkProvider(v); break;
+    case 'fb-unlink': fbUnlink(v); break;
+    case 'fb-panel': FB.panel = v || null; FB.err = ''; FB.note = ''; render(); break;
+    case 'fb-forgot-me': FB.panel = null; fbLang(); FB.A.sendPasswordResetEmail(FB.auth, FB.user.email, { url: fbHome() }).then(() => { FB.note = 'We’ve sent a reset link to ' + FB.user.email + '.'; render(); }, e => { FB.err = fbMsg(e); render(); }); break;
+    case 'fb-reauth-cancel': { const r = FB.reauth; FB.reauth = null; render(); if (r) r.rej(Object.assign(new Error('cancel'), { code: 'auth/user-cancelled' })); break; }
+    case 'fb-vfy-send': fbResendVerify(); break;
+    case 'fb-vfy-check': fbRefresh().then(() => { toast(FB.user && FB.user.emailVerified ? 'Thanks, your email is verified.' : 'Not verified yet. Open the link in the email first.'); render(); }); break;
+    case 'fb-vfy-hide': try { sessionStorage.setItem('ial-vfy-hide', '1'); } catch(e){} render(); break;
     case 'fb-skip': try { localStorage.setItem('ial-fb-skip', '1'); } catch(e){} FB.err = ''; render(); window.scrollTo(0, 0); break;
     case 'fb-out': fbSignOut(); break;
     case 'fb-del': fbDelete(); break;
@@ -4805,6 +5042,7 @@ document.addEventListener('change', e => {
 document.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details.cp')){ if (d.open) ui.cpOpen = d.dataset.cp; else if (ui.cpOpen === d.dataset.cp) ui.cpOpen = null; return; } if (d.matches && d.matches('details.pmtq')){ if (d.open) ui.quiz.openPmt = d.dataset.k; else if (ui.quiz.openPmt === d.dataset.k) ui.quiz.openPmt = null; return; } if (d.matches && d.matches('details.unit')){ if (d.open) ui.syllabus.open = d.dataset.unit; else if (ui.syllabus.open === d.dataset.unit) ui.syllabus.open = null; } }, true);
 document.addEventListener('submit', e => {
   const f = e.target.closest('form[data-form]'); if (!f) return;
+  if (f.dataset.form.indexOf('fb-') === 0){ e.preventDefault(); fbForm(f.dataset.form, f); return; }
   if (f.dataset.form === 'profile'){ e.preventDefault(); profileSave(f); return; }
   if (f.dataset.form === 'busy-add'){ e.preventDefault(); const d = $('#busy-d').value; if (d && !prefs().busy.includes(d)){ prefs().busy.push(d); commit(); toast('Busy day added'); } return; }
   e.preventDefault();
