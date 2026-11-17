@@ -37,7 +37,7 @@
   --bg:#f3f5f8; --surface:#ffffff; --ink:#14213a; --muted:#5a6880; --line:#dde3ec;
   --primary:#19325c; --on-primary:#ffffff; --hi:#f0b429; --soft:#e9eef6;
   --good:#2b8a3e; --warn:#d9480f; --bad:#c2255c;
-  --math:#4058e0; --fm:#8a3fd1; --phys:#e0702a; --chem:#0e9384; --bio:#3f8f2f; --econ:#c0392b; --geog:#8a6a2e; --psych:#c2367f; --cs:#4b5a70; --hist:#7a4b2a;
+  --math:#4058e0; --fm:#8a3fd1; --phys:#e0702a; --chem:#0e9384; --bio:#3f8f2f; --econ:#c0392b; --geog:#8a6a2e; --psych:#c2367f; --cs:#4b5a70; --hist:#7a4b2a; --acc:#2f6f9f; --bus:#b5651d; --enlang:#6b4fa0; --enlit:#9c2f5a; --law:#5a5a2a; --it:#1f7a8c; --fre:#2a5db0; --ger:#8a6d00; --spa:#c2410c; --ara:#0f766e; --gre:#3355aa;
   --display:"IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
   --body:"IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", "Leelawadee UI", Thonburi, "Noto Sans Thai", Sarabun, sans-serif;
   --mono:"IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
@@ -49,7 +49,7 @@
     --bg:#0d1320; --surface:#151d2c; --ink:#e7ecf4; --muted:#95a3b9; --line:#253149;
     --primary:#f0b429; --on-primary:#141a26; --hi:#f0b429; --soft:#1c2638;
     --good:#51cf66; --warn:#ff922b; --bad:#f06595;
-    --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f; --econ:#f07b6e; --geog:#d1ad6c; --psych:#f07fbb; --cs:#a3b2c7; --hist:#d79a6e;
+    --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f; --econ:#f07b6e; --geog:#d1ad6c; --psych:#f07fbb; --cs:#a3b2c7; --hist:#d79a6e; --acc:#7fb3db; --bus:#e6a061; --enlang:#b39ae0; --enlit:#e483aa; --law:#c4c47a; --it:#5fc4d6; --fre:#7aa6ef; --ger:#e0c45a; --spa:#f59a6a; --ara:#4fd1c5; --gre:#8aa3e6;
     color-scheme: dark;
   }
 }
@@ -57,7 +57,7 @@
   --bg:#0d1320; --surface:#151d2c; --ink:#e7ecf4; --muted:#95a3b9; --line:#253149;
   --primary:#f0b429; --on-primary:#141a26; --hi:#f0b429; --soft:#1c2638;
   --good:#51cf66; --warn:#ff922b; --bad:#f06595;
-  --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f; --econ:#f07b6e; --geog:#d1ad6c; --psych:#f07fbb; --cs:#a3b2c7; --hist:#d79a6e;
+  --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f; --econ:#f07b6e; --geog:#d1ad6c; --psych:#f07fbb; --cs:#a3b2c7; --hist:#d79a6e; --acc:#7fb3db; --bus:#e6a061; --enlang:#b39ae0; --enlit:#e483aa; --law:#c4c47a; --it:#5fc4d6; --fre:#7aa6ef; --ger:#e0c45a; --spa:#f59a6a; --ara:#4fd1c5; --gre:#8aa3e6;
   color-scheme: dark;
 }
 *{box-sizing:border-box}
@@ -239,6 +239,17 @@ body.asking{overflow:hidden}
 .sbch{margin:6px 0 10px}
 .pill.s-hist{background:color-mix(in srgb,var(--hist) 16%,transparent);color:var(--hist)}
 .pill.s-cs{background:color-mix(in srgb,var(--cs) 16%,transparent);color:var(--cs)}
+.pill.s-acc{background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc)}
+.pill.s-bus{background:color-mix(in srgb,var(--bus) 16%,transparent);color:var(--bus)}
+.pill.s-enlang{background:color-mix(in srgb,var(--enlang) 16%,transparent);color:var(--enlang)}
+.pill.s-enlit{background:color-mix(in srgb,var(--enlit) 16%,transparent);color:var(--enlit)}
+.pill.s-law{background:color-mix(in srgb,var(--law) 16%,transparent);color:var(--law)}
+.pill.s-it{background:color-mix(in srgb,var(--it) 16%,transparent);color:var(--it)}
+.pill.s-fre{background:color-mix(in srgb,var(--fre) 16%,transparent);color:var(--fre)}
+.pill.s-ger{background:color-mix(in srgb,var(--ger) 16%,transparent);color:var(--ger)}
+.pill.s-spa{background:color-mix(in srgb,var(--spa) 16%,transparent);color:var(--spa)}
+.pill.s-ara{background:color-mix(in srgb,var(--ara) 16%,transparent);color:var(--ara)}
+.pill.s-gre{background:color-mix(in srgb,var(--gre) 16%,transparent);color:var(--gre)}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:600;font-size:.92rem;text-decoration:none;color:var(--ink);min-height:40px}
 .btn:hover{border-color:var(--muted)}
@@ -750,6 +761,64 @@ const SUBJECTS = [
   {c:'WCP02', l:'Unit 2', n:'Practical Programming and Problem-solving', t:['Programming in Python 3','Organising and handling data','Best practice','Computational thinking and algorithms']},
   {c:'WCP03', l:'Unit 3', n:'Advanced Principles of Computer Science', t:['Computer systems and data representation','Networks and cybersecurity','Programming languages','Structuring data','Problem solving','Emerging technologies and professional practice']},
   {c:'WCP04', l:'Unit 4', n:'Advanced Practical Programming and Problem-solving', t:['Programming','Representing and handling data','Best practice','Additional programming paradigms','Algorithms']}
+ ]},
+ {id:'acc', name:'Accounting', short:'Accounting', units:[
+  {c:'WAC11', l:'Unit 1', n:'The Accounting System and Costing', t:['Principles of accounting and double-entry bookkeeping','Control procedures','Financial statements of organisations','Introduction to costing','Analysis of accounting statements','Social and ethical accounting']},
+  {c:'WAC12', l:'Unit 2', n:'Corporate and Management Accounting', t:['Limited companies','Investment ratios','Statement of cash flows','Budgeting','Standard costing','Project appraisal','Break-even analysis','Marginal and absorption costing','ICT in accounting']}
+ ]},
+ {id:'bus', name:'Business', short:'Business', units:[
+  {c:'WBS11', l:'Unit 1', n:'Marketing and People', t:['Meeting customer needs','The market','Marketing mix and strategy','Managing people','Entrepreneurs and leaders']},
+  {c:'WBS12', l:'Unit 2', n:'Managing Business Activities', t:['Planning a business and raising finance','Financial planning','Managing finance','Resource management','External influences']},
+  {c:'WBS13', l:'Unit 3', n:'Business Decisions and Strategy', t:['Business objectives and strategy','Business growth','Decision-making techniques','Influences on business decisions','Assessing competitiveness','Managing change']},
+  {c:'WBS14', l:'Unit 4', n:'Global Business', t:['Globalisation','Global markets and business expansion','Global marketing','Global industries and companies (multinationals)']}
+ ]},
+ {id:'enlang', name:'English Language', short:'Eng Lang', units:[
+  {c:'WEN01', l:'Unit 1', n:'Language: Context and Identity', t:['Contexts of production and reception','Presenting identity to an audience','How language reflects and builds identity','Writing for form, purpose and audience']},
+  {c:'WEN02', l:'Unit 2', n:'Language in Transition', t:['Spoken language today: unseen transcripts','Influence of other languages on English','Pidgins and creoles','English outside the British Isles','How languages change']},
+  {c:'WEN03', l:'Unit 3', n:'Crafting Language (Writing)', t:['Specified writing genres and style models','Creating texts for a chosen context, purpose and audience','Commentary on your own writing']},
+  {c:'WEN04', l:'Unit 4', n:'Investigating Language', t:['Contemporary Global English','Children’s Language Development','Language and Power','Language and Technology','Research and investigation skills']}
+ ]},
+ {id:'enlit', name:'English Literature', short:'Eng Lit', units:[
+  {c:'WET01', l:'Unit 1', n:'Post-2000 Poetry and Prose', t:['Post-2000 poetry: Poems of the Decade (comparative essay)','Post-2000 prose fiction text']},
+  {c:'WET02', l:'Unit 2', n:'Drama', t:['Pre-1900 drama text','Post-1900 drama text']},
+  {c:'WET03', l:'Unit 3', n:'Poetry and Prose', t:['Unseen post-1900 poetry','Two prose texts on one theme (comparative essay)']},
+  {c:'WET04', l:'Unit 4', n:'Shakespeare and Pre-1900 Poetry', t:['Shakespeare play','Pre-1900 poetry from one literary movement']}
+ ]},
+ {id:'it', name:'Information Technology', short:'IT', units:[
+  {c:'WIT11', l:'Unit 1', n:'Information Technology Systems', t:['Hardware and software','Networks','The online environment','IT systems','Data and databases','Wider issues']},
+  {c:'WIT12', l:'Unit 2', n:'Dynamic Websites (practical)', t:['HTML','CSS','JavaScript','Designing web pages','The semantic web']},
+  {c:'WIT13', l:'Unit 3', n:'IT in Organisations', t:['Manipulating data','Enabling technologies','Using IT systems in organisations','Systems development','Emerging technologies']},
+  {c:'WIT14', l:'Unit 4', n:'Relational Databases (practical)', t:['Features of database solutions','Relational database concepts','Database solutions']}
+ ]},
+ {id:'law', name:'Law', short:'Law', units:[
+  {c:'YLA11', l:'Paper 1', n:'Underlying Principles of Law and the English Legal System', t:['Rules, law, justice and morality','Legal theories','Sources of law: legislation and judicial precedent','People in the legal system','Resolving disputes','Effectiveness, impact and costs of the law']},
+  {c:'YLA12', l:'Paper 2', n:'The Law in Action', t:['The market: law of contract','The criminal: criminal liability and offences','The individual: freedom of speech, defamation and human rights','Civil and criminal outcomes from the same event']}
+ ]},
+ {id:'fre', name:'French', short:'French', units:[
+  {c:'WFR01', l:'Unit 1', n:'Spoken Expression and Response', t:['Speaking test (8–10 minutes) on one of your two chosen topic areas','Youth matters','Lifestyle, health and fitness','Environment and travel','Education and employment']},
+  {c:'WFR02', l:'Unit 2', n:'Understanding and Written Response', t:['Listening','Reading and grammar','Writing an email or article (240–280 words)','Topic areas: youth; lifestyle and health; environment and travel; education and employment']},
+  {c:'WFR03', l:'Unit 3', n:'Understanding and Spoken Response', t:['Presentation and debate on an issue you choose','Discussion of further issues','Technology in the French-speaking world','Society in the French-speaking world','Ethics in the French-speaking world']},
+  {c:'WFR04', l:'Unit 4', n:'Research, Understanding and Written Response', t:['Listening','Reading and translation','Research-based essay on a set topic, literary text or film','All seven topic areas']}
+ ]},
+ {id:'ger', name:'German', short:'German', units:[
+  {c:'WGN01', l:'Unit 1', n:'Spoken Expression and Response', t:['Speaking test (8–10 minutes) on one of your two chosen topic areas','Youth matters','Lifestyle, health and fitness','Environment and travel','Education and employment']},
+  {c:'WGN02', l:'Unit 2', n:'Understanding and Written Response', t:['Listening','Reading and grammar','Writing an email or article (240–280 words)','Topic areas: youth; lifestyle and health; environment and travel; education and employment']},
+  {c:'WGN03', l:'Unit 3', n:'Understanding and Spoken Response', t:['Presentation and debate on an issue you choose','Discussion of further issues','Technology in the German-speaking world','Society in the German-speaking world','Ethics in the German-speaking world']},
+  {c:'WGN04', l:'Unit 4', n:'Research, Understanding and Written Response', t:['Listening','Reading and translation','Research-based essay on a set topic, literary text or film','All seven topic areas']}
+ ]},
+ {id:'spa', name:'Spanish', short:'Spanish', units:[
+  {c:'WSP01', l:'Unit 1', n:'Spoken Expression and Response', t:['Speaking test (8–10 minutes) on one of your two chosen topic areas','Youth matters','Lifestyle, health and fitness','Environment and travel','Education and employment']},
+  {c:'WSP02', l:'Unit 2', n:'Understanding and Written Response', t:['Listening','Reading and grammar','Writing an email or article (240–280 words)','Topic areas: youth; lifestyle and health; environment and travel; education and employment']},
+  {c:'WSP03', l:'Unit 3', n:'Understanding and Spoken Response', t:['Presentation and debate on an issue you choose','Discussion of further issues','Technology in the Spanish-speaking world','Society in the Spanish-speaking world','Ethics in the Spanish-speaking world']},
+  {c:'WSP04', l:'Unit 4', n:'Research, Understanding and Written Response', t:['Listening','Reading and translation','Research-based essay on a set topic, literary text or film','All seven topic areas']}
+ ]},
+ {id:'ara', name:'Arabic', short:'Arabic', units:[
+  {c:'WAA01', l:'Unit 1', n:'Understanding and Written Response', t:['Reading','Grammar','Essay']},
+  {c:'WAA02', l:'Unit 2', n:'Writing and Research', t:['Translation from English into Arabic','Creative or discursive essay','Research-based essay']}
+ ]},
+ {id:'gre', name:'Greek', short:'Greek', units:[
+  {c:'WGK01', l:'Unit 1', n:'Understanding and Written Response', t:['Reading','Grammar','Essay']},
+  {c:'WGK02', l:'Unit 2', n:'Writing and Research', t:['Translation from English into Greek','Creative or discursive essay','Research-based essay']}
  ]}
 ];
 
@@ -767,6 +836,9 @@ const RES = (() => {
     for (let n = 1; n <= 4; n++) r[pre + n] = { papers: PMT + 'past-papers/' + path + n + '/' };
   });
   for (let n = 1; n <= 4; n++) r['WCP0' + n] = { papers: 'https://qualifications.pearson.com/en/qualifications/edexcel-international-advanced-levels/computer-science-2026.html' };
+  /* Subjects with papers hosted by Pearson. PMT has notes only for English Literature (UK Edexcel A level; several set texts are shared). */
+  const PQ = {"acc": "accounting-2015", "bus": "business-2018", "enlang": "english-language-2015", "enlit": "english-literature-2015", "it": "information-technology-2018", "law": "law-2015", "fre": "french-2016", "ger": "german-2016", "spa": "spanish-2016", "ara": "arabic-2016", "gre": "greek-2016"};
+  SUBJECTS.filter(x => PQ[x.id]).forEach(x => x.units.forEach(u => { r[u.c] = { papers: 'https://qualifications.pearson.com/en/qualifications/edexcel-international-advanced-levels/' + PQ[x.id] + '.html', pearson: true }; if (x.id === 'enlit') r[u.c].notes = PMT + 'english-revision/a-level-edexcel/'; }));
   return r;
 })();
 function resLinks(code, compact){
@@ -774,7 +846,7 @@ function resLinks(code, compact){
   return '<div class="row res">' +
     (typeof PAPERS !== 'undefined' && PAPERS[code] ? '<button class="btn' + (compact ? ' sm' : '') + '" data-act="goto-papers" data-u="' + code + '">Past papers (' + PAPERS[code].length + ')</button>' : '') +
     '<a class="btn' + (compact ? ' sm' : '') + '" href="#syllabus" data-act="goto-rev" data-u="' + code + '">Notes &amp; questions</a>' + bookletBtn(code, compact) +
-    (compact ? '' : '<span class="small muted">' + (/^WCP/.test(code) ? 'New course: first exams 2027. Sample papers from Pearson' : 'PDFs from Physics &amp; Maths Tutor') + '</span>') + '</div>';
+    (compact ? '' : '<span class="small muted">' + (/^WCP/.test(code) ? 'New course: first exams 2027. Sample papers from Pearson' : x.pearson ? 'PDFs from Pearson' : 'PDFs from Physics &amp; Maths Tutor') + '</span>') + '</div>';
 }
 
 const CARDS = typeof KEY_CARDS !== 'undefined' ? KEY_CARDS : []; // mark-scheme phrase cards (keyphrases.js); decks come from PMT
@@ -817,14 +889,17 @@ function sSeg(cur){ const due = decksIn('all').filter(d => deckStatus(d) === 'du
    ============================================================ */
 const LS_KEY = 'ial-study-hub-v1';
 function defaultState(){
-  return { v:1, updatedAt:0, hidden:[], cardState:{}, deckState:{}, custom:[], quizHist:[], tq:{}, papers:{}, oldDone:{}, linkReports:[], results:{}, mistakes:[], pmtDone:{}, topics:{}, exams:[], setup:null, targets:{}, lastBackup:'', goal:{min:60}, plan:null, topicAt:{}, reviewSeen:'', tasks:[], sessions:[], reviewDays:{}, timerPrefs:{focus:25, brk:5, subject:'math'}, cp:{}, histOpt:{} };
+  return { v:1, subj2:1, updatedAt:0, hidden:[], cardState:{}, deckState:{}, custom:[], quizHist:[], tq:{}, papers:{}, oldDone:{}, linkReports:[], results:{}, mistakes:[], pmtDone:{}, topics:{}, exams:[], setup:null, targets:{}, lastBackup:'', goal:{min:60}, plan:null, topicAt:{}, reviewSeen:'', tasks:[], sessions:[], reviewDays:{}, timerPrefs:{focus:25, brk:5, subject:'math'}, cp:{}, histOpt:{} };
 }
 function normalize(s){
-  const d = defaultState(); s = (s && typeof s === 'object') ? s : {};
+  const d = defaultState(); s = (s && typeof s === 'object') ? s : {}; const pre2 = !s.subj2;
   for (const k in d) if (s[k] === undefined || s[k] === null) s[k] = d[k];
   if (!Array.isArray(s.hidden)) s.hidden = [];
+  /* Nov 2026: 11 subjects added. People who already chose their subjects should not suddenly be shown them. */
+  if (pre2){ if (s.setup && s.setup.done) SUBJECTS.filter(x => NEW_SUBJ2.includes(x.id)).forEach(x => x.units.forEach(u => { if (!s.hidden.includes(u.c)) s.hidden.push(u.c); })); s.subj2 = 1; }
   return s;
 }
+const NEW_SUBJ2 = ['acc','bus','enlang','enlit','it','law','fre','ger','spa','ara','gre'];
 function loadLocal(){ try { const raw = localStorage.getItem(LS_KEY); return raw ? normalize(JSON.parse(raw)) : null; } catch(e){ return null; } }
 function saveLocal(){ try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){} }
 
@@ -1589,8 +1664,8 @@ function viewPapers(){
   const optPick = u && u.opts ? '<div class="stack" style="gap:6px"><div class="small muted">Which option do you study?</div><div class="chips" role="group" aria-label="History option"><button class="chip" data-act="hist-opt" data-u="' + u.c + '" data-v="" aria-pressed="' + !histOpt(u.c) + '">All options</button>' + Object.entries(u.opts).map(([k, n]) => '<button class="chip" data-act="hist-opt" data-u="' + u.c + '" data-v="' + k + '" aria-pressed="' + (histOpt(u.c) === k) + '">' + k + ' ' + esc(n) + '</button>').join('') + '</div></div>' : '';
   const rows = shown.map(r => {
     const [sr, qp, ms] = r; const key = paperKey(u.c, sr); const rec = state.papers[key];
-    const older = /^\w+ (\d{4})$/.test(sr) && +sr.slice(-4) < 2019;
-    const links = '<a class="btn sm" href="' + qp + '" target="_blank" rel="noopener">Paper</a>' + (ms ? '<a class="btn sm" href="' + ms + '" target="_blank" rel="noopener">Mark scheme</a>' : '<span class="small muted">No mark scheme</span>') + (erUrl(u.c, sr) ? '<a class="btn sm er" href="' + esc(erUrl(u.c, sr)) + '" target="_blank" rel="noopener" title="Pearson examiners’ report: common mistakes on each question">Report</a>' : '<span class="small muted noer">' + esc(noErReason(sr)) + '</span>') + flagBtn('IAL ' + u.l + ' ' + (UNIT_SUBJ[u.c] === 'math' || UNIT_SUBJ[u.c] === 'fm' ? '' : SUBJ[UNIT_SUBJ[u.c]].short + ' ') + sr);
+    const older = /^\w+ (\d{4})$/.test(sr) && +sr.slice(-4) < 2019 && !(RES[u.c] && RES[u.c].pearson);
+    const links = (qp ? '<a class="btn sm" href="' + qp + '" target="_blank" rel="noopener">Paper</a>' : '<span class="small muted">' + (/^W(FR|GN|SP)0[13]$/.test(u.c) ? 'Speaking test: no question paper' : 'Paper not published') + '</span>') + (ms ? '<a class="btn sm" href="' + ms + '" target="_blank" rel="noopener">Mark scheme</a>' : '<span class="small muted">No mark scheme</span>') + (erUrl(u.c, sr) ? '<a class="btn sm er" href="' + esc(erUrl(u.c, sr)) + '" target="_blank" rel="noopener" title="Pearson examiners’ report: common mistakes on each question">Report</a>' : '<span class="small muted noer">' + esc(noErReason(sr)) + '</span>') + flagBtn('IAL ' + u.l + ' ' + (UNIT_SUBJ[u.c] === 'math' || UNIT_SUBJ[u.c] === 'fm' ? '' : SUBJ[UNIT_SUBJ[u.c]].short + ' ') + sr);
     let status;
     if (p.log === key){
       status = '<form class="editbox" data-form="paper-log" data-key="' + esc(key) + '">' +
@@ -1605,7 +1680,7 @@ function viewPapers(){
       const pc = paperPct(rec);
       status = '<div class="meta"><span class="pill" style="background:color-mix(in srgb,var(--' + scoreColor(pc) + ') 20%,transparent)">' + rec.s + ' / ' + rec.m + ' · ' + Math.round(pc * 100) + '%</span>' + (() => { const x = paperUms(u.c, sr, rec); return x ? '<span class="pill" title="Using the ' + esc(x.sr) + ' grade boundaries' + (x.est ? ' (none published for this paper)' : '') + '">≈ ' + x.ums + '/' + umsMax(u.c) + ' UMS · ' + unitGrade(u.c, x.ums) + '</span>' : ''; })() + (rec.mock ? '<span class="pill" title="Done as a timed mock">Timed</span>' : '') + '<span>Done ' + fmtDate(rec.d, {day:'numeric', month:'short'}) + (rec.min ? ' · ' + rec.min + ' min' : '') + '</span><button class="linkbtn" data-act="paper-log" data-key="' + esc(key) + '">Edit</button>' + (() => { const n = mkCountFor(u.c, sr); return '<button class="btn sm' + (ui.papers.justSaved === key && !n ? ' primary' : '') + '" data-act="mk-from-paper" data-key="' + esc(key) + '">' + (n ? 'Mistakes (' + n + ')' : 'Log mistakes') + '</button>'; })() + '</div>';
     } else {
-      status = '<div class="meta pp3"><button class="btn sm primary" data-act="mock-start" data-key="' + esc(key) + '">Timed mock (' + fmtDur(PAPER_MIN[u.c]) + ')</button><button class="btn sm" data-act="paper-log" data-key="' + esc(key) + '">Log mark</button><button class="btn sm ghost planbtn" data-act="paper-plan" data-key="' + esc(key) + '" title="Add to Planner" aria-label="Add to Planner">+ Plan</button></div>';
+      status = '<div class="meta pp3">' + (qp ? '<button class="btn sm primary" data-act="mock-start" data-key="' + esc(key) + '">Timed mock (' + fmtDur(PAPER_MIN[u.c]) + ')</button>' : '') + '<button class="btn sm" data-act="paper-log" data-key="' + esc(key) + '">Log mark</button><button class="btn sm ghost planbtn" data-act="paper-plan" data-key="' + esc(key) + '" title="Add to Planner" aria-label="Add to Planner">+ Plan</button></div>';
     }
     return '<div class="li" style="align-items:flex-start' + (rec ? '' : '') + '"><span class="pdot' + (rec ? ' done' : '') + '" aria-hidden="true"></span><div class="grow"><div class="t"><b>' + esc(sr) + '</b>' + (older ? ' <span class="pill" title="Sat before the 2018 specification; most questions still useful">Older spec</span>' : '') + (isReserved(u.c, sr) ? ' <span class="pill keep" title="One of the two newest papers. Save it for a timed mock close to your exam.">Save for a mock</span>' : '') + '</div>' +
       (rec ? '' : paperTargets(u.c, sr)) + '<div class="meta pp3 pplinks">' + links + '</div>' + status + '</div></div>';
@@ -2533,11 +2608,11 @@ function viewSettings(){
    ============================================================ */
 const GBS = typeof GB !== 'undefined' ? GB : {};
 const GB_SERIES = Object.keys(GBS).sort((a, b) => seriesSortKey(a) - seriesSortKey(b));
-const A2 = new Set(['WMA13','WMA14','WFM02','WFM03','WME02','WME03','WST02','WST03','WPH14','WPH15','WPH16','WCH14','WCH15','WCH16','WBI14','WBI15','WBI16','WEC13','WEC14','WGE03','WGE04','WPS03','WPS04','WCP03','WCP04','WHI03','WHI04']);
+const A2 = new Set(['WMA13','WMA14','WFM02','WFM03','WME02','WME03','WST02','WST03','WPH14','WPH15','WPH16','WCH14','WCH15','WCH16','WBI14','WBI15','WBI16','WEC13','WEC14','WGE03','WGE04','WPS03','WPS04','WCP03','WCP04','WHI03','WHI04','WAC12','WBS13','WBS14','WEN03','WEN04','WET03','WET04','WIT13','WIT14','YLA11','YLA12','WFR03','WFR04','WGN03','WGN04','WSP03','WSP04','WAA02','WGK02']);
 const PAPER_MIN = {};
 SUBJECTS.forEach(s => s.units.forEach(u => { const n = +u.c.slice(-1); PAPER_MIN[u.c] = (s.id === 'math' || s.id === 'fm') ? 90 : (n === 3 || n === 6) ? 80 : (n === 4 || n === 5) ? 105 : 90; }));
 /* 4-unit subjects: exam length (min) and maximum UMS, from the Pearson specifications */
-const UNIT4_INFO = { WHI01:[120,100], WHI02:[120,100], WHI03:[120,100], WHI04:[120,100], WEC11:[105,100], WEC12:[105,100], WEC13:[120,100], WEC14:[120,100], WGE01:[105,120], WGE02:[90,80], WGE03:[120,120], WGE04:[90,80], WPS01:[90,80], WPS02:[120,120], WPS03:[90,80], WPS04:[120,120], WCP01:[90,100], WCP02:[180,100], WCP03:[90,100], WCP04:[180,100] };
+const UNIT4_INFO = { WHI01:[120,100], WHI02:[120,100], WHI03:[120,100], WHI04:[120,100], WEC11:[105,100], WEC12:[105,100], WEC13:[120,100], WEC14:[120,100], WGE01:[105,120], WGE02:[90,80], WGE03:[120,120], WGE04:[90,80], WPS01:[90,80], WPS02:[120,120], WPS03:[90,80], WPS04:[120,120], WCP01:[90,100], WCP02:[180,100], WCP03:[90,100], WCP04:[180,100], WAC11:[180,300], WAC12:[180,300], WAA01:[150,100], WAA02:[180,100], WGK01:[150,100], WGK02:[180,100], WBS11:[120,100], WBS12:[120,100], WBS13:[120,100], WBS14:[120,100], WEN01:[105,100], WEN02:[105,100], WEN03:[120,100], WEN04:[120,100], WET01:[120,100], WET02:[120,100], WET03:[120,100], WET04:[120,100], WIT11:[120,100], WIT12:[180,100], WIT13:[120,100], WIT14:[180,100], YLA11:[180,100], YLA12:[180,100], WFR01:[10,60], WFR02:[150,140], WFR03:[13,60], WFR04:[150,140], WGN01:[10,60], WGN02:[150,140], WGN03:[13,60], WGN04:[150,140], WSP01:[10,60], WSP02:[150,140], WSP03:[13,60], WSP04:[150,140] };
 Object.entries(UNIT4_INFO).forEach(([c, [m]]) => { PAPER_MIN[c] = m; });
 function isMathsUnit(c){ return UNIT_SUBJ[c] === 'math' || UNIT_SUBJ[c] === 'fm'; }
 function umsMax(c){ if (isMathsUnit(c)) return 100; if (UNIT4_INFO[c]) return UNIT4_INFO[c][1]; const n = +c.slice(-1); return (n === 3 || n === 6) ? 60 : 120; }
@@ -3048,7 +3123,7 @@ function noErReason(sr){
   return 'No examiner report published online for this paper';
 }
 function erUrl(c, sr){ return (typeof PAPER_ER !== 'undefined' && PAPER_ER[c] && PAPER_ER[c][sr]) || ''; }
-function paperLinks(c, sr){ const row = (typeof PAPERS !== 'undefined' && PAPERS[c]) ? PAPERS[c].find(x => x[0] === sr) : null; if (!row) return ''; const er = erUrl(c, sr); return '<div class="row" style="gap:6px"><a class="btn sm" href="' + row[1] + '" target="_blank" rel="noopener">Question paper ↗</a>' + (row[2] ? '<a class="btn sm" href="' + row[2] + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + (er ? '<a class="btn sm er" href="' + esc(er) + '" target="_blank" rel="noopener">Examiner report ↗</a>' : '') + '</div>'; }
+function paperLinks(c, sr){ const row = (typeof PAPERS !== 'undefined' && PAPERS[c]) ? PAPERS[c].find(x => x[0] === sr) : null; if (!row) return ''; const er = erUrl(c, sr); return '<div class="row" style="gap:6px">' + (row[1] ? '<a class="btn sm" href="' + row[1] + '" target="_blank" rel="noopener">Question paper ↗</a>' : '') + (row[2] ? '<a class="btn sm" href="' + row[2] + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + (er ? '<a class="btn sm er" href="' + esc(er) + '" target="_blank" rel="noopener">Examiner report ↗</a>' : '') + '</div>'; }
 const WHY = {
   know:    { l:'Didn’t know it',        c:'bad',  fix:'Revise the topic: read the notes, make or review flashcards, then do the topic pack.' },
   misread: { l:'Misread the question',  c:'warn', fix:'Underline the command word and every number before you write, and re-read the question once you’ve answered.' },
@@ -3285,7 +3360,7 @@ function setupSave(){
 /* ============================================================
    Target grades · automatic topic progress · data protection
    ============================================================ */
-const TARGET_KEYS = [['math','Maths'],['fm','Further Maths'],['phys','Physics'],['chem','Chemistry'],['bio','Biology'],['econ','Economics'],['geog','Geography'],['psych','Psychology'],['hist','History'],['cs','Computer Science']];
+const TARGET_KEYS = [['math','Maths'],['fm','Further Maths'],['phys','Physics'],['chem','Chemistry'],['bio','Biology'],['econ','Economics'],['geog','Geography'],['psych','Psychology'],['hist','History'],['cs','Computer Science'],['acc','Accounting'],['bus','Business'],['enlang','English Language'],['enlit','English Literature'],['it','Information Technology'],['law','Law'],['fre','French'],['ger','German'],['spa','Spanish'],['ara','Arabic'],['gre','Greek']];
 function targetFor(k){ return (state.targets && state.targets[k]) || ''; }
 function targetLine(q, k, label){
   const tg = targetFor(k); if (!tg || !q) return '';
@@ -3432,7 +3507,7 @@ function viewOldPapers(){
       return '<div class="li' + (rec ? ' done' : '') + '" style="align-items:flex-start"><button class="check" role="checkbox" data-act="old-done" data-key="' + esc(key) + '" aria-checked="' + !!rec + '" aria-label="Mark ' + esc(r[0]) + ' as done">' + (rec ? '✓' : '') + '</button><div class="grow"><div class="t">' + oldLabel(r[0]) + '</div>' +
         '<div class="meta pp3 pplinks">' + links + '</div>' + status + '</div></div>';
     }).join('') : '<div class="empty">Nothing here.</div>') + '</div></div>' +
-    '<p class="small muted">Papers, mark schemes and model answers open from Physics &amp; Maths Tutor; examiner reports open from Pearson’s website. Papers © Pearson Education. “(IAL)” papers are from the older international spec (WPH0/WCH0/WBI0 and C12/C34).</p>' +
+    '<p class="small muted">Papers, mark schemes and model answers open from Physics &amp; Maths Tutor (for Accounting, Business, English, IT, Law and languages, and some newer series of other subjects, from Pearson’s website); examiner reports open from Pearson’s website. Papers © Pearson Education. “(IAL)” papers are from the older international spec (WPH0/WCH0/WBI0 and C12/C34).</p>' +
   '</div>';
 }
 function oldHint(c){
@@ -3633,9 +3708,20 @@ const QUICK_UNITS = {
   geog: ['WGE01','WGE02','WGE03','WGE04'],
   psych:['WPS01','WPS02','WPS03','WPS04'],
   hist: ['WHI01','WHI02','WHI03','WHI04'],
-  cs:   ['WCP01','WCP02','WCP03','WCP04']
+  cs:   ['WCP01','WCP02','WCP03','WCP04'],
+  acc: ["WAC11", "WAC12"],
+  bus: ["WBS11", "WBS12", "WBS13", "WBS14"],
+  enlang: ["WEN01", "WEN02", "WEN03", "WEN04"],
+  enlit: ["WET01", "WET02", "WET03", "WET04"],
+  it: ["WIT11", "WIT12", "WIT13", "WIT14"],
+  law: ["YLA11", "YLA12"],
+  fre: ["WFR01", "WFR02", "WFR03", "WFR04"],
+  ger: ["WGN01", "WGN02", "WGN03", "WGN04"],
+  spa: ["WSP01", "WSP02", "WSP03", "WSP04"],
+  ara: ["WAA01", "WAA02"],
+  gre: ["WGK01", "WGK02"]
 };
-function isASUnit(c){ return /^(WMA1[12]|WME01|WST01|WDM11|WFM01|W(PH|CH|BI)1[123]|WEC1[12]|W(GE|PS|CP|HI)0[12])$/.test(c); }
+function isASUnit(c){ return /^(WMA1[12]|WME01|WST01|WDM11|WFM01|W(PH|CH|BI)1[123]|WEC1[12]|W(GE|PS|CP|HI)0[12]|WAC11|WBS1[12]|W(EN|ET)0[12]|WIT1[12]|W(FR|GN|SP)0[12]|W(AA|GK)01)$/.test(c); }
 function quickInit(){
   if (ui.quick) return ui.quick;
   const prevSubj = SUBJECTS.filter(s => s.units.some(u => !isHidden(u.c) && setupDone())).map(s => s.id);
@@ -4601,7 +4687,7 @@ function retContext(a){
   if (pmt){ const chk = pmt.querySelector('[data-act="pmt-done"]'); if (chk && chk.getAttribute('aria-checked') !== 'true' && /^Questions/.test(txt)) return { kind: 'tq', key: chk.dataset.key, label: (pmt.querySelector('.t') || {}).textContent || 'this topic pack' }; return null; }
   if (/^(Question paper|Paper)( ↗)?$/.test(txt)){
     const li = a.closest('.li'); const k = li && li.querySelector('[data-key]');
-    if (k){ const key = k.dataset.key; if (/^W\w+\d\|/.test(key) && !state.papers[key]){ const [c, sr] = key.split('|'); return { kind: 'paper', key, label: UNIT[c] ? UNIT[c].l + (UNIT_SUBJ[c] === 'math' || UNIT_SUBJ[c] === 'fm' ? '' : ' ' + SUBJ[UNIT_SUBJ[c]].short) + ', ' + sr : sr }; } }
+    if (k){ const key = k.dataset.key; if (/^[A-Z]\w+\d\|/.test(key) && !state.papers[key]){ const [c, sr] = key.split('|'); return { kind: 'paper', key, label: UNIT[c] ? UNIT[c].l + (UNIT_SUBJ[c] === 'math' || UNIT_SUBJ[c] === 'fm' ? '' : ' ' + SUBJ[UNIT_SUBJ[c]].short) + ', ' + sr : sr }; } }
     return null;
   }
   const deck = a.closest('.deck');
