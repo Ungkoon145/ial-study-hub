@@ -306,6 +306,19 @@ textarea{min-height:90px;resize:vertical}
 .seg a{padding:8px 14px;border-radius:9px;text-decoration:none;color:var(--muted);font-weight:600;font-size:.9rem}
 .seg a[aria-current="page"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .linkbtn{background:none;border:0;padding:0;color:var(--ink);text-decoration:underline;cursor:pointer;font:inherit;font-size:.82rem}
+.rate.dq3{grid-template-columns:repeat(3,1fr)}
+.rate.dq3 button{padding:14px 4px;min-height:48px;justify-content:center}
+.dqcard textarea{width:100%;min-height:110px;font:inherit;font-size:1rem}
+.dqmine{padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.dqcard .back{display:flex;flex-direction:column;gap:4px}
+.dqsum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.dqsum > div{padding:12px 4px;border-radius:12px;border:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.dqsum b{font-size:1.6rem;font-family:var(--display);line-height:1.1}
+.dqsum span{font-size:.8rem;color:var(--muted)}
+.dqsum .g{border-color:color-mix(in srgb,var(--good) 50%,var(--line))}
+.dqsum .b{border-color:color-mix(in srgb,var(--bad) 50%,var(--line))}
+.dqweak{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:.92rem}
+.dqdone{color:var(--good);font-weight:600}
 .gainu + .gainu{border-top:1px solid var(--line);padding-top:12px}
 .chk{display:flex;gap:8px;align-items:flex-start;min-height:32px;font-size:.92rem}
 .chk input{margin-top:3px;width:18px;height:18px;flex:none}
@@ -1156,9 +1169,84 @@ function deckRow(d){
   return '<div class="deck"><div class="row" style="justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:nowrap"><div class="grow" style="min-width:0"><div class="t" style="font-weight:600">' + esc(d.n) + '</div>' +
       (d.topics.length ? '<div class="small muted">Covers: ' + esc(d.topics.join(' · ')) + '</div>' : '') + '</div>' + pill + '</div>' +
     '<div class="meta" style="margin-top:8px">' + (deckPdf(d) ? '<a class="btn sm primary" href="' + esc(deckPdf(d)) + '" target="_blank" rel="noopener">Open PDF ↗</a>' : '<a class="btn sm primary" href="' + d.url + '" target="_blank" rel="noopener">Open deck ↗</a><span class="small muted">(no PDF on PMT)</span>') +
-      flagBtn('Flashcards: ' + d.n + ' (' + UNIT[d.u].l + ' ' + SUBJ[UNIT_SUBJ[d.u]].short + ')') + '<span class="small muted">Done? I knew it:</span>' +
+      dqBtn(d) + flagBtn('Flashcards: ' + d.n + ' (' + UNIT[d.u].l + ' ' + SUBJ[UNIT_SUBJ[d.u]].short + ')') + '<span class="small muted">Done? I knew it:</span>' +
       [['Badly',1],['Mostly',2],['Well',3]].map(([l, r]) => '<button class="btn sm" data-act="deck-rate" data-url="' + esc(d.url) + '" data-v="' + r + '" title="Next review in ' + ivLabel(schedule(st, r).i) + '">' + l + '</button>').join('') + '</div></div>';
 }
+/* ---------- Flashcard quiz: one quiz per PMT flashcard set ----------
+   The questions are written for this site on the same topics as the set (deckquiz.js); PMT's own cards stay on PMT.
+   Type an answer, show the answer, then say how comfortable you feel. Progress is kept per question. */
+function dqKey(d){ return d.u + '/' + d.url.split('/').filter(Boolean).pop().replace(/-flashcards$/, ''); }
+function dqReady(){ return typeof DECK_QUIZ !== 'undefined'; }
+function dqList(d){ return (dqReady() && DECK_QUIZ[dqKey(d)]) || []; }
+function dqState(){ if (!state.dq || typeof state.dq !== 'object') state.dq = {}; return state.dq; }
+function dqStats(d){ const k = dqKey(d), st = dqState(), n = dqList(d).length; let ok = 0, seen = 0; for (let i = 0; i < n; i++){ const r = st[k + '#' + i]; if (r){ seen++; if (r.c === 2) ok++; } } return { n, ok, seen }; }
+function dqBtn(d){
+  const s = dqStats(d);
+  return '<button class="btn sm" data-act="dq-start" data-u="' + d.u + '" data-url="' + esc(d.url) + '" data-v="all">Quiz</button>' +
+    (s.seen ? '<span class="small ' + (s.ok === s.n ? 'dqdone' : 'muted') + '">' + s.ok + '/' + s.n + ' comfortable</span>' : '');
+}
+function dqStart(u, url, mode){
+  const go = () => {
+    const d = unitDecks(u).find(x => x.url === url); if (!d) return;
+    const qs = dqList(d), k = dqKey(d), st = dqState();
+    if (!qs.length){ toast('There’s no quiz for this set yet.'); return; }
+    let list = qs.map((q, i) => i);
+    if (mode === 'weak'){ const w = list.filter(i => !st[k + '#' + i] || st[k + '#' + i].c < 2); if (w.length) list = w; }
+    ui.cards.review = null;
+    ui.cards.dq = { u, url, key: k, name: d.n, list, i: 0, typed: '', shown: false, res: {} };
+    render(); window.scrollTo(0, 0);
+  };
+  if (dqReady()){ go(); return; }
+  lazy('deckquiz.js'); let tries = 0;
+  const wait = () => { if (dqReady()) go(); else if (++tries > 60) toast('Couldn’t load the quiz. Check your connection and try again.'); else setTimeout(wait, 150); };
+  wait();
+}
+function dqFinish(q){
+  // Feed the result into the set's review date, the same way "Done? I knew it" does.
+  const vals = Object.values(q.res), n = vals.length || 1, ok = vals.filter(c => c === 2).length, near = vals.filter(c => c === 1).length;
+  const r = ok === n ? 3 : (ok + near / 2) / n >= 0.5 ? 2 : 1;
+  state.deckState[q.url] = schedule(state.deckState[q.url], r);
+  const dk = unitDecks(q.u).find(x => x.url === q.url);
+  if (dk && r >= 2) dk.topics.forEach(nm => { const i = topicIndexByName(dk.u, nm); if (i >= 0) bumpTopic(dk.u, i, r >= 3 ? 2 : 1); });
+  const t = todayStr(); state.reviewDays[t] = (state.reviewDays[t] || 0) + 1;
+  q.done = true; q.next = state.deckState[q.url].due;
+}
+function viewDeckQuiz(){
+  const q = ui.cards.dq, d = unitDecks(q.u).find(x => x.url === q.url), qs = d ? dqList(d) : [];
+  if (!d || !qs.length){ ui.cards.dq = null; return viewCards(); }
+  const pdf = deckPdf(d) || d.url, wrap = '<div class="stack" style="max-width:640px;margin:0 auto">';
+  if (q.i >= q.list.length){
+    const vals = q.list.map(i => q.res[i]), ok = vals.filter(c => c === 2).length, near = vals.filter(c => c === 1).length, no = vals.filter(c => c === 0).length;
+    const st = dqState(), weak = qs.map((x, i) => i).filter(i => !st[q.key + '#' + i] || st[q.key + '#' + i].c < 2);
+    return wrap + '<div class="card stack" style="padding:24px"><h1 style="margin:0">Quiz done</h1><p class="muted" style="margin:0">' + esc(q.name) + ' · ' + esc(UNIT[q.u].l) + '</p>' +
+      '<div class="dqsum"><div class="g"><b>' + ok + '</b><span>Comfortable</span></div><div class="m"><b>' + near + '</b><span>Nearly</span></div><div class="b"><b>' + no + '</b><span data-th="ยังไม่ได้">Not yet</span></div></div>' +
+      (q.next ? '<p class="small muted" style="margin:0">This set comes back for review on ' + fmtDate(q.next, {day:'numeric', month:'short'}) + '.</p>' : '') +
+      (weak.length ? '<div><div class="small muted" style="font-weight:600;margin-bottom:4px">Go over these again</div><ul class="dqweak notr">' + weak.map(i => '<li>' + esc(qs[i][0]) + '</li>').join('') + '</ul></div>' : '<p style="margin:0">You’re comfortable with every question in this set.</p>') +
+      '<div class="row">' + (weak.length ? '<button class="btn primary" data-act="dq-start" data-u="' + q.u + '" data-url="' + esc(q.url) + '" data-v="weak">Retry ' + weak.length + ' question' + (weak.length === 1 ? '' : 's') + '</button>' : '') +
+        '<button class="btn' + (weak.length ? '' : ' primary') + '" data-act="dq-end">Back to flashcards</button><a class="btn" href="' + esc(pdf) + '" target="_blank" rel="noopener">Open the PMT flashcards ↗</a></div></div></div>';
+  }
+  const idx = q.list[q.i], item = qs[idx], pct = Math.round(q.i / q.list.length * 100);
+  return wrap +
+    '<div class="row" style="justify-content:space-between"><button class="btn ghost" data-act="dq-end">← Stop</button><span class="small muted">' + (q.i + 1) + ' / ' + q.list.length + '</span></div>' +
+    '<div class="progressline"><i style="width:' + pct + '%"></i></div>' +
+    '<div class="card flash dqcard"><div class="row">' + unitPill(q.u) + '<span class="small muted">' + esc(q.name) + '</span></div>' +
+      '<div class="front notr">' + esc(item[0]) + '</div>' +
+      (q.shown
+        ? (q.typed.trim() ? '<div class="dqmine"><div class="small muted" style="font-weight:600">Your answer</div><div class="notr" style="white-space:pre-wrap">' + esc(q.typed) + '</div></div>' : '') +
+          '<div class="back"><div class="small muted" style="font-weight:600">Answer</div><div class="notr">' + esc(item[1]) + '</div></div>'
+        : '<label class="f" style="margin:0">Your answer<textarea id="dq-ans" rows="4" placeholder="Type your answer, then check it" autocomplete="off" autocapitalize="sentences">' + esc(q.typed) + '</textarea></label>') +
+    '</div>' +
+    (q.shown
+      ? '<div class="small muted" style="text-align:center;font-weight:600">How comfortable are you with this one?</div><div class="rate dq3">' + [['Not yet', 0, 'r0'], ['Nearly', 1, ''], ['Comfortable', 2, 'r3']].map(([lab, v, cls]) => '<button class="' + cls + '" data-act="dq-rate" data-v="' + v + '"' + (v === 0 ? ' data-th="ยังไม่ได้"' : '') + '>' + lab + '</button>').join('') + '</div>'
+      : '<button class="btn primary big" data-act="dq-show" style="width:100%">Show answer</button>') +
+    '<p class="small muted noclamp" style="margin:0;text-align:center">Written for IAL Revise on the same topics as this set. <a href="' + esc(pdf) + '" target="_blank" rel="noopener">Open the PMT flashcards ↗</a></p></div>';
+}
+document.addEventListener('input', e => { if (e.target && e.target.id === 'dq-ans' && ui.cards && ui.cards.dq) ui.cards.dq.typed = e.target.value; });
+document.addEventListener('keydown', e => {
+  const q = ui.cards && ui.cards.dq; if (!q || route() !== 'cards' || q.i >= q.list.length) return;
+  if (!q.shown && e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); const b = document.querySelector('[data-act="dq-show"]'); if (b) b.click(); }
+  else if (q.shown && ['1', '2', '3'].includes(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey){ const b = document.querySelector('[data-act="dq-rate"][data-v="' + (+e.key - 1) + '"]'); if (b) b.click(); }
+});
 function kpCard(u){
   if (!u) return '';
   const all = CARDS.filter(k => k.u === u.c); if (!all.length) return '';
@@ -1171,7 +1259,9 @@ function kpCard(u){
 }
 function viewCards(){
   const c = ui.cards;
+  if (c.dq) return viewDeckQuiz();
   if (c.review) return viewReview();
+  if (!dqReady()) lazy('deckquiz.js', () => { if (route() === 'cards' && !ui.cards.dq && !ui.cards.review) render(); });
   if (c.subj === 'all') c.subj = 'phys';
   const units = SUBJ[c.subj].units.filter(u => !isHidden(u.c));
   const withDecks = units.filter(u => unitDecks(u.c).length);
@@ -1182,7 +1272,7 @@ function viewCards(){
   const mine = state.custom.filter(k => UNIT[k.u] && !isHidden(k.u));
   const mineDue = mine.filter(k => cardStatus(k) !== 'later').length;
   return '<div class="stack">' + sSeg('cards') +
-    '<div><h1>Flashcards</h1><p class="muted">Flashcard decks from Physics &amp; Maths Tutor. Open a deck, go through it, then rate how well you knew it. The deck comes back for review just before you’d forget it.</p></div>' +
+    '<div><h1>Flashcards</h1><p class="muted">Flashcard decks from Physics &amp; Maths Tutor. Open a deck, go through it, then rate how well you knew it. The deck comes back for review just before you’d forget it. Each deck also has a Quiz: type your answer, check it, and say how comfortable you feel.</p></div>' +
     (allDue.length ? '<div class="card"><div class="card-h"><h2>Due for review today</h2><span class="small muted">' + allDue.length + ' deck' + (allDue.length > 1 ? 's' : '') + '</span></div><div class="stack" style="gap:0">' + allDue.map(d => '<div style="margin-top:6px">' + unitPill(d.u) + '</div>' + deckRow(d)).join('') + '</div></div>' : '') +
     '<div class="chips" role="group" aria-label="Subject">' + mySubjects().map(x => '<button class="chip" data-act="cards-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === c.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
     (units.length ? '<label class="f">Unit<select id="cards-unit">' + units.map(x => { const ds = unitDecks(x.c); const started = ds.filter(d => state.deckState[d.url]).length; return '<option value="' + x.c + '"' + (x.c === c.unit ? ' selected' : '') + '>' + esc(x.l + ' · ' + x.n) + (ds.length ? ' (' + started + '/' + ds.length + ' decks)' : ' (no PMT decks)') + '</option>'; }).join('') + '</select></label>' : '') +
@@ -4318,6 +4408,10 @@ document.addEventListener('click', e => {
     case 'start-review': startReview(k => k.mine); break;
     case 'kp-review': startReview(v === 'due' ? (k => k.kp && cardStatus(k) === 'due') : (k => k.kp && k.u === v), 20); break;
     case 'deck-rate': { const url = b.dataset.url; state.deckState[url] = schedule(state.deckState[url], +v); { const dk = decksIn('all').find(x => x.url === url); if (dk && +v >= 2) dk.topics.forEach(n => { const i = topicIndexByName(dk.u, n); if (i >= 0) bumpTopic(dk.u, i, +v >= 3 ? 2 : 1); }); } const t = todayStr(); state.reviewDays[t] = (state.reviewDays[t] || 0) + 1; commit(); toast('Next review: ' + fmtDate(state.deckState[url].due, {weekday:'short', day:'numeric', month:'short'})); break; }
+    case 'dq-start': dqStart(b.dataset.u, b.dataset.url, v); break;
+    case 'dq-show': { const q = ui.cards.dq; if (!q) break; const ta = $('#dq-ans'); q.typed = ta ? ta.value : ''; q.shown = true; render(); break; }
+    case 'dq-rate': { const q = ui.cards.dq; if (!q || !q.shown) break; const idx = q.list[q.i]; q.res[idx] = +v; dqState()[q.key + '#' + idx] = { c: +v, d: todayStr() }; q.i++; q.typed = ''; q.shown = false; if (q.i >= q.list.length) dqFinish(q); commit(); window.scrollTo(0, 0); break; }
+    case 'dq-end': ui.cards.dq = null; render(); break;
     case 'show-answer': ui.cards.review.shown = true; render(); break;
     case 'rate': {
       const r = ui.cards.review; const cid = r.queue[r.idx]; const n = +v;
