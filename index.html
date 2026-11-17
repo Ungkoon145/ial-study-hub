@@ -242,6 +242,9 @@ body.asking{overflow:hidden}
 details.sgdet{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:0}
 details.sgdet>summary{cursor:pointer;padding:12px 14px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 details.sgdet>.grid2{padding:0 12px 12px}
+.dqimg{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--line);margin-top:8px;background:#fff}
+.dqnote{margin-top:8px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--hi) 14%,transparent);font-size:.92rem}
+.dqnote b{display:block;font-size:.8rem;margin-bottom:2px}
 .pill.s-cs{background:color-mix(in srgb,var(--cs) 16%,transparent);color:var(--cs)}
 .pill.s-acc{background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc)}
 .pill.s-bus{background:color-mix(in srgb,var(--bus) 16%,transparent);color:var(--bus)}
@@ -1436,16 +1439,18 @@ function viewDeckQuiz(){
     '<div class="row" style="justify-content:space-between"><button class="btn ghost" data-act="dq-end">← Stop</button><span class="small muted">' + (q.i + 1) + ' / ' + q.list.length + '</span></div>' +
     '<div class="progressline"><i style="width:' + pct + '%"></i></div>' +
     '<div class="card flash dqcard"><div class="row">' + unitPill(q.u) + '<span class="small muted">' + esc(q.name) + '</span></div>' +
-      '<div class="front notr">' + esc(item[0]) + '</div>' +
+      '<div class="front notr">' + esc(item[0]) + '</div>' + (item[2] ? '<img class="dqimg" src="' + esc(item[2]) + '" alt="PMT flashcard: question" loading="lazy">' : '') +
       (q.shown
         ? (q.typed.trim() ? '<div class="dqmine"><div class="small muted" style="font-weight:600">Your answer</div><div class="notr" style="white-space:pre-wrap">' + esc(q.typed) + '</div></div>' : '') +
-          (q.mark ? dqMarkHtml(q.mark) : '<div class="back"><div class="small muted" style="font-weight:600">Answer</div><div class="notr">' + esc(item[1]) + '</div></div>')
+          (q.mark ? dqMarkHtml(q.mark) : (item[1] ? '<div class="back"><div class="small muted" style="font-weight:600">Answer</div><div class="notr" style="white-space:pre-wrap">' + esc(item[1]) + '</div></div>' : '')) +
+          (item[3] ? '<img class="dqimg" src="' + esc(item[3]) + '" alt="PMT flashcard: answer" loading="lazy">' : '') +
+          (item[4] ? '<div class="dqnote"><b>IAL Revise note</b> ' + esc(item[4]) + '</div>' : '')
         : '<label class="f" style="margin:0">Your answer<textarea id="dq-ans" rows="4" placeholder="Type your answer, then check it" autocomplete="off" autocapitalize="sentences">' + esc(q.typed) + '</textarea></label>') +
     '</div>' +
     (q.shown
       ? '<div class="small muted" style="text-align:center;font-weight:600">How comfortable are you with this one?</div><div class="rate dq3">' + [['Not yet', 0, 'r0'], ['Nearly', 1, ''], ['Comfortable', 2, 'r3']].map(([lab, v, cls]) => '<button class="' + cls + (q.mark && q.mark.rate === v ? ' sugg' : '') + '" data-act="dq-rate" data-v="' + v + '"><span' + (v === 0 ? ' data-th="ยังไม่ได้"' : '') + '>' + lab + '</span>' + (q.mark && q.mark.rate === v ? '<small>Suggested</small>' : '') + '</button>').join('') + '</div>'
       : '<button class="btn primary big" data-act="dq-show" style="width:100%">Show answer</button>') +
-    '<p class="small muted noclamp" style="margin:0;text-align:center">Written for IAL Revise on the same topics as this set. <a href="' + esc(pdf) + '" target="_blank" rel="noopener">Open the PMT flashcards ↗</a></p></div>';
+    '<p class="small muted noclamp" style="margin:0;text-align:center">Flashcards by <a href="https://www.physicsandmathstutor.com/" target="_blank" rel="noopener">PMT Education</a>, shown unchanged under <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a>. <a href="' + esc(pdf) + '" target="_blank" rel="noopener">Open the PMT flashcards ↗</a></p></div>';
 }
 document.addEventListener('input', e => {
   const t = e.target; if (!t || !t.dataset) return;
