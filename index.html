@@ -319,6 +319,17 @@ textarea{min-height:90px;resize:vertical}
 .dqsum .b{border-color:color-mix(in srgb,var(--bad) 50%,var(--line))}
 .dqweak{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:.92rem}
 .dqdone{color:var(--good);font-weight:600}
+.dqmark{display:flex;flex-direction:column;gap:6px}
+.dqpts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.dqpts li{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:10px;border:1px solid var(--line);font-size:1rem;flex-wrap:wrap}
+.dqpts li > .notr{flex:1;min-width:0}
+.dqpts .ic{flex:none;width:20px;font-weight:800;text-align:center}
+.dqpts .ok{border-color:color-mix(in srgb,var(--good) 55%,var(--line));background:color-mix(in srgb,var(--good) 9%,transparent)}
+.dqpts .ok .ic{color:var(--good)}
+.dqpts .miss{border-color:color-mix(in srgb,var(--bad) 50%,var(--line));background:color-mix(in srgb,var(--bad) 7%,transparent)}
+.dqpts .miss .ic{color:var(--bad)}
+.dqpts .tagx{flex-basis:100%;padding-left:28px}
+.rate button.sugg{border-width:2px;border-color:var(--ink);background:color-mix(in srgb,var(--ink) 6%,var(--surface))}
 .gainu + .gainu{border-top:1px solid var(--line);padding-top:12px}
 .chk{display:flex;gap:8px;align-items:flex-start;min-height:32px;font-size:.92rem}
 .chk input{margin-top:3px;width:18px;height:18px;flex:none}
@@ -1172,6 +1183,94 @@ function deckRow(d){
       dqBtn(d) + flagBtn('Flashcards: ' + d.n + ' (' + UNIT[d.u].l + ' ' + SUBJ[UNIT_SUBJ[d.u]].short + ')') + '<span class="small muted">Done? I knew it:</span>' +
       [['Badly',1],['Mostly',2],['Well',3]].map(([l, r]) => '<button class="btn sm" data-act="deck-rate" data-url="' + esc(d.url) + '" data-v="' + r + '" title="Next review in ' + ivLabel(schedule(st, r).i) + '">' + l + '</button>').join('') + '</div></div>';
 }
+/* ---------- Keyword marking for typed answers ----------
+   The model answer is split into key points. A point counts as covered when the typed answer has enough of its
+   key words (word endings, small typos, common synonyms and formulas are allowed for). It is a guide, not an examiner. */
+const MK_STOP = new Set(('a an the and or but of to in on at by for from with without into onto over under up down out off as is are was were be been being am it its this that these those there here then than so such not no nor do does did done can could may might must should would will shall have has had having they them their he she his her we our you your i me my which who whom whose what when where why how if because while during after before both each every all any some most many much few also only just very more most less least per via about between through across against within e g eg i.e ie etc one two give gives given state states stated called known means meaning mean used using use uses due therefore thus hence however where whereas e.g')
+  .split(/\s+/));
+const MK_SYN = { size:'magnitude', big:'large', bigger:'higher', larger:'higher', greater:'higher', more:'higher', increases:'increase', increased:'increase', increasing:'increase', rises:'increase', rise:'increase', rising:'increase', raises:'increase', raised:'increase',
+  smaller:'lower', less:'lower', fewer:'lower', decreases:'decrease', decreased:'decrease', decreasing:'decrease', falls:'decrease', fall:'decrease', falling:'decrease', drops:'decrease', drop:'decrease', reduces:'decrease', reduce:'decrease', reduced:'decrease', lowers:'decrease',
+  same:'equal', identical:'equal', equals:'equal', loses:'loss', lose:'loss', lost:'loss', losing:'loss', donor:'donate', donates:'donate', acceptor:'accept', accepts:'accept', broken:'break', breaks:'break', breaking:'break', made:'make', makes:'make', making:'make', formed:'form', forms:'form', forming:'form',
+  splits:'split', splitting:'split', joined:'join', joins:'join', joining:'join', fuse:'join', fuses:'join', bonded:'bond', bonds:'bond', bonding:'bond', moves:'move', moving:'move', moved:'move', movement:'move', motion:'move', travels:'move', travel:'move',
+  quicker:'fast', faster:'fast', quickly:'fast', rapid:'fast', rapidly:'fast', quick:'fast', slower:'slow', slowly:'slow', stronger:'strong', strongly:'strong', weaker:'weak', weakly:'weak', hotter:'hot', colder:'cold', heavier:'heavy', lighter:'light',
+  speed:'velocity', nuclei:'nucleus', bacteria:'bacterium', mitochondria:'mitochondrion', halves:'half', halved:'half', doubles:'double', doubled:'double', anticlockwise:'anticlockwise', unchanged:'constant', fixed:'constant', steady:'constant',
+  zero:'0', nought:'0', one:'1', two:'2', three:'3', four:'4', five:'5', six:'6', seven:'7', eight:'8', nine:'9', ten:'10', twice:'2', double:'2', half:'0.5', single:'1', first:'1', second:'2', third:'3',
+  h2o:'water', co2:'carbon dioxide', o2:'oxygen', colour:'color', colourless:'colorless', decolourises:'colorless', decolourise:'colorless', decolourised:'colorless', decolorises:'colorless', sulphur:'sulfur', sulphate:'sulfate', vapour:'vapor', fibre:'fiber', fibres:'fiber', centre:'center', haemoglobin:'hemoglobin', oestrogen:'estrogen', ionise:'ionis', ionised:'ionis', ionisation:'ionis', ionization:'ionis', ionize:'ionis', ionized:'ionis' };
+const MK_PHRASE = [[/\bat right angles?\b|\b90 ?(degrees|°)/g, ' perpendicular '], [/\bgoes? up\b|\bgets? (bigger|larger|higher)\b/g, ' increase '], [/\bgoes? down\b|\bgets? (smaller|lower)\b/g, ' decrease '], [/\bcarbon dioxide\b/g, ' carbondioxide '], [/\bco2\b/g, ' carbondioxide '],
+  [/\bspeeds? up\b/g, ' fast '], [/\bslows? down\b/g, ' slow '], [/\bstays? the same\b|\bdoes ?n[o']t change\b|\bno change\b/g, ' constant '], [/\bgive[sn]? off\b|\bgive[sn]? out\b/g, ' release '], [/\btake[sn]? in\b/g, ' absorb '], [/\bmade up of\b|\bconsists? of\b/g, ' contain '], [/\bh\+|\bhydrogen ions?\b/g, ' proton '], [/\be-(?![a-z])/g, ' electron ']];
+function mkNorm(s, plain){
+  const sub = '₀₁₂₃₄₅₆₇₈₉', sup = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+  s = String(s).toLowerCase().replace(/[₀-₉]/g, c => sub.indexOf(c)).replace(/[⁰¹²³⁴-⁹]/g, c => sup.indexOf(c)).replace(/⁺/g, '+').replace(/⁻/g, '-')
+    .replace(/[−–—]/g, '-').replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/×/g, '*').replace(/÷/g, '/').replace(/½|\b1\/2(?![\d.])/g, '0.5').replace(/⅓/g, '1/3').replace(/√/g, 'sqrt').replace(/\^/g, '')
+    .replace(/λ/g, 'lambda').replace(/ω/g, 'omega').replace(/θ/g, 'theta').replace(/ρ/g, 'rho').replace(/μ/g, 'mu').replace(/η/g, 'eta').replace(/π/g, 'pi').replace(/δ|Δ/gi, 'delta').replace(/ε/g, 'epsilon').replace(/φ|ϕ/g, 'phi').replace(/σ/g, 'sigma').replace(/τ/g, 'tau').replace(/α/g, 'alpha').replace(/β/g, 'beta').replace(/γ/g, 'gamma').replace(/⇌|→|->|=>/g, ' to ').replace(/⟨|⟩/g, '');
+  if (!plain) MK_PHRASE.forEach(([rx, to]) => { s = s.replace(rx, to); });
+  return s;
+}
+function mkStem(w){
+  if (MK_SYN[w]) w = MK_SYN[w];
+  if (/^[\d.+\-/*=]+$/.test(w) || w.length < 4) return w;
+  for (let pass = 0; pass < 2; pass++){
+    const m = w.match(/^(.{3,}?)(ations?|isations?|izations?|ions?|ings?|edly|ed|ies|es|s|ly|ally|al|ity|ities|ive|ment|ments|ness|ers?|ic)$/);
+    if (!m || m[1].length < 3) break;
+    w = m[2] === 'ies' ? m[1] + 'y' : m[1];
+  }
+  if (w.length > 4 && /e$/.test(w)) w = w.slice(0, -1);
+  if (w.length > 5 && /i[sz]$/.test(w)) w = w.slice(0, -2);
+  if (w.length > 4 && /(.)\1$/.test(w)) w = w.slice(0, -1);
+  return MK_SYN[w] || w;
+}
+function mkWords(s){ return (mkNorm(s).match(/[a-z]+(?:'[a-z]+)?|\d+(?:\.\d+)?/g) || []).map(w => w.replace(/'s$/, '')).filter(w => w && !MK_STOP.has(w)).map(mkStem).filter(w => w && !MK_STOP.has(w)); }
+function mkFlat(s){ return mkNorm(s, true).replace(/log10/g, 'log').replace(/[\s*]+/g, ''); }
+function mkFormulas(s){ return (mkNorm(s, true).match(/[a-z0-9()\[\]./*+\-]+(?: ?[=∝] ?[a-z0-9()\[\]./*+\- ]*[a-z0-9)\]])+/g) || []).map(f => f.replace(/log10/g, 'log').replace(/[\s*]+/g, '')).filter(f => f.length >= 4 && f.length <= 40 && /=/.test(f) && !/[a-z]{5,}/.test(f.replace(/lambda|omega|theta|delta|epsilon|sigma|alpha|gamma|sqrt/g, ''))); }
+function mkDist(a, b, max){
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++){
+    const cur = [i]; let best = i;
+    for (let j = 1; j <= b.length; j++){ cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) cur[j] = Math.min(cur[j], prev[j - 1]); best = Math.min(best, cur[j]); }
+    if (best > max) return max + 1; prev = cur;
+  }
+  return prev[b.length];
+}
+function mkHas(set, list, t){
+  if (set.has(t)) return true;
+  if (/^\d/.test(t) || t.length < 5) return false;
+  const max = t.length >= 9 ? 2 : 1;
+  return list.some(s => s.length >= 4 && !/^\d/.test(s) && (mkDist(s, t, max) <= max || (t.length >= 6 && s.length >= 6 && (s.indexOf(t) === 0 || t.indexOf(s) === 0))));
+}
+/* Split a model answer into key points: [{ text, terms, formulas }], plus how many are needed ("Any two of: …"). */
+function mkPoints(answer, question){
+  let body = answer, need = 0;
+  const any = body.match(/^Any (one|two|three|four|five|\d) of:\s*/i);
+  if (any){ need = +mkStem(any[1].toLowerCase()) || 1; body = body.slice(any[0].length); }
+  const parts = (any ? (/;/.test(body) ? body.split(/;\s*|\.\s+(?=[A-Z(])/) : body.replace(/\.$/, '').split(/,\s*|\.\s+(?=[A-Z(])/)) : body.split(/;\s+|(?<=[.!?])\s+(?=[A-Z0-9(Δλρ\[])/)).map(x => x.trim()).filter(x => x.replace(/[^A-Za-z0-9]/g, '').length > 1);
+  const given = new Set(mkWords(question || ''));
+  const pts = parts.map(text => {
+    const core = text.replace(/\((?:e\.g\.|for example|such as|also)[^)]*\)/gi, ' ').replace(/,? ?(?:e\.g\.|for example|such as) [^.;]*/gi, ' ');
+    const formulas = mkFormulas(core);
+    let terms = [...new Set(mkWords(core.replace(/[a-z0-9()./*+\-]+ ?= ?[^,;.]*/gi, m => / /.test(m.trim()) && /[a-z]{4}/i.test(m) ? m : ' ')))];
+    if (!terms.length && !formulas.length) terms = [...new Set(mkWords(text))];
+    const fresh = terms.filter(t => !given.has(t));
+    if (fresh.length) terms = fresh;
+    return { text, terms, formulas };
+  }).filter(p => p.terms.length || p.formulas.length);
+  // A one-part "State…/Define…/What is…" question: the first sentence is the answer, later ones are extra detail.
+  if (!need && pts.length > 1 && /^(State|Define|What is|What are|What does|What do|Write|Name)\b/.test(question || '') && !/ and |,|;|\b(two|three|four|five|both|each|compare|difference|differ|how|why|explain|describe|outline|example)\b|\?\s+\S/i.test(question)) pts.slice(1).forEach(p => { p.extra = true; });
+  const req = pts.filter(p => !p.extra).length;
+  return { pts, need: need ? Math.min(need, pts.length) : req };
+}
+function mkMark(typed, answer, question){
+  const { pts, need } = mkPoints(answer, question);
+  const words = mkWords(typed), set = new Set(words), flat = mkFlat(typed);
+  const rows = pts.map(p => {
+    const hit = p.terms.filter(t => mkHas(set, words, t)), fOk = p.formulas.some(f => flat.indexOf(f) >= 0 || flat.indexOf(f.split('=').reverse().join('=')) >= 0);
+    const n = p.terms.length, want = n <= 1 ? n : n <= 4 ? 2 : Math.ceil(n * 0.4);
+    const ok = fOk || (n > 0 && hit.length >= want && !(p.formulas.length && !fOk && n < 2));
+    return { text: p.text, ok, extra: !!p.extra, part: !ok && (hit.length >= 2 || (n > 0 && hit.length / n >= 0.34)), missing: p.terms.filter(t => !hit.includes(t)) };
+  });
+  const got = Math.min(rows.filter(r => r.ok && !r.extra).length, need);
+  return { rows, got, need, pct: need ? Math.round(got / need * 100) : 0, anyOf: need < rows.filter(r => !r.extra).length, rate: !need ? 1 : got >= need || (need >= 3 && got / need >= 0.66) ? 2 : got / need >= 0.5 || (need === 1 && rows.some(r => r.part)) ? 1 : 0 };
+}
 /* ---------- Flashcard quiz: one quiz per PMT flashcard set ----------
    The questions are written for this site on the same topics as the set (deckquiz.js); PMT's own cards stay on PMT.
    Type an answer, show the answer, then say how comfortable you feel. Progress is kept per question. */
@@ -1211,6 +1310,13 @@ function dqFinish(q){
   const t = todayStr(); state.reviewDays[t] = (state.reviewDays[t] || 0) + 1;
   q.done = true; q.next = state.deckState[q.url].due;
 }
+function dqMarkHtml(m){
+  const row = r => { const k = r.ok ? 'ok' : r.extra ? 'extra' : m.anyOf ? 'alt' : 'miss'; return '<li class="' + k + '"><span class="ic" aria-hidden="true">' + (r.ok ? '✓' : k === 'miss' ? '✗' : '•') + '</span><span class="notr">' + esc(r.text) + '</span>' + (r.extra && !r.ok ? '<span class="small muted tagx">Extra detail</span>' : '') + '</li>'; };
+  return '<div class="back dqmarked"><div class="dqmark"><b>Auto-mark: ' + m.got + ' of ' + m.need + ' key point' + (m.need === 1 ? '' : 's') + '</b><div class="progressline"><i style="width:' + m.pct + '%"></i></div></div>' +
+    (m.anyOf ? '<div class="small muted" style="font-weight:600">Any ' + m.need + ' of these</div>' : '<div class="small muted" style="font-weight:600">Answer</div>') +
+    '<ul class="dqpts">' + m.rows.map(row).join('') + '</ul>' +
+    '<p class="small muted noclamp" style="margin:0">Marked by key words, so it can be wrong. Change the rating if you disagree.</p></div>';
+}
 function viewDeckQuiz(){
   const q = ui.cards.dq, d = unitDecks(q.u).find(x => x.url === q.url), qs = d ? dqList(d) : [];
   if (!d || !qs.length){ ui.cards.dq = null; return viewCards(); }
@@ -1220,6 +1326,7 @@ function viewDeckQuiz(){
     const st = dqState(), weak = qs.map((x, i) => i).filter(i => !st[q.key + '#' + i] || st[q.key + '#' + i].c < 2);
     return wrap + '<div class="card stack" style="padding:24px"><h1 style="margin:0">Quiz done</h1><p class="muted" style="margin:0">' + esc(q.name) + ' · ' + esc(UNIT[q.u].l) + '</p>' +
       '<div class="dqsum"><div class="g"><b>' + ok + '</b><span>Comfortable</span></div><div class="m"><b>' + near + '</b><span>Nearly</span></div><div class="b"><b>' + no + '</b><span data-th="ยังไม่ได้">Not yet</span></div></div>' +
+      (q.marks && q.marks.length ? '<p class="small" style="margin:0"><b>Auto-mark average: ' + Math.round(q.marks.reduce((a, x) => a + x, 0) / q.marks.length) + '%</b> <span class="muted">over ' + q.marks.length + ' typed answer' + (q.marks.length === 1 ? '' : 's') + '</span></p>' : '') +
       (q.next ? '<p class="small muted" style="margin:0">This set comes back for review on ' + fmtDate(q.next, {day:'numeric', month:'short'}) + '.</p>' : '') +
       (weak.length ? '<div><div class="small muted" style="font-weight:600;margin-bottom:4px">Go over these again</div><ul class="dqweak notr">' + weak.map(i => '<li>' + esc(qs[i][0]) + '</li>').join('') + '</ul></div>' : '<p style="margin:0">You’re comfortable with every question in this set.</p>') +
       '<div class="row">' + (weak.length ? '<button class="btn primary" data-act="dq-start" data-u="' + q.u + '" data-url="' + esc(q.url) + '" data-v="weak">Retry ' + weak.length + ' question' + (weak.length === 1 ? '' : 's') + '</button>' : '') +
@@ -1233,11 +1340,11 @@ function viewDeckQuiz(){
       '<div class="front notr">' + esc(item[0]) + '</div>' +
       (q.shown
         ? (q.typed.trim() ? '<div class="dqmine"><div class="small muted" style="font-weight:600">Your answer</div><div class="notr" style="white-space:pre-wrap">' + esc(q.typed) + '</div></div>' : '') +
-          '<div class="back"><div class="small muted" style="font-weight:600">Answer</div><div class="notr">' + esc(item[1]) + '</div></div>'
+          (q.mark ? dqMarkHtml(q.mark) : '<div class="back"><div class="small muted" style="font-weight:600">Answer</div><div class="notr">' + esc(item[1]) + '</div></div>')
         : '<label class="f" style="margin:0">Your answer<textarea id="dq-ans" rows="4" placeholder="Type your answer, then check it" autocomplete="off" autocapitalize="sentences">' + esc(q.typed) + '</textarea></label>') +
     '</div>' +
     (q.shown
-      ? '<div class="small muted" style="text-align:center;font-weight:600">How comfortable are you with this one?</div><div class="rate dq3">' + [['Not yet', 0, 'r0'], ['Nearly', 1, ''], ['Comfortable', 2, 'r3']].map(([lab, v, cls]) => '<button class="' + cls + '" data-act="dq-rate" data-v="' + v + '"' + (v === 0 ? ' data-th="ยังไม่ได้"' : '') + '>' + lab + '</button>').join('') + '</div>'
+      ? '<div class="small muted" style="text-align:center;font-weight:600">How comfortable are you with this one?</div><div class="rate dq3">' + [['Not yet', 0, 'r0'], ['Nearly', 1, ''], ['Comfortable', 2, 'r3']].map(([lab, v, cls]) => '<button class="' + cls + (q.mark && q.mark.rate === v ? ' sugg' : '') + '" data-act="dq-rate" data-v="' + v + '"><span' + (v === 0 ? ' data-th="ยังไม่ได้"' : '') + '>' + lab + '</span>' + (q.mark && q.mark.rate === v ? '<small>Suggested</small>' : '') + '</button>').join('') + '</div>'
       : '<button class="btn primary big" data-act="dq-show" style="width:100%">Show answer</button>') +
     '<p class="small muted noclamp" style="margin:0;text-align:center">Written for IAL Revise on the same topics as this set. <a href="' + esc(pdf) + '" target="_blank" rel="noopener">Open the PMT flashcards ↗</a></p></div>';
 }
@@ -1272,7 +1379,7 @@ function viewCards(){
   const mine = state.custom.filter(k => UNIT[k.u] && !isHidden(k.u));
   const mineDue = mine.filter(k => cardStatus(k) !== 'later').length;
   return '<div class="stack">' + sSeg('cards') +
-    '<div><h1>Flashcards</h1><p class="muted">Flashcard decks from Physics &amp; Maths Tutor. Open a deck, go through it, then rate how well you knew it. The deck comes back for review just before you’d forget it. Each deck also has a Quiz: type your answer, check it, and say how comfortable you feel.</p></div>' +
+    '<div><h1>Flashcards</h1><p class="muted">Flashcard decks from Physics &amp; Maths Tutor. Open a deck, go through it, then rate how well you knew it. The deck comes back for review just before you’d forget it. Each deck also has a Quiz: type your answer, the site marks it by key words, and you say how comfortable you feel.</p></div>' +
     (allDue.length ? '<div class="card"><div class="card-h"><h2>Due for review today</h2><span class="small muted">' + allDue.length + ' deck' + (allDue.length > 1 ? 's' : '') + '</span></div><div class="stack" style="gap:0">' + allDue.map(d => '<div style="margin-top:6px">' + unitPill(d.u) + '</div>' + deckRow(d)).join('') + '</div></div>' : '') +
     '<div class="chips" role="group" aria-label="Subject">' + mySubjects().map(x => '<button class="chip" data-act="cards-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === c.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
     (units.length ? '<label class="f">Unit<select id="cards-unit">' + units.map(x => { const ds = unitDecks(x.c); const started = ds.filter(d => state.deckState[d.url]).length; return '<option value="' + x.c + '"' + (x.c === c.unit ? ' selected' : '') + '>' + esc(x.l + ' · ' + x.n) + (ds.length ? ' (' + started + '/' + ds.length + ' decks)' : ' (no PMT decks)') + '</option>'; }).join('') + '</select></label>' : '') +
@@ -4409,8 +4516,10 @@ document.addEventListener('click', e => {
     case 'kp-review': startReview(v === 'due' ? (k => k.kp && cardStatus(k) === 'due') : (k => k.kp && k.u === v), 20); break;
     case 'deck-rate': { const url = b.dataset.url; state.deckState[url] = schedule(state.deckState[url], +v); { const dk = decksIn('all').find(x => x.url === url); if (dk && +v >= 2) dk.topics.forEach(n => { const i = topicIndexByName(dk.u, n); if (i >= 0) bumpTopic(dk.u, i, +v >= 3 ? 2 : 1); }); } const t = todayStr(); state.reviewDays[t] = (state.reviewDays[t] || 0) + 1; commit(); toast('Next review: ' + fmtDate(state.deckState[url].due, {weekday:'short', day:'numeric', month:'short'})); break; }
     case 'dq-start': dqStart(b.dataset.u, b.dataset.url, v); break;
-    case 'dq-show': { const q = ui.cards.dq; if (!q) break; const ta = $('#dq-ans'); q.typed = ta ? ta.value : ''; q.shown = true; render(); break; }
-    case 'dq-rate': { const q = ui.cards.dq; if (!q || !q.shown) break; const idx = q.list[q.i]; q.res[idx] = +v; dqState()[q.key + '#' + idx] = { c: +v, d: todayStr() }; q.i++; q.typed = ''; q.shown = false; if (q.i >= q.list.length) dqFinish(q); commit(); window.scrollTo(0, 0); break; }
+    case 'dq-show': { const q = ui.cards.dq; if (!q) break; const ta = $('#dq-ans'); q.typed = ta ? ta.value : ''; q.shown = true; q.mark = null;
+      if (q.typed.trim()) try { const d = unitDecks(q.u).find(x => x.url === q.url), it = dqList(d)[q.list[q.i]]; q.mark = mkMark(q.typed, it[1], it[0]); } catch(err){ console.error(err); }
+      render(); break; }
+    case 'dq-rate': { const q = ui.cards.dq; if (!q || !q.shown) break; const idx = q.list[q.i]; q.res[idx] = +v; dqState()[q.key + '#' + idx] = q.mark ? { c: +v, d: todayStr(), m: q.mark.pct } : { c: +v, d: todayStr() }; if (q.mark) (q.marks = q.marks || []).push(q.mark.pct); q.mark = null; q.i++; q.typed = ''; q.shown = false; if (q.i >= q.list.length) dqFinish(q); commit(); window.scrollTo(0, 0); break; }
     case 'dq-end': ui.cards.dq = null; render(); break;
     case 'show-answer': ui.cards.review.shown = true; render(); break;
     case 'rate': {
