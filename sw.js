@@ -1,5 +1,5 @@
 /* Offline support: keeps the app's own files on the device. Papers and notes (PDFs on other sites) still need internet. */
-const CACHE = 'ial-study-hub-20261117211514';
+const CACHE = 'ial-study-hub-20261117212952';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',
   './papers.js', './topicqs.js', './notes.js', './decks.js', './boundaries.js', './reports.js', './timetable.js', './tips.js', './practicals.js', './keyphrases.js', './oldspec.js', './solutions.js', './deckquiz.js', './schools.js', './i18n.js', './fonts/sarabun-thai-400-normal.woff2', './fonts/sarabun-thai-600-normal.woff2', './fonts/sarabun-thai-700-normal.woff2', './fonts/sarabun-thai-800-normal.woff2'];
 const NCACHE = 'ial-notif';   // upcoming reminders, written by the page
