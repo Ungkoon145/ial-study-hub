@@ -238,6 +238,10 @@ body.asking{overflow:hidden}
 .askrow{gap:8px;align-items:center}
 .sbch{margin:6px 0 10px}
 .pill.s-hist{background:color-mix(in srgb,var(--hist) 16%,transparent);color:var(--hist)}
+.sgroups{gap:10px}.sgroup{display:flex;flex-direction:column;gap:6px}
+details.sgdet{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:0}
+details.sgdet>summary{cursor:pointer;padding:12px 14px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+details.sgdet>.grid2{padding:0 12px 12px}
 .pill.s-cs{background:color-mix(in srgb,var(--cs) 16%,transparent);color:var(--cs)}
 .pill.s-acc{background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc)}
 .pill.s-bus{background:color-mix(in srgb,var(--bus) 16%,transparent);color:var(--bus)}
@@ -1081,17 +1085,25 @@ function go(r){ const changed = route() !== r; setTimeout(() => { if (route() ==
 /* ============================================================
    Views
    ============================================================ */
+/* Subject groups for pickers */
+const SUBJ_GROUPS = [['Sciences and Maths', ['math','fm','phys','chem','bio','cs','it']], ['Humanities and social sciences', ['econ','geog','psych','hist','law']], ['Business', ['bus','acc']], ['English', ['enlang','enlit']], ['Languages', ['fre','ger','spa','ara','gre']]];
+function groupedChips(list, chip){
+  const ids = new Set(list.map(x => x.id)), seen = new Set();
+  const out = SUBJ_GROUPS.map(([name, g]) => { const xs = g.filter(id => ids.has(id) && SUBJ[id]).map(id => { seen.add(id); return SUBJ[id]; }); return xs.length ? '<div class="sgroup"><div class="small muted">' + esc(name) + '</div><div class="chips">' + xs.map(chip).join('') + '</div></div>' : ''; }).join('');
+  const rest = list.filter(x => !seen.has(x.id));
+  return out + (rest.length ? '<div class="sgroup"><div class="chips">' + rest.map(chip).join('') + '</div></div>' : '');
+}
 function subjChips(cur, act){
   return '<div class="chips" role="group" aria-label="Subject">' +
     '<button class="chip" data-act="' + act + '" data-v="all" aria-pressed="' + (cur === 'all') + '">All</button>' +
-    SUBJECTS.map(s => '<button class="chip" data-act="' + act + '" data-v="' + s.id + '" aria-pressed="' + (cur === s.id) + '"><span class="dot" style="background:var(--' + s.id + ')"></span>' + esc(s.short) + '</button>').join('') +
+    mySubjects().map(s => '<button class="chip" data-act="' + act + '" data-v="' + s.id + '" aria-pressed="' + (cur === s.id) + '"><span class="dot" style="background:var(--' + s.id + ')"></span>' + esc(s.short) + '</button>').join('') +
   '</div>';
 }
 function unitSelect(id, sid, cur, withAll = true, onlyWithContent = null){
   let units = visibleUnits(sid);
   if (onlyWithContent) units = units.filter(u => onlyWithContent.has(u.c));
   return '<select id="' + id + '">' + (withAll ? '<option value="all">All units</option>' : '') +
-    units.map(u => '<option value="' + u.c + '"' + (u.c === cur ? ' selected' : '') + '>' + esc(u.l + ' · ' + u.n + ' (' + u.c + ')') + '</option>').join('') + '</select>';
+    units.map(u => '<option value="' + u.c + '"' + (u.c === cur ? ' selected' : '') + '>' + esc(u.l + ' · ' + u.n + ' (' + dispCode(u.c) + ')') + '</option>').join('') + '</select>';
 }
 
 function viewToday(){
@@ -1188,6 +1200,8 @@ function byUrgency(a, b){ return urgency(a) - urgency(b) || prio(a) - prio(b) ||
 /* Direct PDF links for Today and tasks */
 function topicPdf(c, i){ const N = (typeof PMT_NOTES !== 'undefined' && PMT_NOTES[c]) || null; const pick = a => (a || []).find(x => x.k !== 'cards'); return N ? (pick(N.t && N.t[i]) || pick(N.unit)) : null; }
 function topicQPdf(c, i){ const p = pmtPacks(c, i)[0]; return p && p.qp ? p.qp : null; }
+/* Unit code as Pearson prints it (Law papers are YLA1/01 and YLA1/02) */
+function dispCode(c){ return /^YLA1[12]$/.test(c) ? 'YLA1/0' + c.slice(-1) : c; }
 function paperRow(c, sr){ return (typeof PAPERS !== 'undefined' && PAPERS[c] && sr) ? PAPERS[c].find(x => x[0] === sr) || null : null; }
 function taskSeries(x){ if (x.sr) return x.sr; const rows = (typeof PAPERS !== 'undefined' && PAPERS[x.u]) || []; let best = null; rows.forEach(r => { if (x.t.includes(r[0]) && (!best || r[0].length > best.length)) best = r[0]; }); return best; }
 function pdfBtn(url, label, cls){ return url ? '<a class="btn ' + (cls || 'sm') + '" href="' + esc(url) + '" target="_blank" rel="noopener">' + label + ' ↗</a>' : ''; }
@@ -1554,12 +1568,12 @@ function viewQuiz(){
   if (!u){
     body = '<div class="empty">All ' + esc(s.short) + ' units are hidden. <a href="#prefs">Choose your units</a>.</div>';
   } else if (!hasPmt(u.c)){
-    body = '<div class="card stack" style="gap:10px"><div><div class="code muted">' + u.c + '</div><h2>' + esc(u.l + ' ' + u.n) + '</h2></div>' +
+    body = '<div class="card stack" style="gap:10px"><div><div class="code muted">' + dispCode(u.c) + '</div><h2>' + esc(u.l + ' ' + u.n) + '</h2></div>' +
       '<p class="muted">Physics &amp; Maths Tutor doesn’t have topic question packs for this practical unit. Practise with the real past papers instead, and use the core practical notes in Revise.</p>' +
       '<div class="row">' + (typeof PAPERS !== 'undefined' && PAPERS[u.c] ? '<button class="btn primary" data-act="goto-papers" data-u="' + u.c + '">Past papers (' + PAPERS[u.c].length + ')</button>' : '') + '<a class="btn" href="#syllabus" data-act="goto-rev" data-u="' + u.c + '">Core practical notes</a></div></div>';
   } else {
     const st = unitPmtStats(u.c);
-    body = '<div class="card stack" style="gap:10px"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="code muted">' + u.c + '</div><h2>' + esc(u.l + ' ' + u.n) + '</h2>' +
+    body = '<div class="card stack" style="gap:10px"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="code muted">' + dispCode(u.c) + '</div><h2>' + esc(u.l + ' ' + u.n) + '</h2>' +
         '<p class="small muted">' + st.n + ' question packs · ' + st.d + ' done</p></div>' +
         (typeof PAPERS !== 'undefined' && PAPERS[u.c] ? '<button class="btn sm" data-act="goto-papers" data-u="' + u.c + '">Past papers (' + PAPERS[u.c].length + ')</button>' : '') + '</div>' +
         '<div class="meter"><i style="width:' + (st.n ? Math.round(st.d / st.n * 100) : 0) + '%"></i></div></div>' +
@@ -1653,7 +1667,7 @@ function viewPapers(){
     const avg = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length * 100) : null;
     const best = pcts.length ? Math.round(Math.max(...pcts) * 100) : null;
     const byDate = logged.slice().sort((a, b) => (a[1].d || '').localeCompare(b[1].d || '')).slice(-10);
-    stats = '<div class="card stack" style="gap:12px"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="code muted">' + u.c + '</div><h2>' + esc(u.l + ' ' + u.n) + '</h2></div>' + resLinks(u.c, true).replace(/<button[^>]*goto-papers[^>]*>[^<]*<\/button>/, '').replace(/<\/div>$/, askBtn(u.c, true, isEssayUnit(u.c) ? 'essay' : '', isEssayUnit(u.c) ? '✦ Mark my essay' : '') + '</div>') + '</div>' +
+    stats = '<div class="card stack" style="gap:12px"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="code muted">' + dispCode(u.c) + '</div><h2>' + esc(u.l + ' ' + u.n) + '</h2></div>' + resLinks(u.c, true).replace(/<button[^>]*goto-papers[^>]*>[^<]*<\/button>/, '').replace(/<\/div>$/, askBtn(u.c, true, isEssayUnit(u.c) ? 'essay' : '', isEssayUnit(u.c) ? '✦ Mark my essay' : '') + '</div>') + '</div>' +
       '<div class="tiles" style="grid-template-columns:repeat(3,1fr)"><div class="tile"><b>' + logged.length + '<span style="font-size:1rem;color:var(--muted)"> / ' + all.length + '</span></b><span>papers done</span></div>' +
       '<div class="tile"><b>' + (avg === null ? '–' : avg + '%') + '</b><span>average</span></div><div class="tile"><b>' + (best === null ? '–' : best + '%') + '</b><span>best</span></div></div>' +
       (byDate.length >= 2 ? '<div><div class="small muted" style="margin-bottom:4px">Your scores over time</div><div class="bars" style="height:90px;grid-template-columns:repeat(' + byDate.length + ',1fr)">' + byDate.map(x => { const pc = Math.round(paperPct(x[1]) * 100); return '<div class="bar"><em>' + pc + '%</em><div style="height:' + pc + '%;background:var(--' + scoreColor(pc / 100) + ')"></div></div>'; }).join('') + '</div>' +
@@ -1724,7 +1738,7 @@ function viewSyllabus(){
     (units.length ? units.map(u => {
       const p = Math.round(unitProgress(u) * 100);
       const q = qs[u.c];
-      return '<details class="unit"' + (ui.syllabus.open === u.c ? ' open' : '') + ' data-unit="' + u.c + '"><summary><span class="code">' + u.c + '</span><span><b>' + esc(u.l) + '</b> ' + esc(u.n) + '</span><span class="small muted">' + p + '%' + (q ? ' · quiz ' + Math.round(q[0] / q[1] * 100) + '%' : '') + '</span><div class="meter"><i style="width:' + p + '%;background:var(--' + sid + ')"></i></div></summary>' +
+      return '<details class="unit"' + (ui.syllabus.open === u.c ? ' open' : '') + ' data-unit="' + u.c + '"><summary><span class="code">' + dispCode(u.c) + '</span><span><b>' + esc(u.l) + '</b> ' + esc(u.n) + '</span><span class="small muted">' + p + '%' + (q ? ' · quiz ' + Math.round(q[0] / q[1] * 100) + '%' : '') + '</span><div class="meter"><i style="width:' + p + '%;background:var(--' + sid + ')"></i></div></summary>' +
         '<div style="padding:12px 16px;border-bottom:1px solid var(--line)" class="stack">' + unitNotesBlock(u.c) + solbankBlock(u.c) + (bookletFor(u.c) && bookletFor(u.c).url ? '<div class="row">' + bookletBtn(u.c, true) + '</div>' : '') + tipsBlock(u.c, false) + (ASK ? '<div class="row askrow"><span class="small muted">Stuck on a question?</span>' + askBtn(u.c, true) + (isEssayUnit(u.c) ? askBtn(u.c, true, 'essay', '✦ Mark my essay') : '') + '</div>' : '') + '<div class="row" style="gap:8px">' + (hasPmt(u.c) ? '<button class="btn sm" data-act="goto-tq" data-u="' + u.c + '">Topic questions</button>' : '') + (typeof PAPERS !== 'undefined' && PAPERS[u.c] ? '<button class="btn sm" data-act="goto-papers" data-u="' + u.c + '">Past papers (' + PAPERS[u.c].length + ')</button>' : '') + '</div></div>' +
         '<div>' + u.t.map((t, i) => { const v = state.topics[topicId(u.c, i)] || 0; const tm = topicMistakes(u.c, i), tl = tm.reduce((a, m) => a + m.lost, 0); return '<div class="topic"><div class="grow"><div>' + esc(t) + (tl ? ' <a class="pill mkpill" href="#mistakes" title="Open mistakes on this topic">−' + tl + ' mark' + (tl === 1 ? '' : 's') + ' in mistakes</a>' : '') + '</div>' + topicNotes(u.c, i) + '</div><button class="status" data-v="' + v + '" data-act="topic" data-id="' + topicId(u.c, i) + '" aria-label="' + esc(t) + ': ' + labels[v] + '. Tap to change">' + labels[v] + '</button></div>'; }).join('') + '</div></details>';
     }).join('') : '<div class="empty">All ' + esc(s.short) + ' units are hidden. <a href="#prefs">Choose your units</a>.</div>') +
@@ -2347,7 +2361,7 @@ function mySubjectsCard(){
     (studying.length ? '<div class="list">' + studying.map(subjRow).join('') + '</div>' : '') +
     (fin.length ? '<div class="grouph">Finished</div><div class="list">' + fin.map(subjRow).join('') + '</div>' : '') +
     (drop.length ? '<details class="dropped"><summary class="small">Dropped (' + drop.length + ') · your work is kept</summary><div class="list">' + drop.map(subjRow).join('') + '</div></details>' : '') +
-    (notTaken.length ? '<div class="stack" style="gap:6px"><div class="small muted">Add a subject</div><div class="chips">' + notTaken.map(s => '<button class="chip" data-act="sub-add" data-v="' + s.id + '"><span class="dot" style="background:var(--' + s.id + ')"></span>+ ' + esc(s.short) + '</button>').join('') + '</div></div>' : '') +
+    (notTaken.length ? '<div class="stack" style="gap:6px"><div class="small muted">Add a subject</div><div class="stack sgroups">' + groupedChips(notTaken, s => '<button class="chip" data-act="sub-add" data-v="' + s.id + '"><span class="dot" style="background:var(--' + s.id + ')"></span>+ ' + esc(s.short) + '</button>') + '</div></div>' : '') +
     '<p class="small muted" style="margin:0">Dropped and finished subjects leave Today, Planner, flashcards and suggestions. Finished subjects keep their grade on the Grades page.' + (setupDone() ? ' To change every subject and exam series at once, <a href="#setup" data-act="su-open">re-run full setup</a>.' : '') + '</p></div>';
 }
 
@@ -3301,6 +3315,7 @@ function nextCard(){
    ============================================================ */
 const TT_SERIES = typeof IAL_TT !== 'undefined' ? Object.keys(IAL_TT) : [];
 function ttDate(c, sr){ return (typeof IAL_TT !== 'undefined' && IAL_TT[sr] && IAL_TT[sr][c]) || null; }
+document.addEventListener('toggle', e => { const d = e.target; if (d && d.matches && d.matches('details.sgdet') && ui.setup){ if (!ui.setup.open) ui.setup.open = new Set(); d.open ? ui.setup.open.add(d.dataset.sg) : ui.setup.open.delete(d.dataset.sg); } }, true);
 function setupDone(){ return !!(state.setup && state.setup.done); }
 function setupInit(){
   const prev = state.setup && state.setup.done;
@@ -3313,11 +3328,14 @@ function setupSeriesFor(c){ const s = ui.setup.series[c]; return s === undefined
 function viewSetup(){
   if (!ui.setup) setupInit();
   const S = ui.setup, chosen = SUBJECTS.flatMap(s => s.units.filter(u => S.units.has(u.c)));
-  const unitsHtml = SUBJECTS.map(s => {
+  const card = s => {
     const n = s.units.filter(u => S.units.has(u.c)).length;
     return '<div class="card stack"><div class="card-h"><h2><span class="dot" style="background:var(--' + s.id + ');margin-right:8px"></span>' + esc(s.name) + '</h2><button class="btn sm ghost" data-act="su-all" data-v="' + s.id + '">' + (n === s.units.length ? 'Clear' : 'Select all') + '</button></div>' +
       '<div class="chips">' + s.units.map(u => '<label class="chip pick"><input type="checkbox" data-su="' + u.c + '"' + (S.units.has(u.c) ? ' checked' : '') + '><span>' + esc(u.l) + '</span><span class="muted small">' + esc(u.n) + '</span></label>').join('') + '</div></div>';
-  }).join('');
+  };
+  if (!S.open) S.open = new Set();
+  const unitsHtml = SUBJ_GROUPS.map(([name, g]) => { const xs = g.filter(id => SUBJ[id]); const n = xs.reduce((a, id) => a + SUBJ[id].units.filter(u => S.units.has(u.c)).length, 0);
+    return '<details class="sgdet" data-sg="' + esc(name) + '"' + (n || S.open.has(name) ? ' open' : '') + '><summary><b>' + esc(name) + '</b> <span class="muted small">' + (n ? n + ' unit' + (n === 1 ? '' : 's') + ' picked' : xs.map(id => esc(SUBJ[id].short)).join(', ')) + '</span></summary><div class="grid2">' + xs.map(id => card(SUBJ[id])).join('') + '</div></details>'; }).join('');
   const opts = c => TT_SERIES.map(sr => { const d = ttDate(c, sr); return d ? '<option value="' + sr + '"' + (setupSeriesFor(c) === sr ? ' selected' : '') + '>' + sr + '</option>' : ''; }).join('') +
     (setupSeriesFor(c) === 'keep' ? '<option value="keep" selected>Keep my date</option>' : '') +
     '<option value="later"' + (setupSeriesFor(c) === 'later' ? ' selected' : '') + '>Later / not decided</option><option value="done"' + (setupSeriesFor(c) === 'done' ? ' selected' : '') + '>Already sat</option>';
@@ -3330,7 +3348,7 @@ function viewSetup(){
     '<div><h1>Set up in a minute</h1><p class="muted">Pick your units and when you’re sitting each one. The app fills in the official Pearson exam dates, and everything else (Today, “Do this next”, flashcards, questions) focuses on these units.</p></div>' +
     quickCard() + '<h2 class="step" style="margin-top:4px">Or choose unit by unit</h2>' +
     '<h2 class="step"><span>1</span> Which units are you taking?</h2>' +
-    '<div class="grid2">' + unitsHtml + '</div>' +
+    '<div class="stack">' + unitsHtml + '</div>' +
     '<h2 class="step"><span>2</span> When are you sitting them?</h2>' +
     (chosen.length ? '<div class="card stack"><div class="row" style="align-items:flex-end"><label class="f" style="max-width:260px">Most of my exams are in<select id="su-def">' + TT_SERIES.map(sr => '<option' + (S.def === sr ? ' selected' : '') + '>' + sr + '</option>').join('') + '</select></label><button class="btn" data-act="su-apply">Apply to all</button></div>' +
       '<div class="list">' + examRows + '</div>' +
@@ -3739,7 +3757,7 @@ function quickCard(){
   return '<div class="card stack quick">' +
     '<div><h2 style="margin:0">Quick start</h2><p class="small muted" style="margin:4px 0 0">Three taps and you’re set. ' + (route() === 'today' ? 'You can change single units later in Settings.' : 'You can fine-tune single units below afterwards.') + '</p></div>' +
     '<label class="f" style="max-width:280px">Exam series<select id="qs-series">' + TT_SERIES.map(sr => '<option' + (Q.series === sr ? ' selected' : '') + '>' + sr + '</option>').join('') + '</select></label>' +
-    '<div><div class="small muted" style="margin-bottom:6px">Subjects</div><div class="chips" role="group" aria-label="Subjects">' + SUBJECTS.map(s => '<button class="chip" data-act="qs-subj" data-v="' + s.id + '" aria-pressed="' + Q.subj.has(s.id) + '"><span class="dot" style="background:var(--' + s.id + ')"></span>' + esc(s.name) + '</button>').join('') + '</div></div>' +
+    '<div><div class="small muted" style="margin-bottom:6px">Subjects</div><div class="stack sgroups" role="group" aria-label="Subjects">' + groupedChips(SUBJECTS, s => '<button class="chip" data-act="qs-subj" data-v="' + s.id + '" aria-pressed="' + Q.subj.has(s.id) + '"><span class="dot" style="background:var(--' + s.id + ')"></span>' + esc(s.name) + '</button>') + '</div></div>' +
     '<div><div class="small muted" style="margin-bottom:6px">This series I’m sitting</div><div class="chips" role="group" aria-label="Which units">' + [['as','Year 1 (AS) units'],['a2','Year 2 (A2) units'],['both','Both']].map(([k, l]) => '<button class="chip" data-act="qs-stage" data-v="' + k + '" aria-pressed="' + (Q.stage === k) + '">' + l + '</button>').join('') + '</div></div>' +
     (units.length ? '<p class="small" style="margin:0">' + (sitting.length ? '<b>' + sitting.length + ' exam' + (sitting.length === 1 ? '' : 's') + ' in ' + esc(Q.series) + ':</b> ' + sitting.map(c => esc(UNIT[c].l + (UNIT_SUBJ[c] === 'math' || UNIT_SUBJ[c] === 'fm' ? '' : ' ' + SUBJ[UNIT_SUBJ[c]].short))).join(', ') : 'None of these units has an exam in ' + esc(Q.series) + '.') + '<br><span class="muted">' + (units.length > sitting.length ? 'The other ' + (units.length - sitting.length) + ' units are saved for later, so your plan covers them when the time comes. ' : '') + 'Typical choices: Maths P1–P4, M1, S1; Further Maths FP1–FP3, M2, S2, M3. Change any unit in Settings.</span></p>' : '') +
     '<div class="row"><button class="btn primary" data-act="qs-save"' + (units.length ? '' : ' disabled') + '>Set up ' + (units.length ? units.length + ' units' : '') + '</button></div></div>';
@@ -4590,13 +4608,13 @@ function searchIndex(){
   const add = (type, title, sub, c, go, extra) => I.push({ type, title, sub, c, go, hay: (title + ' ' + (sub || '') + ' ' + (extra || '')).toLowerCase() });
   SUBJECTS.forEach(s => s.units.forEach(u => {
     const lab = u.l + ' ' + u.n;
-    add('Unit', lab, s.name + ' · ' + u.c, u.c, { act: 'goto-rev', u: u.c }, u.c);
+    add('Unit', lab, s.name + ' · ' + dispCode(u.c), u.c, { act: 'goto-rev', u: u.c }, u.c);
     u.t.forEach((t, i) => add('Topic', t, lab, u.c, { act: 'goto-rev', u: u.c }, s.name));
     const N = (typeof PMT_NOTES !== 'undefined' && PMT_NOTES[u.c]) || null;
     if (N){ (N.unit || []).forEach(n => add(n.k === 'cards' ? 'Flashcards' : 'Notes', n.n, lab, u.c, { url: n.k === 'cards' ? ((typeof PMT_DECK_PDF !== 'undefined' && PMT_DECK_PDF[n.url]) || n.url) : n.url })); Object.entries(N.t || {}).forEach(([i, arr]) => arr.forEach(n => add(n.k === 'cards' ? 'Flashcards' : 'Notes', n.n, lab + ' · ' + (u.t[+i] || ''), u.c, { url: n.k === 'cards' ? ((typeof PMT_DECK_PDF !== 'undefined' && PMT_DECK_PDF[n.url]) || n.url) : n.url }, u.t[+i]))); }
     const Q = (typeof PMT_TQ !== 'undefined' && PMT_TQ[u.c]) || {};
     Object.entries(Q).forEach(([i, arr]) => arr.forEach(q => add('Topic questions', q.n, lab + ' · ' + (u.t[+i] || ''), u.c, { url: q.qp }, u.t[+i])));
-    if (typeof PAPERS !== 'undefined' && PAPERS[u.c]) PAPERS[u.c].forEach(r => add('Past paper', u.l + ' ' + r[0], s.name + ' · ' + u.c, u.c, { act: 'goto-papers', u: u.c }, u.n + ' ' + r[0]));
+    if (typeof PAPERS !== 'undefined' && PAPERS[u.c]) PAPERS[u.c].forEach(r => add('Past paper', u.l + ' ' + r[0], s.name + ' · ' + dispCode(u.c), u.c, { act: 'goto-papers', u: u.c }, u.n + ' ' + r[0]));
     if (typeof UNIT_TIPS !== 'undefined' && UNIT_TIPS[u.c]) UNIT_TIPS[u.c].forEach(tp => add('Exam tip', tp, lab, u.c, { act: 'goto-papers', u: u.c }));
     if (typeof unitDecks === 'function') unitDecks(u.c).forEach(d => add('Flashcards', d.n, lab, u.c, { url: deckPdf(d) || d.url }, (d.topics || []).join(' ')));
   }));
