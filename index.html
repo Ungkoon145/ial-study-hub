@@ -4741,7 +4741,7 @@ document.addEventListener('click', e => {
     case 'deck-rate': { const url = b.dataset.url; state.deckState[url] = schedule(state.deckState[url], +v); { const dk = decksIn('all').find(x => x.url === url); if (dk && +v >= 2) dk.topics.forEach(n => { const i = topicIndexByName(dk.u, n); if (i >= 0) bumpTopic(dk.u, i, +v >= 3 ? 2 : 1); }); } const t = todayStr(); state.reviewDays[t] = (state.reviewDays[t] || 0) + 1; commit(); toast('Next review: ' + fmtDate(state.deckState[url].due, {weekday:'short', day:'numeric', month:'short'})); break; }
     case 'dq-start': dqStart(b.dataset.u, b.dataset.url, v); break;
     case 'dq-show': { const q = ui.cards.dq; if (!q) break; const ta = $('#dq-ans'); q.typed = ta ? ta.value : ''; q.shown = true; q.mark = null;
-      if (q.typed.trim()) try { const d = unitDecks(q.u).find(x => x.url === q.url), it = dqList(d)[q.list[q.i]]; q.mark = mkMark(q.typed, it[1], it[0]); } catch(err){ console.error(err); }
+      if (q.typed.trim()) try { const d = unitDecks(q.u).find(x => x.url === q.url), it = dqList(d)[q.list[q.i]]; q.mark = mkMark(q.typed, it[1], it[0]); if (!q.mark.need) q.mark = null; } catch(err){ console.error(err); }
       render(); break; }
     case 'dq-rate': { const q = ui.cards.dq; if (!q || !q.shown) break; const idx = q.list[q.i]; q.res[idx] = +v; dqState()[q.key + '#' + idx] = q.mark ? { c: +v, d: todayStr(), m: q.mark.pct } : { c: +v, d: todayStr() }; if (q.mark) (q.marks = q.marks || []).push(q.mark.pct); q.mark = null; q.i++; q.typed = ''; q.shown = false; if (q.i >= q.list.length) dqFinish(q); commit(); window.scrollTo(0, 0); break; }
     case 'dq-end': ui.cards.dq = null; render(); break;
