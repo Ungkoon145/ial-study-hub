@@ -242,6 +242,7 @@ body.asking{overflow:hidden}
 details.sgdet{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:0}
 details.sgdet>summary{cursor:pointer;padding:12px 14px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 details.sgdet>.grid2{padding:0 12px 12px}
+.tex .katex{font-size:1.06em}.tex .katex-display{margin:.3em 0}
 .offbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));z-index:60;max-width:min(560px,calc(100% - 20px));background:#2b2b2b;color:#fff;border-radius:12px;padding:8px 14px;font-size:13px;line-height:1.35;box-shadow:0 4px 18px rgba(0,0,0,.25);text-align:center}
 body.offline a[href^="http"]{opacity:.55}
 .dqimg{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--line);margin-top:8px;background:#fff}
@@ -685,6 +686,10 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 <script src="boundaries.js"></script>
 <script src="reports.js"></script>
 <script src="timetable.js"></script>
+<link rel="stylesheet" href="katex/katex.min.css">
+<script src="tex.js"></script>
+<script defer src="katex/katex.min.js"></script>
+<script defer src="katex/contrib/mhchem.min.js" onload="try{ if (typeof render === 'function') render(); }catch(e){}"></script>
 <script src="tips.js"></script>
 <script src="practicals.js"></script>
 <script src="keyphrases.js"></script>
@@ -4703,7 +4708,8 @@ let SEARCH_INDEX = null;
 function searchIndex(){
   if (SEARCH_INDEX) return SEARCH_INDEX;
   const I = [];
-  const add = (type, title, sub, c, go, extra) => I.push({ type, title, sub, c, go, hay: (title + ' ' + (sub || '') + ' ' + (extra || '')).toLowerCase() });
+  const tp = x => typeof texPlain === 'function' ? texPlain(x) : x;
+  const add = (type, title, sub, c, go, extra) => { title = tp(title); extra = tp(extra || ''); I.push({ type, title, sub, c, go, hay: (title + ' ' + (sub || '') + ' ' + extra).toLowerCase() }); };
   SUBJECTS.forEach(s => s.units.forEach(u => {
     const lab = u.l + ' ' + u.n;
     add('Unit', lab, s.name + ' · ' + dispCode(u.c), u.c, { act: 'goto-rev', u: u.c }, u.c);
@@ -4854,6 +4860,7 @@ function render(){
   document.documentElement.lang = uiLang() === 'th' ? 'th' : 'en';
   if (isTH()) try { thApply(document.body); } catch(err){ console.error(err); }
   else if (uiLang() === 'th') lazy('i18n.js', render);
+  try { if (typeof texify === 'function') texify($('#view')); } catch(err){ console.error(err); }
   try { clampLong($('#view')); } catch(err){ console.error(err); }
 }
 /* Long explanations: shown as two lines with "Show more". Short text, warnings, privacy notes and

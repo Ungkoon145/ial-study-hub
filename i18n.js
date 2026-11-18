@@ -383,7 +383,7 @@ function thApply(root){
   if (!root) return;
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const todo = []; let n;
-  while ((n = w.nextNode())){ const p = n.parentElement; if (!p || p.closest('script,style,textarea,.notr,.askout,.askme')) continue; if (/[A-Za-z]/.test(n.nodeValue)) todo.push(n); }
+  while ((n = w.nextNode())){ const p = n.parentElement; if (!p || p.closest('script,style,textarea,.notr,.askout,.askme,.katex')) continue; if (/[A-Za-z]/.test(n.nodeValue)) todo.push(n); }
   todo.forEach(n => { const o = n.parentElement.dataset.th; const r = o ? n.nodeValue.replace(n.nodeValue.trim(), o) : thText(n.nodeValue); if (r != null && r !== n.nodeValue) n.nodeValue = r; });
   root.querySelectorAll('[placeholder],[aria-label],[title]').forEach(e => ['placeholder', 'aria-label', 'title'].forEach(a => { const v = e.getAttribute(a); if (v && /[A-Za-z]/.test(v)){ const r = thText(v); if (r != null) e.setAttribute(a, r); } }));
 }

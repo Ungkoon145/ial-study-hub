@@ -4,15 +4,15 @@
 const UNIT_TIPS = {
  WMA11: [
   'Show every line when you rationalise a denominator or reach a printed answer. Skipped steps cost marks.',
-  'In discriminant inequalities, watch for a negative k² coefficient: it flips whether you want the inside or outside region.',
-  'Integration: add + c, and convert roots and fractions to index form carefully before integrating.',
+  'In discriminant inequalities, watch for a negative $k^{2}$ coefficient: it flips whether you want the inside or outside region.',
+  'Integration: add $+\\,c$, and convert roots and fractions to index form carefully before integrating.',
   'Use the units the model is written in (e.g. 58 if values are in thousands, not 58 000).',
   'Leave answers exact (surds, fractions) unless the question asks for decimals.'
  ],
  WMA12: [
   'Show the log law step that combines logs before you remove them. Answers without it lose marks.',
   'Check solutions in the original equation and reject ones that don’t work (e.g. a negative value inside a log).',
-  'Binomial: square the a in (ax)², and simplify fully: the first term is 1 and signs are combined.',
+  'Binomial: square the a in $(ax)^{2}$, and simplify fully: the first term is 1 and signs are combined.',
   'Read carefully whether you need the nth term or the sum of the first n terms.',
   'Trapezium rule: get the strip width h right, and interpret answers in context (money to 2 d.p.).'
  ],
@@ -25,16 +25,16 @@ const UNIT_TIPS = {
  ],
  WMA14: [
   'Always state the range of x for which a binomial expansion is valid, rearranged correctly.',
-  'Proofs need algebra (n = 2k, n = 2k + 1), not a few numerical examples.',
+  'Proofs need algebra ($n = 2k$, $n = 2k + 1$), not a few numerical examples.',
   'Watch double negatives in expansions, and remember square roots when solving for y.',
   'If the question asks for a rational or exact answer, don’t give a decimal.',
   'Combine ln terms fully into a single final answer.'
  ],
  WME01: [
   'Draw a force diagram and choose a positive direction. Keep signs consistent, e.g. when a particle lands below where it started.',
-  'Convert units (tonnes, km h⁻¹) before using F = ma or suvat.',
+  'Convert units (tonnes, km h⁻¹) before using $F = ma$ or suvat.',
   'When a string breaks or a particle hits the ground, work out the next stage of motion separately.',
-  'With g = 9.8, give answers to 2 or 3 s.f., not 4.',
+  'With $g = 9.8$, give answers to 2 or 3 s.f., not 4.',
   'Velocity from position vectors = change in position ÷ time. Subtract the right way round.'
  ],
  WME02: [
@@ -44,11 +44,11 @@ const UNIT_TIPS = {
   'Include g, and use zero acceleration where the motion is at constant velocity.'
  ],
  WME03: [
-  'A string goes slack when T = 0, not when v = 0.',
+  'A string goes slack when $T = 0$, not when $v = 0$.',
   'Circular motion on a cone: the radius is not the string length. Include every vertical force.',
-  'Convert angular speed to v = rω before using ½mv².',
+  'Convert angular speed to $v = r\\omega$ before using $\\tfrac{1}{2}mv^{2}$.',
   'For projectile motion after leaving a circle, use the speed at the point where it leaves.',
-  'Write π and surds neatly. Messy proofs lost marks even for strong candidates.'
+  'Write $\\pi$ and surds neatly. Messy proofs lost marks even for strong candidates.'
  ],
  WST01: [
   'Show the numbers you substitute, not just the formula.',
@@ -58,15 +58,15 @@ const UNIT_TIPS = {
   'Name distributions fully (e.g. discrete uniform), and back up skewness claims with values.'
  ],
  WST02: [
-  'P(X > a) = 1 − P(X ≤ a). Be careful with ≤ and < for discrete variables.',
-  'Write hypotheses in terms of the parameter (λ or p), not in words.',
+  '$P(X > a) = 1 - P(X \\le a)$. Be careful with ≤ and < for discrete variables.',
+  'Write hypotheses in terms of the parameter ($\\lambda$ or p), not in words.',
   'For critical regions, check the tail probabilities on both sides of the boundary.',
   'State the distribution with its parameter values, and reject impossible roots.',
   'Conclusions must be in context and must not contradict each other.'
  ],
  WST03: [
   'Give critical z-values to 4 d.p. (1.6449, not 1.645).',
-  'Hypotheses use ρ or μ, with any symbols you introduce defined.',
+  'Hypotheses use $\\rho$ or $\\mu$, with any symbols you introduce defined.',
   'Use the correct standard error for a difference of means.',
   'Standardise when told to, give final answers to 3 s.f., and write confidence intervals as intervals.',
   'Don’t swap the null and alternative hypotheses.'
@@ -79,9 +79,9 @@ const UNIT_TIPS = {
   'Answer the question as set. Many lost marks answering a different one.'
  ],
  WFM01: [
-  'Induction: finish with a full conclusion: true for n = 1, and if true for n = k then true for n = k + 1, so true for all n.',
+  'Induction: finish with a full conclusion: true for $n = 1$, and if true for $n = k$ then true for $n = k + 1$, so true for all n.',
   '“Without using a calculator” means the working must be visible.',
-  'Watch signs in expansions and series (Σr = ½n(n + 1)).',
+  'Watch signs in expansions and series ($\\Sigma r = \\tfrac{1}{2}n(n + 1)$).',
   'Draw Argand diagrams accurately, with conjugate pairs mirrored in the real axis.',
   'Interval bisection and interpolation: check the sign of each f value.'
  ],
@@ -89,15 +89,15 @@ const UNIT_TIPS = {
   'Area between curves: assign the correct limits to each integral.',
   'Give the general solution of a differential equation as y = …',
   'Inequalities and roots: respect restrictions (e.g. n must be positive) and give what is asked.',
-  'Define f before writing f(x) = … in Maclaurin/Taylor answers.',
+  'Define f before writing $f(x)$ = … in Maclaurin/Taylor answers.',
   'Perpendicular bisector loci need the midpoint and the negative reciprocal gradient.'
  ],
  WFM03: [
   '“Show that” results need enough working to show how you got there.',
   'Matrix of cofactors: sign errors and miscopying were the most common slips.',
-  'Conics: don’t confuse a with a²; for an ellipse b² = a²(1 − e²).',
+  'Conics: don’t confuse a with $a^{2}$; for an ellipse $b^{2} = a^{2}(1 - e^{2})$.',
   'Bracket clearly. Ambiguous brackets were penalised.',
-  'Know the r × b = a × b form of a line.'
+  'Know the $r \\times b = a \\times b$ form of a line.'
  ],
  WPH11: [
   'Young modulus = stress ÷ strain, using the extension (not the new length) and the radius (half the diameter), squared.',
@@ -107,9 +107,9 @@ const UNIT_TIPS = {
   'On a velocity–time graph, displacement is the area under the line.'
  ],
  WPH12: [
-  'Link photon energy to frequency with E = hf.',
+  'Link photon energy to frequency with $E = hf$.',
   'Put units on the answer line and watch powers of ten.',
-  'Standing waves: work out the wavelength from the pattern before using v = fλ.',
+  'Standing waves: work out the wavelength from the pattern before using $v = f\\lambda$.',
   'Explanations need cause → effect in full sentences, about the component in the question.'
  ],
  WPH13: [
@@ -127,9 +127,9 @@ const UNIT_TIPS = {
  ],
  WPH15: [
   'Gravitational potential: work out each mass’s contribution at its own distance. Don’t add the distances.',
-  'Stefan–Boltzmann uses the surface area of a sphere, 4πr².',
+  'Stefan–Boltzmann uses the surface area of a sphere, $4\\pi r^{2}$.',
   'Wien’s law uses wavelength, not frequency.',
-  'Thermal energy flows from hot to cold. SHM: sin ωt = 1 at maximum displacement.',
+  'Thermal energy flows from hot to cold. SHM: $\\sin \\omega t = 1$ at maximum displacement.',
   'Standard candles: say the candle must be in the same cluster or galaxy, and define the symbols in your equation.'
  ],
  WPH16: [
@@ -163,7 +163,7 @@ const UNIT_TIPS = {
  ],
  WCH14: [
   'Orders of reaction come from the species in the rate-determining step.',
-  'NMR: link environments to peaks. Mass spec: link m/z to fragment formulae.',
+  'NMR: link environments to peaks. Mass spec: link $m/z$ to fragment formulae.',
   'Lattice energy: one mole of solid forms from gaseous ions. Don’t describe it as energy “needed”.',
   'Count water of crystallisation correctly in formula-mass work.',
   'Give answers to the significant figures requested.'
@@ -171,14 +171,14 @@ const UNIT_TIPS = {
  WCH15: [
   'Cell diagrams need state symbols, including Pt(s).',
   'Complexes: describe both types of bonding. Separate chemical from physical properties.',
-  'Diazotisation: sodium nitrite with HCl below 10 °C; the diazonium ion has N≡N.',
+  'Diazotisation: sodium nitrite with $\\ce{HCl}$ below 10 °C; the diazonium ion has $\\ce{N#N}$.',
   'Final answers to sensible significant figures.'
  ],
  WCH16: [
   'There is no data booklet, so know your indicators (methyl orange, phenolphthalein).',
   'Understand what a clock reaction measures.',
   'Standard solutions: make up to the mark, then invert to mix.',
-  'Use the reacting ratio from the given equation (e.g. MnO₄⁻ : C₂O₄²⁻ = 2 : 5).',
+  'Use the reacting ratio from the given equation (e.g. $\\ce{MnO4-} : \\ce{C2O4^{2-}} = 2 : 5$).',
   'Be specific about hazards. Draw apparatus correctly (filter paper above the Büchner funnel’s perforated base).'
  ],
  WBI11: [
