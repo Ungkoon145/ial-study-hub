@@ -243,6 +243,7 @@ details.sgdet{background:var(--surface);border:1px solid var(--line);border-radi
 details.sgdet>summary{cursor:pointer;padding:12px 14px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 details.sgdet>.grid2{padding:0 12px 12px}
 .tex .katex{font-size:1.06em}.tex .katex-display{margin:.3em 0}
+.wkprev{white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:1.5;margin:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);max-height:340px;overflow:auto}
 .offbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));z-index:60;max-width:min(560px,calc(100% - 20px));background:#2b2b2b;color:#fff;border-radius:12px;padding:8px 14px;font-size:13px;line-height:1.35;box-shadow:0 4px 18px rgba(0,0,0,.25);text-align:center}
 body.offline a[href^="http"]{opacity:.55}
 .dqimg{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--line);margin-top:8px;background:#fff}
@@ -1185,7 +1186,7 @@ function viewToday(){
 
   return '<div class="stack today">' +
     '<div class="todayhead"><div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#prefs" class="avlink" aria-label="Your profile">' + avatar(44) + '</a>' : '') + '<div><p class="muted small">' + fmtDate(t, {weekday:'long', day:'numeric', month:'long'}) + '</p><h1>' + greet + (firstName() ? ', ' + esc(firstName()) : '') + '</h1></div></div>' + goalRing() + '</div>' + profileNudge() +
-    verifyBanner() + examTomorrowCard() + nextCard() + meetInviteCard() + friendReqCard() + studyBoard() + reviewCard(ui.showReview) + backupNudge() + planCard() + examsTimeline() + buddyCard() +
+    verifyBanner() + examTomorrowCard() + nextCard() + meetInviteCard() + friendReqCard() + studyBoard() + reviewCard(ui.showReview) + weeklyTodayCard() + backupNudge() + planCard() + examsTimeline() + buddyCard() +
     '<div class="grid2">' + (ex.length ? '' : exHtml) +
       '<div class="card"><div class="card-h"><h2>Tasks</h2><a class="small muted" href="#planner">' + (openTasks.length > 5 ? 'All ' + openTasks.length : 'Planner') + '</a></div>' +
         '<form data-form="task-quick" class="row" style="margin-bottom:8px"><input type="text" id="tq" placeholder="Quick add, due today" aria-label="New task due today" style="flex:1;min-width:0"><button class="btn" type="submit">Add</button></form>' +
@@ -2641,6 +2642,71 @@ function summaryHtml(){
     '<table><tr><th>Unit</th><th>UMS</th><th>Papers</th><th>Avg</th><th>Exam</th><th>Work on</th></tr>' + x.units.map(u => '<tr><td>' + e(u.l + ' ' + u.n) + (u.opt ? ' [' + e(u.opt) + ']' : '') + (u.st === 'sat' ? ' <small>sat</small>' : u.st === 'resit' ? ' <small>resit</small>' : '') + '</td><td>' + (u.ums !== null ? u.ums + '/' + u.max + (u.umsSrc === 'mock' ? '*' : '') : '–') + '</td><td>' + u.papers + '</td><td>' + (u.avg !== null ? u.avg + '%' : '–') + '</td><td>' + (u.exam ? e(fmtDate(u.exam, {day:'numeric', month:'short', year:'numeric'})) : '–') + '</td><td>' + e(u.weak.join('; ')) + '</td></tr>').join('') + '</table></section>').join('');
   return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IAL progress summary</title><style>body{font-family:"Gill Sans","Gill Sans MT",Calibri,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;color:#14213a}h1{margin:0}h2{margin:22px 0 4px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dde3ec;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f3f5f8}small{color:#5a6880}footer{margin-top:24px;font-size:12px;color:#5a6880}</style></head><body><h1>IAL progress summary' + (prof().name ? ': ' + e(prof().name) : '') + '</h1><p>' + e([fmtDate(todayStr()), prof().school, (YEAR_OPTS.find(x => x[0] === prof().year) || [, ''])[1]].filter(Boolean).join(' · ')) + (prof().goal ? '<br>Goal: ' + e(prof().goal) : '') + '</p>' + (body || '<p>No subjects yet.</p>') + '<footer>* estimated from past papers using official Pearson grade boundaries; other UMS from results slips. Made with IAL Revise.</footer><\/body><\/html>';
 }
+/* ============================================================
+   Weekly summary for a parent: the student turns it on, previews it and chooses how to send it.
+   Nothing is sent automatically. It holds counts only, never mistakes, notes or answers.
+   ============================================================ */
+function wkPrefs(){ if (!state.weekly || typeof state.weekly !== 'object') state.weekly = { on: false, scores: false, grades: false, sent: '' }; return state.weekly; }
+function weeklyText(){
+  const W = wkPrefs(), th = isTH(), L = (en, t) => th ? t : en, t = todayStr();
+  const a = weekStats(t), b = weekStats(addDays(t, -7)), P = prof();
+  const range = fmtDate(addDays(t, -6), { day: 'numeric', month: 'short' }) + ' – ' + fmtDate(t, { day: 'numeric', month: 'short', year: 'numeric' });
+  const decksDue = decksIn('all').filter(d => deckStatus(d) === 'due').length;
+  const mkDue = state.mistakes.filter(m => !m.fixed && m.rev && m.rev.due <= t).length;
+  const lines = [L('IAL Revise · weekly summary', 'IAL Revise · สรุปประจำสัปดาห์') + (P.name ? ' · ' + P.name : ''), range, ''];
+  lines.push('• ' + L('Studied ' + fmtMin(a.mins) + ' (week before: ' + fmtMin(b.mins) + ')', 'อ่านหนังสือ ' + fmtMin(a.mins) + ' (สัปดาห์ก่อน: ' + fmtMin(b.mins) + ')'));
+  lines.push('• ' + L('Daily study goal met on ' + a.goalDays + ' of 7 days', 'ทำได้ตามเป้ารายวัน ' + a.goalDays + ' จาก 7 วัน'));
+  lines.push('• ' + L('Flashcard and question reviews: ' + a.reviews, 'ทบทวนแฟลชการ์ดและคำถาม: ' + a.reviews + ' ครั้ง'));
+  if (a.topicsUp) lines.push('• ' + L('Topics moved up: ' + a.topicsUp, 'หัวข้อที่พัฒนาขึ้น: ' + a.topicsUp));
+  lines.push('• ' + L('Past papers done: ' + a.papers, 'ทำข้อสอบเก่า: ' + a.papers + ' ชุด') + (W.scores && a.avg !== null ? L(', average ' + a.avg + '%', ' เฉลี่ย ' + a.avg + '%') : ''));
+  lines.push('• ' + L('Mistakes logged: ' + a.mkNew + ', fixed: ' + a.mkFixed, 'บันทึกข้อผิดพลาด: ' + a.mkNew + ' แก้ได้แล้ว: ' + a.mkFixed));
+  if (decksDue || mkDue) lines.push('• ' + L('Due for review now: ' + decksDue + ' flashcard set' + (decksDue === 1 ? '' : 's') + ', ' + mkDue + ' mistake' + (mkDue === 1 ? '' : 's'), 'ถึงรอบทบทวนตอนนี้: แฟลชการ์ด ' + decksDue + ' ชุด ข้อผิดพลาด ' + mkDue + ' ข้อ'));
+  const ex = upcomingExams().filter(e => daysBetween(t, e.d) <= 60).slice(0, 4);
+  if (ex.length){
+    lines.push('', L('Coming up:', 'สอบที่ใกล้เข้ามา:'));
+    ex.forEach(e => { const u = UNIT[e.u], n = daysBetween(t, e.d); lines.push('  ' + (u ? (th ? u.l.replace(/^Unit /, 'ยูนิต ') : u.l) + ' ' + ((th && thText(u.n)) || u.n) : (e.n || e.u)) + ' – ' + fmtDate(e.d, { day: 'numeric', month: 'short' }) + ' (' + L(n + ' day' + (n === 1 ? '' : 's'), n + ' วัน') + ')'); });
+  }
+  if (W.grades){ const g = onTrackItems(); if (g.length) lines.push('', L('On track for: ', 'แนวโน้มเกรด: ') + g.map(([sid, n, gr]) => ((th && thText(n)) || n) + ' ' + gr).join(', ')); }
+  const fp = focusPoints().map(x => x.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'"));
+  if (fp.length){ lines.push('', L('Focus next week:', 'สิ่งที่จะเน้นสัปดาห์หน้า:')); fp.forEach(x => lines.push('  – ' + (th ? thFocus(x) : x))); }
+  lines.push('', L('Sent from IAL Revise', 'ส่งจาก IAL Revise') + ': ' + MAIN_URL);
+  return lines.join('\n');
+}
+function thFocus(x){ // Thai wording for the focus points in the weekly summary
+  const T = y => (typeof thText === 'function' && thText(y)) || y, U = y => y.replace(/^Unit (\d)/, 'ยูนิต $1');
+  let m;
+  if ((m = /^Fix your biggest leak \((.+), (\d+) marks\): (.*)$/.exec(x))) return 'แก้จุดที่เสียคะแนนมากที่สุด (' + T(m[1].charAt(0).toUpperCase() + m[1].slice(1)) + ', ' + m[2] + ' คะแนน): ' + T(m[3]);
+  if ((m = /^Revise (.+) for (.+) \(exam in (\d+) days\)\.$/.exec(x))) return 'ทบทวน ' + T(m[1]) + ' สำหรับ' + U(m[2]) + ' (สอบในอีก ' + m[3] + ' วัน)';
+  if ((m = /^(.+) is below your target (.+)\. Check Grades for the units that would gain the most\.$/.exec(x))) return T(m[1]) + ' ยังต่ำกว่าเป้า ' + m[2] + ' ดูหน้าเกรดเพื่อหายูนิตที่เพิ่มคะแนนได้มากที่สุด';
+  if ((m = /^Sit a timed mock for (.+?)\. (?:Your last one was (\d+) days ago\.|You haven’t done one yet\.)$/.exec(x))) return 'ลองทำข้อสอบจับเวลาของ' + U(m[1]) + (m[2] ? ' (ครั้งล่าสุดเมื่อ ' + m[2] + ' วันก่อน)' : ' (ยังไม่เคยทำ)');
+  if ((m = /^Keep your goal streak going: (.+) a day adds up to (.+) a week\.$/.exec(x))) return 'รักษาเป้าให้ต่อเนื่อง: วันละ ' + m[1] + ' รวมเป็น ' + m[2] + ' ต่อสัปดาห์';
+  return T(x);
+}
+function weeklyDueNow(){ const W = wkPrefs(); if (!W.on) return false; const t = todayStr(), d = new Date(t + 'T00:00:00').getDay(); return (d === 0 || d === 1) && W.sent !== weekId(d === 1 ? addDays(t, -1) : t); }
+function weeklyTodayCard(){
+  if (!weeklyDueNow()) return '';
+  return '<div class="card row" style="justify-content:space-between;align-items:center;gap:10px"><div><b>Your weekly summary is ready.</b> <span class="small muted">Check it, then send it if you want to.</span></div><button class="btn sm primary" data-act="wk-open">Preview</button></div>';
+}
+function weeklyCard(){
+  const W = wkPrefs(), canShare = typeof navigator !== 'undefined' && !!navigator.share;
+  const opt = (k, l) => '<label class="row small" style="gap:8px;align-items:center;cursor:pointer"><input type="checkbox" data-act="wk-opt" data-v="' + k + '"' + (W[k] ? ' checked' : '') + '> ' + l + '</label>';
+  return '<div class="card stack" id="weekly"><div class="card-h"><h2>Weekly summary for a parent</h2><button class="btn sm' + (W.on ? '' : ' primary') + '" data-act="wk-toggle">' + (W.on ? 'Turn off' : 'Turn on') + '</button></div>' +
+    '<p class="small muted noclamp" style="margin:0">A short weekly report you can send to a parent: study time, reviews, papers, exams coming up. You choose who gets it and when. Nothing is ever sent automatically, and it never includes your mistakes, notes or answers.</p>' +
+    (W.on ? opt('scores', 'Include my average past-paper score') + opt('grades', 'Include the grades I’m on track for') +
+      '<div class="small muted" style="font-weight:600">This week’s summary</div><pre class="wkprev notr">' + esc(weeklyText()) + '</pre>' +
+      '<div class="row" style="flex-wrap:wrap;gap:8px">' + (canShare ? '<button class="btn primary" data-act="wk-send" data-v="share">Share…</button>' : '') +
+      '<button class="btn' + (canShare ? '' : ' primary') + '" data-act="wk-send" data-v="email">Email</button><button class="btn" data-act="wk-send" data-v="line">LINE</button><button class="btn" data-act="wk-send" data-v="copy">Copy</button></div>' +
+      (W.sent === weekId(todayStr()) ? '<p class="small muted" style="margin:0">Sent this week.</p>' : '<p class="small muted" style="margin:0">A reminder appears on Today each Sunday.</p>') : '') + '</div>';
+}
+function weeklySend(how){
+  const txt = weeklyText(), W = wkPrefs(), t = todayStr(), d = new Date(t + 'T00:00:00').getDay();
+  const mark = () => { W.sent = weekId(d === 1 ? addDays(t, -1) : t); commit(); render(); };
+  const subj = isTH() ? 'สรุปการเรียนประจำสัปดาห์ (IAL Revise)' : 'Weekly study summary (IAL Revise)';
+  if (how === 'share' && navigator.share){ navigator.share({ title: subj, text: txt }).then(mark, () => {}); return; }
+  if (how === 'email'){ window.location.href = 'mailto:?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(txt); mark(); return; }
+  if (how === 'line'){ window.open('https://line.me/R/share?text=' + encodeURIComponent(txt), '_blank', 'noopener'); mark(); return; }
+  try { navigator.clipboard.writeText(txt).then(() => { toast('Summary copied. Paste it into a message.'); mark(); }, () => toast('Copy blocked here')); } catch(e){ toast('Copy blocked here'); }
+}
 function creditsCard(){
   const a = (u, t) => '<a href="' + u + '" target="_blank" rel="noopener">' + t + '</a>';
   return '<div class="card stack" id="credits"><div class="card-h"><h2>Credits and licences</h2></div>' +
@@ -2672,7 +2738,7 @@ function viewSettings(){
     '<div><h1>Settings</h1><p class="muted">Your profile, subjects, study habits and how the app looks.</p></div>' +
     accountCard() + profileCard() + friendsCard() + shareCard() + mySubjectsCard() + habitsCard() + lookCard() + notifCard() + reminderCard() + buddySettings() + installCard() + offlineCard() +
     ((state.linkReports || []).length ? '<div class="card stack"><div class="card-h"><h2>Broken links (' + state.linkReports.length + ')</h2></div><p class="small muted" style="margin:0">Links you reported. Copy the list and paste it to Claude, and they’ll be fixed in one go.</p><div class="list">' + state.linkReports.map(x => '<div class="li"><div class="grow"><div class="t">' + esc(x.where) + '</div><div class="small muted">Reported ' + fmtDate(x.at, {day:'numeric', month:'short'}) + '</div></div><button class="x" data-act="report-del" data-id="' + x.id + '" aria-label="Remove report">×</button></div>').join('') + '</div><div class="row"><button class="btn primary" data-act="report-copy">Copy list</button><button class="btn ghost" data-act="report-clear">Clear all</button></div><textarea readonly rows="3" aria-label="Broken links list">' + esc(reportsText()) + '</textarea></div>' : '') +
-    dataCard() + creditsCard() + '</div>';
+    weeklyCard() + dataCard() + creditsCard() + '</div>';
 }
 
 
@@ -2910,7 +2976,7 @@ function trendCard(sid){
     '<div class="tg-keys">' + legend + '</div><p class="small muted" style="margin:0">Each dot is a past paper you logged, as % of the maximum UMS using that paper’s grade boundaries (anything under 30% sits on the bottom edge). Lines A–E are the grade thresholds; ▲▼ compares your latest paper with your first.</p></div>';
 }
 function gradeSubjHasData(sid){ return SUBJ[sid].units.some(u => (state.results[u.c] || []).length || mockEst(u.c)); }
-function todayGrades(){
+function onTrackItems(){
   const saved = ui.grades.whatif; ui.grades.whatif = {};
   const items = [];
   gradeSubjects().forEach(x => {
@@ -2920,6 +2986,10 @@ function todayGrades(){
     else { const a = sciAward(x.id); if (iasOnly(x.id)){ if (a.as) items.push([x.id, 'IAS ' + x.short, a.as.grade, targetFor(x.id)]); } else if (a.grade) items.push([x.id, x.short + (a.complete ? '' : ' (projected)'), a.grade, targetFor(x.id)]); }
   });
   ui.grades.whatif = saved;
+  return items;
+}
+function todayGrades(){
+  const items = onTrackItems();
   if (!items.length) return '';
   return '<div class="card"><div class="card-h"><h2>On track for</h2><a class="small muted" href="#grades">Grades</a></div><div class="row">' + items.map(([sid, n, gr, tg]) => '<a class="tgr" href="#grades" data-act="gr-subj" data-v="' + sid + '">' + gradePill(gr) + '<span>' + esc(n) + (tg ? ' <span class="small ' + (gIdx(gr) >= gIdx(tg) ? 'muted' : 'below') + '">target ' + esc(tg) + '</span>' : '') + '</span></a>').join('') + '</div></div>';
 }
@@ -4989,6 +5059,7 @@ function nextQuestion(){
   commit();
   window.scrollTo({ top: 0 });
 }
+document.addEventListener('change', e => { const el = e.target; if (!el || el.dataset.act !== 'wk-opt') return; const W = wkPrefs(); W[el.dataset.v] = !!el.checked; commit(); render(); });
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   if (b.closest('#retsheet') && ui.ret){ ui.ret = null; setTimeout(renderRet, 0); }
@@ -5099,6 +5170,9 @@ document.addEventListener('click', e => {
     case 'notif-test': notifTest(); break;
     case 'cal-reminder': saveFile('study-reminder.ics', icsText(), 'text/calendar', 'Reminder saved. Open the file to add it to your calendar.'); break;
     case 'summary-download': saveFile('ial-progress-summary-' + todayStr() + '.html', summaryHtml(), 'text/html', 'Summary saved. Open it to view or print.'); break;
+    case 'wk-toggle': { const W = wkPrefs(); W.on = !W.on; commit(); render(); break; }
+    case 'wk-send': weeklySend(v); break;
+    case 'wk-open': go('prefs'); setTimeout(() => { const c = document.getElementById('weekly'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80); break;
     case 'summary-copy': { const txt = summaryText(); try { navigator.clipboard.writeText(txt).then(() => toast('Summary copied'), () => toast('Copy blocked here')); } catch(e){ toast('Copy blocked here'); } break; }
     case 'hist-opt': state.histOpt = Object.assign({}, state.histOpt || {}, { [b.dataset.u]: v }); commit(); break;
     case 'goto-papers': ui.papers.subj = UNIT_SUBJ[b.dataset.u]; ui.papers.unit = b.dataset.u; ui.papers.log = null; if (route() === 'papers') render(); else go('papers'); break;

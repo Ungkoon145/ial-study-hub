@@ -76,7 +76,7 @@ const UNIT_TIPS = {
   'Sort in the order asked. An ascending sort when descending was asked is penalised.',
   'Critical path: double-check floats and that every activity is included.',
   'Dijkstra: list working values at each node in the order they were found.',
-  'Answer the question as set. Many lost marks answering a different one.'
+  'Answer exactly what the question asks; answering a similar-looking question earns nothing.'
  ],
  WFM01: [
   'Induction: finish with a full conclusion: true for $n = 1$, and if true for $n = k$ then true for $n = k + 1$, so true for all n.',
@@ -229,7 +229,7 @@ const UNIT_TIPS = {
   'Mixed economy vs free market: a big private sector alone doesn’t make a free market. Sketch the diagram for tricky multiple choice.'
  ],
  WEC12: [
-  'Read every part of the question: missing the depth or the second half of a question was the main reason for low marks.',
+  'Read every part of the question. Answers that skipped the second half, or stayed too shallow, lost the most marks.',
   'Diagram and calculation questions earn their marks from the diagram or the answer alone; keep the writing for questions that need it.',
   'Draw accurate, labelled AD/AS diagrams even when not required. They add depth to analysis.',
   'In longer questions and essays, evaluation must be a developed chain of reasoning linked to the context, not a one-line “however”.',
@@ -329,7 +329,7 @@ const UNIT_TIPS = {
  WHI04: [
   'Interpret both extracts: analyse the arguments each historian makes, and refer to them by name.',
   'Extracts are judged on their views, not as sources; don’t discuss provenance or that they are secondary sources.',
-  'Use your own knowledge of the specification content to test the interpretations.',
+  'Test each interpretation against what you know from the course, not just the extracts.',
   'Reach an overall judgement on the view in the question; summarising the extracts isn’t enough.',
   'In Section B essays, stay analytical and support each point with precise evidence.'
  ]
