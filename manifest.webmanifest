@@ -1,17 +1,69 @@
 {
   "name": "IAL Revise",
   "short_name": "IAL Revise",
-  "description": "Revision for Pearson Edexcel International A Level: Maths, Further Maths, Physics, Chemistry and Biology.",
+  "description": "Free revision for Pearson Edexcel International A Level: past papers, mark schemes, examiner reports, PMT flashcards, topic questions, grade calculator and planner. Works offline.",
   "start_url": "./index.html#today",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "any",
   "background_color": "#f6f4ef",
   "theme_color": "#19325c",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "./",
+  "categories": [
+    "education"
+  ],
+  "shortcuts": [
+    {
+      "name": "Flashcards",
+      "url": "./index.html#cards",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Quiz",
+      "url": "./index.html#quiz",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Past papers",
+      "url": "./index.html#papers",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

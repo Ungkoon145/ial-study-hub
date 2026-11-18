@@ -242,6 +242,8 @@ body.asking{overflow:hidden}
 details.sgdet{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:0}
 details.sgdet>summary{cursor:pointer;padding:12px 14px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 details.sgdet>.grid2{padding:0 12px 12px}
+.offbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));z-index:60;max-width:min(560px,calc(100% - 20px));background:#2b2b2b;color:#fff;border-radius:12px;padding:8px 14px;font-size:13px;line-height:1.35;box-shadow:0 4px 18px rgba(0,0,0,.25);text-align:center}
+body.offline a[href^="http"]{opacity:.55}
 .dqimg{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--line);margin-top:8px;background:#fff}
 .dqnote{margin-top:8px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--hi) 14%,transparent);font-size:.92rem}
 .dqnote b{display:block;font-size:.8rem;margin-bottom:2px}
@@ -1374,7 +1376,7 @@ function mkMark(typed, answer, question){
   return { rows, got, need, pct: need ? Math.round(got / need * 100) : 0, anyOf: need < rows.filter(r => !r.extra).length, rate: !need ? 1 : got >= need || (need >= 3 && got / need >= 0.66) ? 2 : got / need >= 0.5 || (need === 1 && rows.some(r => r.part)) ? 1 : 0 };
 }
 /* ---------- Flashcard quiz: one quiz per PMT flashcard set ----------
-   The questions are written for this site on the same topics as the set (deckquiz.js); PMT's own cards stay on PMT.
+   Each set is PMT's own flashcard set, word for word, under CC BY-NC-ND 4.0 (deckquiz.js); picture cards show an image of the original card.
    Type an answer, show the answer, then say how comfortable you feel. Progress is kept per question. */
 function dqKey(d){ return d.u + '/' + d.url.split('/').filter(Boolean).pop().replace(/-flashcards$/, ''); }
 function dqReady(){ return typeof DECK_QUIZ !== 'undefined'; }
@@ -2610,7 +2612,7 @@ function dataCard(){
 function viewSettings(){
   return '<div class="stack">' +
     '<div><h1>Settings</h1><p class="muted">Your profile, subjects, study habits and how the app looks.</p></div>' +
-    accountCard() + profileCard() + friendsCard() + shareCard() + mySubjectsCard() + habitsCard() + lookCard() + notifCard() + reminderCard() + buddySettings() + installCard() +
+    accountCard() + profileCard() + friendsCard() + shareCard() + mySubjectsCard() + habitsCard() + lookCard() + notifCard() + reminderCard() + buddySettings() + installCard() + offlineCard() +
     ((state.linkReports || []).length ? '<div class="card stack"><div class="card-h"><h2>Broken links (' + state.linkReports.length + ')</h2></div><p class="small muted" style="margin:0">Links you reported. Copy the list and paste it to Claude, and they’ll be fixed in one go.</p><div class="list">' + state.linkReports.map(x => '<div class="li"><div class="grow"><div class="t">' + esc(x.where) + '</div><div class="small muted">Reported ' + fmtDate(x.at, {day:'numeric', month:'short'}) + '</div></div><button class="x" data-act="report-del" data-id="' + x.id + '" aria-label="Remove report">×</button></div>').join('') + '</div><div class="row"><button class="btn primary" data-act="report-copy">Copy list</button><button class="btn ghost" data-act="report-clear">Clear all</button></div><textarea readonly rows="3" aria-label="Broken links list">' + esc(reportsText()) + '</textarea></div>' : '') +
     dataCard() + '</div>';
 }
@@ -4093,7 +4095,7 @@ async function fbInit(){
       }
       render();
     });
-  } catch(e){ FB.ready = true; FB.err = 'Couldn’t load sign-in. Check your internet connection and refresh.'; render(); }
+  } catch(e){ FB.ready = true; FB.err = navigator.onLine === false ? 'You’re offline. Your progress is saved on this device and will sync to your account when you’re back online.' : 'Couldn’t load sign-in. Check your internet connection and refresh.'; render(); }
 }
 function fbForgetDevice(){
   try { localStorage.removeItem(LS_KEY); localStorage.removeItem('ial-fb-in'); } catch(e){}
@@ -4509,12 +4511,103 @@ document.addEventListener('fullscreenchange', fsSync); document.addEventListener
   window.addEventListener('scroll', () => { if (!immOn() || tick) return; tick = true; requestAnimationFrame(() => { const y = window.scrollY, el = document.documentElement; if (y > last + 6 && y > 80) el.classList.add('imm-hide'); else if (y < last - 6 || y < 40) el.classList.remove('imm-hide'); last = y; tick = false; }); }, { passive: true });
   try { if (localStorage.getItem(IMM_KEY)) document.documentElement.classList.add('imm'); } catch(e){}
 })();
+/* ============================================================
+   Offline: one-tap install, saving picture cards, offline bar
+   ============================================================ */
+const OFFLINE_OK = STANDALONE && 'serviceWorker' in navigator && 'caches' in window && location.protocol.startsWith('http');
+const IS_IOS = (() => { try { return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); } catch(e){ return false; } })();
+const IMG_CACHE = 'ial-img-1';
+let installEvt = null, offHid = false;
+const OFF = { busy:false, done:0, total:0, saved:null, err:'', counting:false };
+if (OFFLINE_OK){
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (route() === 'prefs') render(); });
+  window.addEventListener('appinstalled', () => { installEvt = null; toast('Installed. Open IAL Revise from your home screen.'); });
+  const hadCtl = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadCtl) toast('IAL Revise has been updated. Close and reopen it to see what’s new.'); else if (route() === 'prefs') render(); });
+}
+function offImgList(){
+  if (typeof DECK_QUIZ === 'undefined') return [];
+  const codes = new Set(); mySubjects().forEach(s => s.units.forEach(u => codes.add(u.c)));
+  const out = new Set();
+  Object.entries(DECK_QUIZ).forEach(([k, l]) => { if (!codes.has(k.split('/')[0])) return; l.forEach(it => { if (it[2]) out.add(it[2]); if (it[3]) out.add(it[3]); }); });
+  return [...out];
+}
+async function offCount(){
+  try {
+    const c = await caches.open(IMG_CACHE);
+    const have = new Set((await c.keys()).map(r => decodeURIComponent(new URL(r.url).pathname).replace(/^.*?\/deckimg\//, 'deckimg/')));
+    const l = offImgList(); OFF.total = l.length; OFF.saved = l.filter(u => have.has(u)).length;
+  } catch(e){ OFF.saved = 0; }
+}
+function offTick(){ const el = $('#off-prog'); if (el) el.textContent = (isTH() ? 'กำลังบันทึก ' : 'Saving ') + OFF.done + ' / ' + OFF.total + '…'; }
+async function offSave(){
+  if (OFF.busy) return;
+  if (navigator.onLine === false){ toast('You’re offline. Connect to the internet, then tap again.'); return; }
+  const l = offImgList(); OFF.busy = true; OFF.err = ''; OFF.done = 0; OFF.total = l.length; render();
+  let fail = 0;
+  try {
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+    const c = await caches.open(IMG_CACHE); let i = 0;
+    const work = async () => { while (i < l.length){ const u = l[i++]; try { if (!(await c.match(u))){ const r = await fetch(u, { cache: 'no-cache' }); if (r.ok) await c.put(u, r); else fail++; } } catch(e){ fail++; } OFF.done++; offTick(); } };
+    await Promise.all([work(), work(), work(), work()]);
+  } catch(e){ fail = fail || 1; }
+  OFF.busy = false; await offCount();
+  OFF.err = fail ? 'Some pictures couldn’t be saved. Check your connection and tap Save again.' : '';
+  render(); if (!fail) toast('Picture cards saved for offline.');
+}
+function offBar(){
+  const off = navigator.onLine === false;
+  document.body.classList.toggle('offline', off);
+  let b = document.getElementById('offbar');
+  if (off && !offHid){
+    const msg = 'You’re offline. Flashcards, quizzes, questions and your progress still work. Papers and PMT notes need internet.';
+    if (!b){ b = document.createElement('div'); b.id = 'offbar'; b.className = 'offbar'; b.setAttribute('role', 'status'); b.title = 'Tap to hide'; b.style.cursor = 'pointer'; b.onclick = () => { offHid = true; b.remove(); }; document.body.appendChild(b); }
+    b.textContent = isTH() ? (thText(msg) || msg) : msg;
+  } else if (b) b.remove();
+  if (!off) offHid = false;
+}
+if (STANDALONE){
+  window.addEventListener('offline', offBar);
+  window.addEventListener('online', () => {
+    offBar();
+    if (FB.user && !cloud.ref) connectCloud();
+    else if (ACCT && !FB.auth && FB.err){ FB.err = ''; FB.ready = false; fbInit(); }
+  });
+  window.addEventListener('load', offBar);
+}
+function offlineCard(){
+  if (!OFFLINE_OK) return '';
+  const ready = !!navigator.serviceWorker.controller;
+  if (OFF.saved == null && !OFF.counting){ OFF.counting = true; const go = () => offCount().then(() => { OFF.counting = false; if (route() === 'prefs') render(); }); if (dqReady()) go(); else { lazy('deckquiz.js'); const t = setInterval(() => { if (dqReady()){ clearInterval(t); go(); } }, 300); } }
+  const mb = n => Math.max(1, Math.round(n * 0.04));
+  let pics;
+  if (OFF.busy) pics = '<p class="small" style="margin:0" id="off-prog">' + (isTH() ? 'กำลังบันทึก ' : 'Saving ') + OFF.done + ' / ' + OFF.total + '…</p>';
+  else if (OFF.saved == null) pics = '<p class="small muted" style="margin:0">Checking what’s saved…</p>';
+  else if (!OFF.total) pics = '<p class="small muted" style="margin:0">Your subjects have no picture flashcards, so there’s nothing extra to save.</p>';
+  else if (OFF.saved >= OFF.total) pics = '<div class="row"><span class="pill good">Picture cards saved</span><span class="small muted">' + OFF.total + ' pictures for your subjects</span></div>';
+  else pics = '<p class="small muted" style="margin:0">Some flashcards are pictures of the original PMT card. Save them so they show without internet: ' + OFF.saved + ' of ' + OFF.total + ' saved (about ' + mb(OFF.total - OFF.saved) + ' MB more). Best done on Wi‑Fi.</p><div class="row"><button class="btn primary" data-act="off-save">Save picture cards</button></div>';
+  return '<div class="card stack"><div class="card-h"><h2>Use without internet</h2>' + (ready ? '<span class="pill good">Ready offline</span>' : '<span class="pill">Setting up</span>') + '</div>' +
+    '<p class="small" style="margin:0"><b>Works offline:</b> flashcards and quizzes, topic questions, mistakes, planner, grade calculator, timetable and all your progress. Anything you do is saved on this device and syncs to your account when you’re back online.</p>' +
+    '<p class="small muted" style="margin:0"><b>Needs internet:</b> past papers, mark schemes, examiner reports and PMT notes (they open on Pearson’s and PMT’s own sites), and signing in for the first time.</p>' +
+    pics + (OFF.err ? '<p class="small" style="margin:0;color:var(--bad,#b3261e)">' + OFF.err + '</p>' : '') +
+    (ready ? '' : '<p class="small muted" style="margin:0">Keep this page open for a moment while it saves the app to your device.</p>') +
+    '<p class="small muted" style="margin:0">Open the app now and then while online so it picks up new papers and fixes.</p></div>';
+}
+async function installNow(){
+  if (!installEvt){ toast('Use your browser’s menu to install, as shown below.'); return; }
+  const e = installEvt; installEvt = null;
+  try { await e.prompt(); const r = await e.userChoice; if (r && r.outcome === 'accepted') toast('Installing IAL Revise…'); } catch(err){}
+  render();
+}
+
 function installCard(){
   if (STANDALONE) return '<div class="card stack"><div class="card-h"><h2>Install the app</h2>' + (IS_INSTALLED ? '<span class="pill good">Installed</span>' : '') + '</div>' +
     (IS_INSTALLED ? '<p class="small muted" style="margin:0">You’re using the installed app: it opens full screen from your home screen and works offline (papers and notes still need internet).</p>' :
     '<p class="small muted" style="margin:0">Install IAL Revise so it opens full screen from your home screen, like an app, and works offline.</p>' +
+    (installEvt ? '<div class="row"><button class="btn primary" data-act="install-now">Install IAL Revise</button></div>' : '') +
+    (IS_IOS ? '<div><b>On this iPhone / iPad</b><ol class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px"><li>Open this site in Safari.</li><li>Tap Share <span aria-hidden="true">⬆︎</span>, then <b>Add to Home Screen</b>.</li><li>Tap Add, then open IAL Revise from your home screen.</li></ol></div>' :
     '<div class="grid2"><div><b>iPhone / iPad</b><ol class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px"><li>Open this site in Safari.</li><li>Tap Share <span aria-hidden="true">⬆︎</span>, then <b>Add to Home Screen</b>.</li><li>Tap Add, then open IAL Revise from your home screen.</li></ol></div>' +
-    '<div><b>Android / computer</b><ol class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px"><li>Open this site in Chrome or Edge.</li><li>Tap <b>Install app</b> in the ⋮ menu (or the install icon in the address bar).</li><li>Open it from your home screen or app list.</li></ol></div></div>') + '</div>';
+    '<div><b>Android / computer</b><ol class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px"><li>Open this site in Chrome or Edge.</li><li>Tap <b>Install app</b> in the ⋮ menu (or the install icon in the address bar).</li><li>Open it from your home screen or app list.</li></ol></div></div>')) + '</div>';
   return '<div class="card stack"><div class="card-h"><h2>Put it on your phone</h2></div>' +
     '<p class="small muted" style="margin:0">Add the site to your home screen so it opens with one tap, like an app. It still opens inside claude.ai (this is where your progress syncs), and the full-screen button ⤢ at the top gives you the most room your phone allows.</p>' +
     '<div class="grid2"><div><b>iPhone / iPad (Safari)</b><ol class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px"><li>Open this site’s claude.ai link in Safari (not inside the Claude app).</li><li>Tap Share <span aria-hidden="true">⬆︎</span>, then <b>Add to Home Screen</b>.</li><li>Name it “IAL Revise” and tap Add.</li></ol></div>' +
@@ -4965,6 +5058,8 @@ document.addEventListener('click', e => {
     case 'rt-clear': { const n = rtTasks().filter(x => !x.done).length; state.tasks = state.tasks.filter(x => !(x.gen === 'rt' && !x.done)); state.rt = null; commit(); toast(n + ' planned session' + (n === 1 ? '' : 's') + ' removed.'); break; }
     case 'kp-one': { const k = CARDS.find(x => x.id === b.dataset.id); if (k){ ui.cards.subj = UNIT_SUBJ[k.u]; ui.cards.unit = k.u; ui.cards.review = { queue: [k.id], idx: 0, shown: false, done: 0, again: 0 }; } break; }
     case 'fullscreen': toggleFullscreen(); break;
+    case 'install-now': installNow(); break;
+    case 'off-save': offSave(); break;
     case 'buddy-off': state.buddy = { on: false, nick: (state.buddy || {}).nick || '' }; commit(); buddyStop().then(render); toast('Study buddy turned off. Your entry was removed.'); break;
     case 'goto-cp': { const sid = v.split('-')[0]; ui.syllabus.subj = sid; ui.syllabus.open = 'cp-' + sid; ui.cpOpen = v; ui.scrollCp = true; break; }
     case 'cp-toggle': { if (state.cp[v]) delete state.cp[v]; else state.cp[v] = todayStr(); ui.cpOpen = v; commit(); break; }

@@ -1,16 +1,37 @@
-/* Offline support: keeps the app's own files on the device. Papers and notes (PDFs on other sites) still need internet. */
-const CACHE = 'ial-study-hub-20261117230934';
-const FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',
+/* Offline support: keeps the app on the device so it opens and works with no internet.
+   App files come from the saved copy first (fast on weak signal); a new version is saved whole when this file changes.
+   Papers and notes are PDFs on Pearson's and PMT's own sites, so they still need internet. */
+const CACHE = 'ial-study-hub-20261118105530';
+const IMG = 'ial-img-1';      // PMT picture flashcards, saved as they're viewed or from Settings
+const LIB = 'ial-lib';        // sign-in and sync libraries (versioned URLs, so they never go stale)
+const FILES = ['./', './index.html', './privacy.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',
   './papers.js', './topicqs.js', './notes.js', './decks.js', './boundaries.js', './reports.js', './timetable.js', './tips.js', './practicals.js', './keyphrases.js', './oldspec.js', './solutions.js', './deckquiz.js', './schools.js', './i18n.js', './fonts/sarabun-thai-400-normal.woff2', './fonts/sarabun-thai-600-normal.woff2', './fonts/sarabun-thai-700-normal.woff2', './fonts/sarabun-thai-800-normal.woff2'];
 const NCACHE = 'ial-notif';   // upcoming reminders, written by the page
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== NCACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
+const KEEP = [CACHE, IMG, LIB, NCACHE];
+self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting())); });
+self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => !KEEP.includes(k)).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
+async function saved(name, req){
+  const c = await caches.open(name), hit = await c.match(req, { ignoreSearch: true });
+  if (hit) return hit;
+  const r = await fetch(req);
+  if (r && r.ok) c.put(req, r.clone()).catch(() => {});
+  return r;
+}
+async function app(req){
+  const c = await caches.open(CACHE);
+  const hit = await c.match(req, { ignoreSearch: true }) || (req.mode === 'navigate' && /\/$|\/index\.html$/.test(new URL(req.url).pathname) ? await c.match('./index.html') : null);
+  if (hit) return hit;
+  try { const r = await fetch(req); if (r && r.ok) c.put(req, r.clone()).catch(() => {}); return r; }
+  catch(err){ const fb = req.mode === 'navigate' ? await c.match('./index.html') : null; if (fb) return fb; throw err; }
+}
 self.addEventListener('fetch', e => {
-  const u = new URL(e.request.url);
-  if (e.request.method !== 'GET' || u.origin !== location.origin) return; // PDFs and other sites go straight to the network
-  // Network first (so updates arrive), falling back to the saved copy when offline.
-  e.respondWith(fetch(e.request).then(r => { if (r && r.ok){ const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); } return r; })
-    .catch(() => caches.match(e.request, { ignoreSearch: true }).then(m => m || caches.match('./index.html'))));
+  const req = e.request; if (req.method !== 'GET') return;
+  const u = new URL(req.url);
+  if (u.origin === 'https://www.gstatic.com' && u.pathname.startsWith('/firebasejs/')){ e.respondWith(saved(LIB, req)); return; }
+  if (u.origin !== location.origin) return;   // PDFs, Firebase sync and other sites go straight to the network
+  if (u.pathname.includes('/__notif/')) return;
+  if (u.pathname.includes('/deckimg/')){ e.respondWith(saved(IMG, req)); return; }
+  e.respondWith(app(req));
 });
 
 /* Reminders: show the ones that are due. The list is written by the page; nothing is fetched from a server. */
