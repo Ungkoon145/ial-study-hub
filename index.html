@@ -676,7 +676,7 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 </header>
 <main class="wrap" id="view"><p class="muted" style="padding:48px 0;text-align:center">Loading IAL Revise…</p></main>
 <button class="mini" id="mini" type="button" aria-label="Open focus timer"></button>
-<footer class="foot wrap" id="foot" hidden><p class="small muted">IAL Revise is an independent study tool, not affiliated with Pearson Edexcel or Physics &amp; Maths Tutor. Papers, mark schemes, examiner reports and notes open from their sites. Your progress stays in your browser.</p></footer>
+<footer class="foot wrap" id="foot" hidden><p class="small muted">IAL Revise is a free, independent study tool, not affiliated with or endorsed by Pearson Edexcel or Physics &amp; Maths Tutor. Papers, mark schemes, examiner reports and notes open on their own sites; PMT flashcards are shown with credit under CC BY-NC-ND 4.0. Pearson and Edexcel are trademarks of Pearson Education Ltd.</p></footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="papers.js"></script>
@@ -1457,7 +1457,7 @@ function viewDeckQuiz(){
     (q.shown
       ? '<div class="small muted" style="text-align:center;font-weight:600">How comfortable are you with this one?</div><div class="rate dq3">' + [['Not yet', 0, 'r0'], ['Nearly', 1, ''], ['Comfortable', 2, 'r3']].map(([lab, v, cls]) => '<button class="' + cls + (q.mark && q.mark.rate === v ? ' sugg' : '') + '" data-act="dq-rate" data-v="' + v + '"><span' + (v === 0 ? ' data-th="ยังไม่ได้"' : '') + '>' + lab + '</span>' + (q.mark && q.mark.rate === v ? '<small>Suggested</small>' : '') + '</button>').join('') + '</div>'
       : '<button class="btn primary big" data-act="dq-show" style="width:100%">Show answer</button>') +
-    '<p class="small muted noclamp" style="margin:0;text-align:center">Flashcards by <a href="https://www.physicsandmathstutor.com/" target="_blank" rel="noopener">PMT Education</a>, shown unchanged under <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a>. <a href="' + esc(pdf) + '" target="_blank" rel="noopener">Open the PMT flashcards ↗</a></p></div>';
+    '<p class="small muted noclamp" style="margin:0;text-align:center">This work by <a href="https://www.physicsandmathstutor.com/" target="_blank" rel="noopener">PMT Education</a> is licensed under <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a>. Wording unchanged; laid out for screens. <a href="' + esc(pdf) + '" target="_blank" rel="noopener">Original PMT flashcards ↗</a></p></div>';
 }
 document.addEventListener('input', e => {
   const t = e.target; if (!t || !t.dataset) return;
@@ -2602,6 +2602,20 @@ function summaryHtml(){
     '<table><tr><th>Unit</th><th>UMS</th><th>Papers</th><th>Avg</th><th>Exam</th><th>Work on</th></tr>' + x.units.map(u => '<tr><td>' + e(u.l + ' ' + u.n) + (u.opt ? ' [' + e(u.opt) + ']' : '') + (u.st === 'sat' ? ' <small>sat</small>' : u.st === 'resit' ? ' <small>resit</small>' : '') + '</td><td>' + (u.ums !== null ? u.ums + '/' + u.max + (u.umsSrc === 'mock' ? '*' : '') : '–') + '</td><td>' + u.papers + '</td><td>' + (u.avg !== null ? u.avg + '%' : '–') + '</td><td>' + (u.exam ? e(fmtDate(u.exam, {day:'numeric', month:'short', year:'numeric'})) : '–') + '</td><td>' + e(u.weak.join('; ')) + '</td></tr>').join('') + '</table></section>').join('');
   return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IAL progress summary</title><style>body{font-family:"Gill Sans","Gill Sans MT",Calibri,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;color:#14213a}h1{margin:0}h2{margin:22px 0 4px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dde3ec;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f3f5f8}small{color:#5a6880}footer{margin-top:24px;font-size:12px;color:#5a6880}</style></head><body><h1>IAL progress summary' + (prof().name ? ': ' + e(prof().name) : '') + '</h1><p>' + e([fmtDate(todayStr()), prof().school, (YEAR_OPTS.find(x => x[0] === prof().year) || [, ''])[1]].filter(Boolean).join(' · ')) + (prof().goal ? '<br>Goal: ' + e(prof().goal) : '') + '</p>' + (body || '<p>No subjects yet.</p>') + '<footer>* estimated from past papers using official Pearson grade boundaries; other UMS from results slips. Made with IAL Revise.</footer><\/body><\/html>';
 }
+function creditsCard(){
+  const a = (u, t) => '<a href="' + u + '" target="_blank" rel="noopener">' + t + '</a>';
+  return '<div class="card stack" id="credits"><div class="card-h"><h2>Credits and licences</h2></div>' +
+    '<p class="small muted" style="margin:0">IAL Revise is free, has no ads and is not affiliated with or endorsed by Pearson or Physics &amp; Maths Tutor.</p>' +
+    '<ul class="small notr" lang="en" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">' +
+    '<li><b>PMT flashcards</b> (flashcard quizzes and picture cards): this work by ' + a('https://www.physicsandmathstutor.com/', 'PMT Education') + ' is licensed under ' + a('https://creativecommons.org/licenses/by-nc-nd/4.0/', 'CC BY-NC-ND 4.0') + '. Wording unchanged; laid out for screens. Each quiz links to the original set. Notes marked “IAL Revise note” are ours and kept separate.</li>' +
+    '<li><b>PMT notes, topic questions and solution banks</b>: links only; they open on ' + a('https://www.physicsandmathstutor.com/', 'physicsandmathstutor.com') + '.</li>' +
+    '<li><b>Past papers, mark schemes, examiner reports, specifications</b>: links only; they open on ' + a('https://qualifications.pearson.com/', 'Pearson’s website') + '. Grade boundaries are Pearson’s published figures. Exam tips are summarised in our own words.</li>' +
+    '<li><b>Trademarks</b>: Pearson and Edexcel are trademarks of Pearson Education Ltd. Physics &amp; Maths Tutor is a trading name of its owner. Names are used only to say where material comes from.</li>' +
+    (STANDALONE ? '<li><b>Formula display</b>: ' + a('https://katex.org/', 'KaTeX') + ' and its mhchem extension, MIT licence (' + a('katex/LICENSE.txt', 'licence') + ').</li>' : '') +
+    '<li><b>Thai font</b>: ' + a('https://fonts.google.com/specimen/Sarabun', 'Sarabun') + ', SIL Open Font License' + (STANDALONE ? ' (' + a('fonts/OFL-Sarabun.txt', 'licence') + ')' : '') + '. English text uses Gill Sans from your own device; the font itself isn’t part of this site.</li>' +
+    '</ul>' +
+    '<p class="small" style="margin:0"><b>Own something here?</b> If you hold rights in anything on IAL Revise and want it changed or removed, ' + a('https://github.com/Ungkoon145/ial-study-hub/issues', 'open an issue on GitHub') + ' and it will be dealt with promptly.</p></div>';
+}
 function dataCard(){
   const c = ui.confirm, lb = state.lastBackup, since = lb ? daysBetween(lb, todayStr()) : null;
   return '<div class="card stack"><h2>Your data</h2><p class="small">' + syncText() + '</p>' +
@@ -2619,7 +2633,7 @@ function viewSettings(){
     '<div><h1>Settings</h1><p class="muted">Your profile, subjects, study habits and how the app looks.</p></div>' +
     accountCard() + profileCard() + friendsCard() + shareCard() + mySubjectsCard() + habitsCard() + lookCard() + notifCard() + reminderCard() + buddySettings() + installCard() + offlineCard() +
     ((state.linkReports || []).length ? '<div class="card stack"><div class="card-h"><h2>Broken links (' + state.linkReports.length + ')</h2></div><p class="small muted" style="margin:0">Links you reported. Copy the list and paste it to Claude, and they’ll be fixed in one go.</p><div class="list">' + state.linkReports.map(x => '<div class="li"><div class="grow"><div class="t">' + esc(x.where) + '</div><div class="small muted">Reported ' + fmtDate(x.at, {day:'numeric', month:'short'}) + '</div></div><button class="x" data-act="report-del" data-id="' + x.id + '" aria-label="Remove report">×</button></div>').join('') + '</div><div class="row"><button class="btn primary" data-act="report-copy">Copy list</button><button class="btn ghost" data-act="report-clear">Clear all</button></div><textarea readonly rows="3" aria-label="Broken links list">' + esc(reportsText()) + '</textarea></div>' : '') +
-    dataCard() + '</div>';
+    dataCard() + creditsCard() + '</div>';
 }
 
 
