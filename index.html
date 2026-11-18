@@ -338,6 +338,8 @@ textarea{min-height:90px;resize:vertical}
 .seg a[aria-current="page"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .linkbtn{background:none;border:0;padding:0;color:var(--ink);text-decoration:underline;cursor:pointer;font:inherit;font-size:.82rem}
 .rate.dq3{grid-template-columns:repeat(3,1fr)}
+.dqpad{display:block;width:100%;height:260px;border:1px dashed var(--line);border-radius:10px;background:var(--surface);color:var(--ink);touch-action:none;cursor:crosshair}
+.dqsketch{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;margin-top:6px;background:var(--surface)}
 .rate.dq3 button{padding:14px 4px;min-height:48px;justify-content:center}
 .dqcard textarea{width:100%;min-height:110px;font:inherit;font-size:1rem}
 .dqmine{padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--ink) 5%,transparent)}
@@ -1426,6 +1428,28 @@ function dqMarkHtml(m){
     '<ul class="dqpts">' + m.rows.map(row).join('') + '</ul>' +
     '<p class="small muted noclamp" style="margin:0">Marked by key words, so it can be wrong. Change the rating if you disagree.</p></div>';
 }
+/* Picture-answer cards ("Draw the structure of…"): a sketch pad instead of a typing box. The sketch stays on this device, only until the next card. */
+const dqPicOnly = it => !!(it && it[3] && !String(it[1] || '').trim());
+function dqPadInit(){
+  const c = document.getElementById('dq-pad'), q = ui.cards && ui.cards.dq; if (!c || !q) return;
+  const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  if (c.width !== Math.round(w * dpr)){ c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, w, h);
+  if (q.sketch){ const im = new Image(); im.onload = () => x.drawImage(im, 0, 0, w, h); im.src = q.sketch; }
+}
+let dqDraw = null;
+document.addEventListener('pointerdown', e => {
+  const c = e.target; if (!c || c.id !== 'dq-pad') return;
+  e.preventDefault(); c.setPointerCapture && c.setPointerCapture(e.pointerId);
+  const r = c.getBoundingClientRect(), x = c.getContext('2d');
+  x.lineWidth = e.pointerType === 'pen' ? 2 : 2.6; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = getComputedStyle(c).color;
+  x.beginPath(); x.moveTo(e.clientX - r.left, e.clientY - r.top); x.lineTo(e.clientX - r.left + .1, e.clientY - r.top + .1); x.stroke();
+  dqDraw = { c, x, r };
+});
+document.addEventListener('pointermove', e => { if (!dqDraw) return; e.preventDefault(); const { x, r } = dqDraw; x.lineTo(e.clientX - r.left, e.clientY - r.top); x.stroke(); });
+const dqDrawEnd = () => { if (!dqDraw) return; const q = ui.cards && ui.cards.dq; if (q) q.sketch = dqDraw.c.toDataURL('image/png'); dqDraw = null; const b = document.querySelector('[data-act="dq-pad-clear"]'); if (b) b.disabled = false; };
+document.addEventListener('pointerup', dqDrawEnd); document.addEventListener('pointercancel', dqDrawEnd);
+
 function viewDeckQuiz(){
   const q = ui.cards.dq, d = unitDecks(q.u).find(x => x.url === q.url), qs = d ? dqList(d) : [];
   if (!d || !qs.length){ ui.cards.dq = null; return viewCards(); }
@@ -1450,12 +1474,15 @@ function viewDeckQuiz(){
       (q.shown
         ? (q.typed.trim() ? '<div class="dqmine"><div class="small muted" style="font-weight:600">Your answer</div><div class="notr" style="white-space:pre-wrap">' + esc(q.typed) + '</div></div>' : '') +
           (q.mark ? dqMarkHtml(q.mark) : (item[1] ? '<div class="back"><div class="small muted" style="font-weight:600">Answer</div><div class="notr" style="white-space:pre-wrap">' + esc(item[1]) + '</div></div>' : '')) +
-          (item[3] ? '<img class="dqimg" src="' + esc(item[3]) + '" alt="PMT flashcard: answer" loading="lazy">' : '') +
+          (dqPicOnly(item) && q.sketch ? '<div class="dqmine"><div class="small muted" style="font-weight:600">Your sketch</div><img class="dqsketch" src="' + q.sketch + '" alt="Your sketch"></div>' : '') +
+          (item[3] ? (dqPicOnly(item) ? '<div class="small muted" style="font-weight:600;margin-top:8px">PMT’s answer</div>' : '') + '<img class="dqimg" src="' + esc(item[3]) + '" alt="PMT flashcard: answer" loading="lazy">' : '') +
           (item[4] ? '<div class="dqnote"><b>IAL Revise note</b> ' + esc(item[4]) + '</div>' : '')
-        : '<label class="f" style="margin:0">Your answer<textarea id="dq-ans" rows="4" placeholder="Type your answer, then check it" autocomplete="off" autocapitalize="sentences">' + esc(q.typed) + '</textarea></label>') +
+        : dqPicOnly(item)
+          ? '<div class="stack" style="gap:6px"><div class="small muted" style="font-weight:600">The answer is a diagram. Sketch it here or on paper, then check.</div><canvas id="dq-pad" class="dqpad" aria-label="Sketch pad: draw your answer"></canvas><div class="row" style="justify-content:flex-end"><button class="btn sm ghost" data-act="dq-pad-clear"' + (q.sketch ? '' : ' disabled') + '>Clear sketch</button></div></div>'
+          : '<label class="f" style="margin:0">Your answer<textarea id="dq-ans" rows="4" placeholder="Type your answer, then check it" autocomplete="off" autocapitalize="sentences">' + esc(q.typed) + '</textarea></label>') +
     '</div>' +
     (q.shown
-      ? '<div class="small muted" style="text-align:center;font-weight:600">How comfortable are you with this one?</div><div class="rate dq3">' + [['Not yet', 0, 'r0'], ['Nearly', 1, ''], ['Comfortable', 2, 'r3']].map(([lab, v, cls]) => '<button class="' + cls + (q.mark && q.mark.rate === v ? ' sugg' : '') + '" data-act="dq-rate" data-v="' + v + '"><span' + (v === 0 ? ' data-th="ยังไม่ได้"' : '') + '>' + lab + '</span>' + (q.mark && q.mark.rate === v ? '<small>Suggested</small>' : '') + '</button>').join('') + '</div>'
+      ? (dqPicOnly(item) ? '<div class="small muted" style="text-align:center;font-weight:600">Compare with PMT’s card. How did you do?</div>' : '<div class="small muted" style="text-align:center;font-weight:600">How comfortable are you with this one?</div>') + '<div class="rate dq3">' + (dqPicOnly(item) ? [['Missed it', 0, 'r0'], ['Nearly', 1, ''], ['Got it', 2, 'r3']] : [['Not yet', 0, 'r0'], ['Nearly', 1, ''], ['Comfortable', 2, 'r3']]).map(([lab, v, cls]) => '<button class="' + cls + (q.mark && q.mark.rate === v ? ' sugg' : '') + '" data-act="dq-rate" data-v="' + v + '"><span' + (v === 0 ? ' data-th="ยังไม่ได้"' : '') + '>' + lab + '</span>' + (q.mark && q.mark.rate === v ? '<small>Suggested</small>' : '') + '</button>').join('') + '</div>'
       : '<button class="btn primary big" data-act="dq-show" style="width:100%">Show answer</button>') +
     '<p class="small muted noclamp" style="margin:0;text-align:center">This work by <a href="https://www.physicsandmathstutor.com/" target="_blank" rel="noopener">PMT Education</a> is licensed under <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a>. Wording unchanged; laid out for screens. <a href="' + esc(pdf) + '" target="_blank" rel="noopener">Original PMT flashcards ↗</a></p></div>';
 }
@@ -4875,6 +4902,7 @@ function render(){
   if (isTH()) try { thApply(document.body); } catch(err){ console.error(err); }
   else if (uiLang() === 'th') lazy('i18n.js', render);
   try { if (typeof texify === 'function') texify($('#view')); } catch(err){ console.error(err); }
+  try { dqPadInit(); } catch(err){ console.error(err); }
   try { clampLong($('#view')); } catch(err){ console.error(err); }
 }
 /* Long explanations: shown as two lines with "Show more". Short text, warnings, privacy notes and
@@ -4966,8 +4994,9 @@ document.addEventListener('click', e => {
     case 'dq-show': { const q = ui.cards.dq; if (!q) break; const ta = $('#dq-ans'); q.typed = ta ? ta.value : ''; q.shown = true; q.mark = null;
       if (q.typed.trim()) try { const d = unitDecks(q.u).find(x => x.url === q.url), it = dqList(d)[q.list[q.i]]; q.mark = mkMark(q.typed, it[1], it[0]); if (!q.mark.need) q.mark = null; } catch(err){ console.error(err); }
       render(); break; }
-    case 'dq-rate': { const q = ui.cards.dq; if (!q || !q.shown) break; const idx = q.list[q.i]; q.res[idx] = +v; dqState()[q.key + '#' + idx] = q.mark ? { c: +v, d: todayStr(), m: q.mark.pct } : { c: +v, d: todayStr() }; if (q.mark) (q.marks = q.marks || []).push(q.mark.pct); q.mark = null; q.i++; q.typed = ''; q.shown = false; if (q.i >= q.list.length) dqFinish(q); commit(); window.scrollTo(0, 0); break; }
+    case 'dq-rate': { const q = ui.cards.dq; if (!q || !q.shown) break; const idx = q.list[q.i]; q.res[idx] = +v; dqState()[q.key + '#' + idx] = q.mark ? { c: +v, d: todayStr(), m: q.mark.pct } : { c: +v, d: todayStr() }; if (q.mark) (q.marks = q.marks || []).push(q.mark.pct); q.mark = null; q.i++; q.typed = ''; q.shown = false; q.sketch = null; if (q.i >= q.list.length) dqFinish(q); commit(); window.scrollTo(0, 0); break; }
     case 'dq-end': ui.cards.dq = null; render(); break;
+    case 'dq-pad-clear': { const q = ui.cards.dq; if (q) q.sketch = null; dqPadInit(); const b = document.querySelector('[data-act="dq-pad-clear"]'); if (b) b.disabled = true; break; }
     case 'show-answer': ui.cards.review.shown = true; render(); break;
     case 'rate': {
       const r = ui.cards.review; const cid = r.queue[r.idx]; const n = +v;
