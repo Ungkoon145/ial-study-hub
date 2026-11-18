@@ -42,6 +42,26 @@ def status(url):
         out = curl(['-o', '/dev/null', '-w', '%{http_code}', '-r', '0-0', '-L', url], 60).strip()
     return out
 
+NOTICE = re.compile(r'(?i)insufficient (number of )?(entries|candidates)|not (been )?possible to provide|will not (be )?publish')
+def is_notice(url):
+    """Pearson sometimes publishes a one-page notice ("insufficient entries") instead of an examiner's report."""
+    head = curl(['-s', '-I', '-L', url], 60)
+    size = re.findall(r'(?i)content-length:\s*(\d+)', head)
+    if size and int(size[-1]) > 90000: return False
+    import tempfile, os, shutil, glob
+    d = tempfile.mkdtemp()
+    try:
+        f = os.path.join(d, 'r.pdf'); curl(['-s', '-L', '-o', f, url], 120)
+        txt = subprocess.run(['pdftotext', '-q', '-l', '2', f, '-'], capture_output=True, text=True).stdout
+        if len(txt.strip()) < 200 and shutil.which('tesseract') and shutil.which('pdftoppm'):
+            subprocess.run(['pdftoppm', '-r', '120', '-l', '1', '-png', f, os.path.join(d, 'p')])
+            txt += ''.join(subprocess.run(['tesseract', g, '-'], capture_output=True, text=True).stdout for g in glob.glob(os.path.join(d, 'p*.png')))
+        return bool(NOTICE.search(txt))
+    except Exception:
+        return False
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
 def series_key(s):
     opt = s.split(' · ')[1] if ' · ' in s else ''
     p = s.split(' · ')[0].split()
@@ -56,6 +76,8 @@ def load(path, name):
 def main():
     psrc, pm, PAPERS = load('papers.js', 'PAPERS')
     rsrc, rm, ER = load('reports.js', 'PAPER_ER')
+    nm = re.search(r'const PAPER_ER_NONE = (\{.*?\});', rsrc, re.S)
+    NONE = json.loads(nm.group(1)) if nm else {}
     known = set(PAPERS)
     jobs = [(s, d) for s in SUBJECTS for d in TYPES]
     found = {}   # (code, series) -> {qp, ms, er, qpR, msR, erR}
@@ -86,7 +108,7 @@ def main():
             if row is None or not row[idx]:
                 for u in (v.get(kind), v.get(kind + 'R')):
                     if u: todo.append((code, ser, kind, u))
-        if (v.get('er') or v.get('erR')) and ser not in ER.get(code, {}):
+        if (v.get('er') or v.get('erR')) and ser not in ER.get(code, {}) and ser not in NONE.get(code, []):
             for u in (v.get('er'), v.get('erR')):
                 if u: todo.append((code, ser, 'er', u))
     print(f'{len(found)} unit/series found on Pearson; {len(todo)} candidate new links to test')
@@ -97,7 +119,10 @@ def main():
         if st != '200':
             locked += 1; continue
         if kind == 'er':
-            if ser in ER.setdefault(code, {}): continue
+            if ser in ER.setdefault(code, {}) or ser in NONE.get(code, []): continue
+            if is_notice(u):
+                NONE.setdefault(code, []).append(ser); added.append(f'{code} {ser}: no examiner report (too few candidates)')
+                continue
             ER[code][ser] = u; added.append(f'{code} {ser} examiner report')
             continue
         rows = PAPERS.setdefault(code, [])
@@ -111,7 +136,11 @@ def main():
     for a in sorted(added): print('  +', a)
     if DRY or not added: return 0
     psrc = psrc[:pm.start(1)] + json.dumps(PAPERS, ensure_ascii=False, separators=(',', ':')) + psrc[pm.end(1):]
-    rsrc = rsrc[:rm.start(1)] + json.dumps(ER, ensure_ascii=False, separators=(',', ':')) + rsrc[rm.end(1):]
+    new_r = rsrc[:rm.start(1)] + json.dumps(ER, ensure_ascii=False, separators=(',', ':')) + rsrc[rm.end(1):]
+    nm2 = re.search(r'const PAPER_ER_NONE = (\{.*?\});', new_r, re.S)
+    if nm2: new_r = new_r[:nm2.start(1)] + json.dumps(NONE, ensure_ascii=False, separators=(',', ':')) + new_r[nm2.end(1):]
+    elif NONE: new_r = new_r.rstrip() + '\nconst PAPER_ER_NONE = ' + json.dumps(NONE, ensure_ascii=False, separators=(',', ':')) + ';\n'
+    rsrc = new_r
     open('papers.js', 'w', encoding='utf-8').write(psrc)
     open('reports.js', 'w', encoding='utf-8').write(rsrc)
     sw = open('sw.js', encoding='utf-8').read()

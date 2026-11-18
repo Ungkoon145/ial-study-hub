@@ -1731,7 +1731,7 @@ function viewPapers(){
   const rows = shown.map(r => {
     const [sr, qp, ms] = r; const key = paperKey(u.c, sr); const rec = state.papers[key];
     const older = /^\w+ (\d{4})$/.test(sr) && +sr.slice(-4) < 2019 && !(RES[u.c] && RES[u.c].pearson);
-    const links = (qp ? '<a class="btn sm" href="' + qp + '" target="_blank" rel="noopener">Paper</a>' : '<span class="small muted">' + (/^W(FR|GN|SP)0[13]$/.test(u.c) ? 'Speaking test: no question paper' : 'Paper not published') + '</span>') + (ms ? '<a class="btn sm" href="' + ms + '" target="_blank" rel="noopener">Mark scheme</a>' : '<span class="small muted">No mark scheme</span>') + (erUrl(u.c, sr) ? '<a class="btn sm er" href="' + esc(erUrl(u.c, sr)) + '" target="_blank" rel="noopener" title="Pearson examiners’ report: common mistakes on each question">Report</a>' : '<span class="small muted noer">' + esc(noErReason(sr)) + '</span>') + flagBtn('IAL ' + u.l + ' ' + (UNIT_SUBJ[u.c] === 'math' || UNIT_SUBJ[u.c] === 'fm' ? '' : SUBJ[UNIT_SUBJ[u.c]].short + ' ') + sr);
+    const links = (qp ? '<a class="btn sm" href="' + qp + '" target="_blank" rel="noopener">Paper</a>' : '<span class="small muted">' + (/^W(FR|GN|SP)0[13]$/.test(u.c) ? 'Speaking test: no question paper' : 'Paper not published') + '</span>') + (ms ? '<a class="btn sm" href="' + ms + '" target="_blank" rel="noopener">Mark scheme</a>' : '<span class="small muted">No mark scheme</span>') + (erUrl(u.c, sr) ? '<a class="btn sm er" href="' + esc(erUrl(u.c, sr)) + '" target="_blank" rel="noopener" title="Pearson examiners’ report: common mistakes on each question">Report</a>' : '<span class="small muted noer">' + esc(noErReason(sr, u.c)) + '</span>') + flagBtn('IAL ' + u.l + ' ' + (UNIT_SUBJ[u.c] === 'math' || UNIT_SUBJ[u.c] === 'fm' ? '' : SUBJ[UNIT_SUBJ[u.c]].short + ' ') + sr);
     let status;
     if (p.log === key){
       status = '<form class="editbox" data-form="paper-log" data-key="' + esc(key) + '">' +
@@ -2649,8 +2649,9 @@ function summaryHtml(){
 function wkPrefs(){ if (!state.weekly || typeof state.weekly !== 'object') state.weekly = { on: false, scores: false, grades: false, sent: '' }; return state.weekly; }
 function weeklyText(){
   const W = wkPrefs(), th = isTH(), L = (en, t) => th ? t : en, t = todayStr();
+  const fd = (d, o) => { if (!th) return fmtDate(d, o); try { return new Date(d + 'T00:00:00').toLocaleDateString('th-TH', o); } catch(e){ return fmtDate(d, o); } };
   const a = weekStats(t), b = weekStats(addDays(t, -7)), P = prof();
-  const range = fmtDate(addDays(t, -6), { day: 'numeric', month: 'short' }) + ' – ' + fmtDate(t, { day: 'numeric', month: 'short', year: 'numeric' });
+  const range = fd(addDays(t, -6), { day: 'numeric', month: 'short' }) + ' – ' + fd(t, { day: 'numeric', month: 'short', year: 'numeric' });
   const decksDue = decksIn('all').filter(d => deckStatus(d) === 'due').length;
   const mkDue = state.mistakes.filter(m => !m.fixed && m.rev && m.rev.due <= t).length;
   const lines = [L('IAL Revise · weekly summary', 'IAL Revise · สรุปประจำสัปดาห์') + (P.name ? ' · ' + P.name : ''), range, ''];
@@ -2664,7 +2665,7 @@ function weeklyText(){
   const ex = upcomingExams().filter(e => daysBetween(t, e.d) <= 60).slice(0, 4);
   if (ex.length){
     lines.push('', L('Coming up:', 'สอบที่ใกล้เข้ามา:'));
-    ex.forEach(e => { const u = UNIT[e.u], n = daysBetween(t, e.d); lines.push('  ' + (u ? (th ? u.l.replace(/^Unit /, 'ยูนิต ') : u.l) + ' ' + ((th && thText(u.n)) || u.n) : (e.n || e.u)) + ' – ' + fmtDate(e.d, { day: 'numeric', month: 'short' }) + ' (' + L(n + ' day' + (n === 1 ? '' : 's'), n + ' วัน') + ')'); });
+    ex.forEach(e => { const u = UNIT[e.u], n = daysBetween(t, e.d); lines.push('  ' + (u ? (th ? u.l.replace(/^Unit /, 'ยูนิต ') : u.l) + ' ' + ((th && thText(u.n)) || u.n) : (e.n || e.u)) + ' – ' + fd(e.d, { day: 'numeric', month: 'short' }) + ' (' + L(n + ' day' + (n === 1 ? '' : 's'), n + ' วัน') + ')'); });
   }
   if (W.grades){ const g = onTrackItems(); if (g.length) lines.push('', L('On track for: ', 'แนวโน้มเกรด: ') + g.map(([sid, n, gr]) => ((th && thText(n)) || n) + ' ' + gr).join(', ')); }
   const fp = focusPoints().map(x => x.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'"));
@@ -3265,7 +3266,8 @@ window.addEventListener('resize', setHdr);
 /* ============================================================
    Mistake log: every lost mark, why it was lost, and spaced review until it's fixed
    ============================================================ */
-function noErReason(sr){
+function noErReason(sr, c){
+  if (c && typeof PAPER_ER_NONE !== 'undefined' && (PAPER_ER_NONE[c] || []).includes(sr)) return 'No examiner report: too few candidates sat this paper';
   if (/Specimen/.test(sr)) return 'No examiner report: sample paper, never sat';
   if (srBase(sr) === 'June 2021') return 'No examiner report: exams cancelled, grades were teacher-assessed';
   if (sr === 'June 2020') return 'No examiner report: exams cancelled (pandemic)';
