@@ -1098,7 +1098,19 @@ function go(r){ const changed = route() !== r; setTimeout(() => { if (route() ==
    Views
    ============================================================ */
 /* Subject groups for pickers */
-const SUBJ_GROUPS = [['Sciences and Maths', ['math','fm','phys','chem','bio','cs','it']], ['Humanities and social sciences', ['econ','geog','psych','hist','law']], ['Business', ['bus','acc']], ['English', ['enlang','enlit']], ['Languages', ['fre','ger','spa','ara','gre']]];
+const SUBJ_GROUPS = [['Sciences and Maths', ['math','fm','phys','chem','bio','cs','it']], ['Humanities and social sciences', ['econ','geog','psych','hist','law']], ['Business', ['bus','acc']], ['English Language and Literature', ['enlang','enlit']], ['Languages', ['fre','ger','spa','ara','gre']]];
+/* Subjects (and the picker's groups) in alphabetical order of the name shown: English names, or Thai names when Thai is on. */
+let subjSortedFor = null;
+function sortSubjects(){
+  const th = isTH() && typeof thText === 'function', key = th ? 'th' : 'en';
+  if (subjSortedFor === key) return;
+  const nm = x => (th && thText(x)) || x, coll = new Intl.Collator(th ? 'th' : 'en', { sensitivity: 'base' });
+  SUBJECTS.sort((a, b) => coll.compare(nm(a.name), nm(b.name)));
+  const pos = {}; SUBJECTS.forEach((x, i) => pos[x.id] = i);
+  SUBJ_GROUPS.forEach(g => g[1].sort((a, b) => pos[a] - pos[b]));
+  SUBJ_GROUPS.sort((a, b) => coll.compare(nm(a[0]), nm(b[0])));
+  subjSortedFor = key;
+}
 function groupedChips(list, chip){
   const ids = new Set(list.map(x => x.id)), seen = new Set();
   const out = SUBJ_GROUPS.map(([name, g]) => { const xs = g.filter(id => ids.has(id) && SUBJ[id]).map(id => { seen.add(id); return SUBJ[id]; }); return xs.length ? '<div class="sgroup"><div class="small muted">' + esc(name) + '</div><div class="chips">' + xs.map(chip).join('') + '</div></div>' : ''; }).join('');
@@ -4888,7 +4900,7 @@ function renderRet(){
 }
 
 function render(){
-  applyPrefs(); ensureSubjects();
+  applyPrefs(); ensureSubjects(); try { sortSubjects(); } catch(err){ console.error(err); }
   const r = route(); setHdr();
   $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && r === 'cards') ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
   $('#nav-settings').setAttribute('aria-current', r === 'prefs' ? 'page' : 'false'); { const ns = $('#nav-search'); if (ns) ns.setAttribute('aria-current', r === 'search' ? 'page' : 'false'); } fsSync();
