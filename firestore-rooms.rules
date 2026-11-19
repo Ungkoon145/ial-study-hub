@@ -4,10 +4,14 @@
       function me() { return request.auth.uid; }
       function pubNames() { return ['Quiet library', 'Exam season focus', 'Past paper practice', 'Morning focus', 'Night owls', 'Weekend revision', 'Maths', 'Further Maths', 'Physics', 'Chemistry', 'Biology', 'Economics', 'Psychology', 'Computer Science', 'Geography', 'History', 'English']; }
       function okMember(m) {
-        return m.keys().hasOnly(['n', 'c', 'st', 'end', 'left', 'ph', 'sub', 'min', 'cam', 'r', 'ra', 'at', 'nv'])
+        return m.keys().hasOnly(['n', 'c', 'st', 'end', 'left', 'ph', 'sub', 'min', 'cam', 'r', 'ra', 'at', 'nv', 'g', 'gd'])
           && m.n is string && m.n.size() <= 40 && m.sub is string && m.sub.size() <= 30 && m.r is string && m.r.size() <= 8
           && m.cam is bool && (m.cam == false || resource.data.kind == 'cam')
-          && (!('nv' in m) || (m.nv is list && m.nv.size() <= 12));
+          && (!('nv' in m) || (m.nv is list && m.nv.size() <= 12))
+          // check-in goal: a preset in public rooms, short typed text only in invite-only camera rooms
+          && (!('g' in m) || (m.g is string && m.g.size() <= 60
+              && (resource.data.kind == 'cam' || m.g in ['', 'pp', 'qs', 'fc', 'notes', 'mist', 'hw', 'read', 'plan'])))
+          && (!('gd' in m) || m.gd is bool);
       }
       // Camera rooms can only be opened by someone who knows their code; only public rooms can be listed.
       allow get: if signedIn();

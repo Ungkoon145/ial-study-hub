@@ -846,6 +846,12 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 .rmcam video.rmv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
 .rmcam video.mirror{transform:scaleX(-1)}
 .rmcam video.rmv{transition:transform .2s ease}
+.rmgoalnow{display:flex;gap:12px;align-items:center}
+.rmgtick{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--edge);display:grid;place-items:center;font-weight:700;color:#fff}
+.rmgoal.done .rmgtick{background:var(--good);border-color:var(--good)}
+.rmgline{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rmgline.done{color:var(--good)}
+.rmftile .rmgline{display:block;max-width:100%;color:inherit;opacity:.9}
 .rmadj .rmadjrow{display:flex;flex-direction:column;gap:4px}
 .rmadj input[type=range]{width:100%;max-width:440px;min-height:32px}
 .rmfadj{position:absolute;right:12px;bottom:84px;width:min(380px,calc(100vw - 24px));max-height:min(70vh,calc(100vh - 120px));overflow:auto;z-index:30;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
@@ -6308,6 +6314,7 @@ document.addEventListener('submit', e => {
   if (f.dataset.form.indexOf('fb-') === 0){ e.preventDefault(); fbForm(f.dataset.form, f); return; }
   if (f.dataset.form === 'profile'){ e.preventDefault(); profileSave(f); return; }
   if (f.dataset.form === 'rm-create'){ e.preventDefault(); rmCreate(f.elements.kind.value, f.elements.name.value); return; }
+  if (f.dataset.form === 'rm-goal'){ e.preventDefault(); const g = f.elements.g.value.trim(); if (g) rmGoalSet(g, false); return; }
   if (f.dataset.form === 'rm-join'){ e.preventDefault(); rmJoin(f.elements.code.value); return; }
   if (f.dataset.form === 'busy-add'){ e.preventDefault(); const d = $('#busy-d').value; if (d && !prefs().busy.includes(d)){ prefs().busy.push(d); commit(); toast('Busy day added'); } return; }
   e.preventDefault();

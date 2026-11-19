@@ -59,7 +59,7 @@ function rmMine(){
     sub: sj ? sj.short : '', min: rmTodayMin(), cam: !pub && !!RM.cam, r: RM.react ? RM.react.e : '', ra: RM.react ? RM.react.at : 0, at: Date.now() };
 }
 const _rmMine0 = rmMine;
-rmMine = function(){ const m = _rmMine0(); if (RM.room && RM.room.kind === 'cam') m.nv = (RM.nv || []).slice(0, 12); return m; };
+rmMine = function(){ const m = _rmMine0(); if (RM.room && RM.room.kind === 'cam') m.nv = (RM.nv || []).slice(0, 12); if (RM.rid){ const G = rmGoal(); m.g = G.g || ''; m.gd = !!(G.g && G.gd); } return m; };
 async function rmBeat(){
   if (!RM.rid || !rmUid()) return;
   try { await rmDb().setMe(RM.rid, rmUid(), rmMine()); }
@@ -159,12 +159,13 @@ async function rmCamOn(){
   if (!RM.room || RM.room.kind !== 'cam' || RM.cam) return;
   RM.camErr = '';
   try {
-    RM.cam = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 10, max: 12 }, facingMode: 'user' }, audio: false });
+    RM.cam = await navigator.mediaDevices.getUserMedia(rmCamOpts('user', false)); RM.facing = 'user';
   } catch(e){
     RM.camErr = /NotAllowed|Permission/.test(String(e && e.name)) ? 'Camera permission was blocked. Allow the camera for this site in your browser settings, then try again.' : 'No camera found, or another app is using it.';
     render(); return;
   }
   try { RM.cam.getVideoTracks()[0].contentHint = 'motion'; } catch(e){}
+  rmCamDevices().then(() => { if (RM.multiCam) { if (RM.full) rmFullRender(); else render(); } });
   if (rmAdjPiped()) await rmCamPipe();
   const tr = rmSendTrack();
   await Promise.all(Object.values(RM.pcs).map(p => p.tx ? p.tx.sender.replaceTrack(tr).catch(() => {}) : null));
@@ -282,7 +283,7 @@ function rmTile(m, me){
     (react ? '<span class="rmreact" aria-label="Reaction">' + esc(react) + '</span>' : '') +
     rmLowDot(m, me) +
     '<div class="rmmeta"><div class="t"><b>' + esc(m.n || 'A student') + '</b>' + (me ? ' <span class="small muted">(you)</span>' : '') + '</div>' +
-      '<div class="small rmst"><span>' + rmStatus(m) + '</span> ' + rmClock(m) + '</div>' +
+      '<div class="small rmst"><span>' + rmStatus(m) + '</span> ' + rmClock(m) + '</div>' + rmGoalLine(m) +
       '<div class="small muted">' + (m.sub ? esc(m.sub) + ' · ' : '') + '<span>' + fmtMin(+m.min || 0) + ' today</span></div>' +
       (!me && cam && m.cam && RM.pcs[m.id] && RM.pcs[m.id].state === 'failed' ? '<div class="small muted">Video couldn’t connect on this network.</div>' : '') +
       (me && cam && RM.cam ? '<div class="row rmown"><button class="linkbtn small" data-act="rm-adjust" data-id="me">Adjust my camera</button></div>' : '') +
@@ -372,7 +373,7 @@ function viewRoom(){
           '<div class="row rmctl">' + (T.running ? '<button class="btn primary big" data-act="t-pause">Pause</button>' : '<button class="btn primary big" data-act="t-start">' + (ms < phaseLen() ? 'Resume' : 'Start focus') + '</button>') +
             (T.phase === 'focus' ? '<button class="btn big rmglass" data-act="t-stoplog"' + (ms < phaseLen() ? '' : ' disabled') + '>Stop &amp; log</button>' : '<button class="btn big rmglass" data-act="t-skip">Skip break</button>') + '</div></div>' +
         '<div class="rmbottom"><div class="row rmreacts" role="group" aria-label="Reactions">' + RM_REACT.map(e => '<button class="rmglass rmre" data-act="rm-react" data-v="' + e + '" aria-label="React ' + e + '">' + e + '</button>').join('') + '</div>' +
-          rmTools() + '<button class="rmglass rmtool" data-act="rm-full" aria-label="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg><span>Full screen</span></button>' +
+          rmTools() + rmFlipBtn() + '<button class="rmglass rmtool" data-act="rm-full" aria-label="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg><span>Full screen</span></button>' +
             (cam ? '<button class="rmglass rmtool' + (RM.cam ? ' live' : '') + '" data-act="' + (RM.cam ? 'rm-cam-off' : 'rm-cam-on') + '" aria-pressed="' + !!RM.cam + '" aria-label="' + (RM.cam ? 'Turn camera off' : 'Turn camera on') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/>' + (RM.cam ? '' : '<path d="M3 3l18 18"/>') + '</svg><span>Camera</span></button>' : '') +
           '</div></div>' +
       '</div></section>' +
@@ -384,6 +385,7 @@ function viewRoom(){
       '<p class="small muted">Share the code only with people you know.</p></div>' : '') +
     '<div class="card-h rmpeopleh"><h2>In this room</h2><span class="small muted">' + mem.length + '</span></div>' +
     '<div class="rmgrid lay-' + lay + (cam ? ' cam' : '') + '">' + mem.map(m => rmTile(m, m.id === me)).join('') + '</div>' +
+    rmGoalCard() +
     (r.owner === me ? '<div class="row"><button class="btn ghost sm" data-act="rm-close">Close this room for everyone</button></div>' : '') +
     '<p class="small muted">' + (cam ? 'No microphone and no chat. Your camera turns off when you leave this page.' : 'Others see your first name and last initial, your timer, your subject and your minutes today.') + '</p>' +
   '</div>';
@@ -440,6 +442,12 @@ function rmAfterRender(){
 function rmAct(el){
   const a = el.dataset.act, v = el.dataset.v, id = el.dataset.id;
   if (/^rm-a(for|rot|flip|fit|mirror|reset|djust)$/.test(a)) return rmAdjAct(el);
+  if (a === 'rm-flip'){ rmCamFlip(); return true; }
+  if (a === 'rm-gset'){ rmGoalSet(v, false); return true; }
+  if (a === 'rm-gdone'){ const G = rmGoal(); rmGoalSet(G.g, !G.gd); if (G.gd) toast('Nice work. Ticked off.'); return true; }
+  if (a === 'rm-gnew'){ rmGoalSet('', false); return true; }
+  if (a === 'rm-gedit'){ rmGoal().edit = true; render(); return true; }
+  if (a === 'rm-gcancel'){ rmGoal().edit = false; render(); return true; }
   switch (a){
     case 'rm-new': RM.create = v ? { kind: v } : null; RM.joinErr = ''; render(); break;
     case 'rm-join': rmJoin(v); break;
@@ -524,7 +532,7 @@ function rmFullRender(){
     const av = '<span class="avatar" aria-hidden="true" style="background:' + esc(/^#[0-9a-fA-F]{6}$/.test(m.c) ? m.c : '#4b5a70') + '">' + esc(initials(m.n) || '?') + '</span>';
     const react = m.r && Date.now() - (m.ra || 0) < 8000 ? '<span class="rmreact">' + esc(m.r) + '</span>' : '';
     return (cam ? '<div class="rmcam" data-rmvid="' + (isMe ? 'me' : esc(m.id)) + '">' + av + '</div>' : '<div class="rmcam nocam">' + av + '</div>') + react + rmLowDot(m, isMe) +
-      '<div class="rmfname"><b>' + esc(m.n || 'A student') + '</b>' + (isMe ? ' <span>(you)</span>' : '') + ' <span class="rmfst">' + rmStatus(m) + ' ' + rmClock(m) + '</span></div>';
+      '<div class="rmfname"><b>' + esc(m.n || 'A student') + '</b>' + (isMe ? ' <span>(you)</span>' : '') + ' <span class="rmfst">' + rmStatus(m) + ' ' + rmClock(m) + '</span>' + rmGoalLine(m) + '</div>';
   };
   const html = '<div class="rmscene-slot" data-rmscene="' + sc + '"></div><div class="rmshade"></div>' +
     rmFullTile('timer', 0, '<div class="rmphase' + (T.phase === 'break' ? ' brk' : '') + '">' + (T.phase === 'focus' ? 'Focus' : 'Break') + '</div><div class="rmfclock" id="rmfclock">' + fmtClock(ms) + '</div><div class="rmnow">' + (focusing ? '<span>' + focusing + ' focusing now</span>' : '<span>Start the timer to focus together</span>') + '</div>', 'rmftimer') +
@@ -533,6 +541,7 @@ function rmFullRender(){
     '<div class="rmfbar" role="toolbar" aria-label="Room controls">' +
       (T.running ? '<button class="rmglass rmtool" data-act="t-pause">Pause</button>' : '<button class="rmglass rmtool rmfgo" data-act="t-start">' + (ms < phaseLen() ? 'Resume' : 'Start focus') + '</button>') +
       (cam ? '<button class="rmglass rmtool' + (RM.cam ? ' live' : '') + '" data-act="' + (RM.cam ? 'rm-cam-off' : 'rm-cam-on') + '" aria-pressed="' + !!RM.cam + '" aria-label="' + (RM.cam ? 'Turn camera off' : 'Turn camera on') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/>' + (RM.cam ? '' : '<path d="M3 3l18 18"/>') + '</svg><span>Camera</span></button>' : '') +
+      rmFlipBtn() +
       '<button class="rmglass rmtool" data-act="rm-fview" aria-label="Next view"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg><span>' + esc((RMV_SCENES.find(x => x[0] === sc) || ['', 'View'])[1]) + '</span></button>' +
       (cam ? '<button class="rmglass rmtool" data-act="rm-panel" data-v="cam" aria-pressed="' + (RM.panel === 'cam') + '" aria-label="Adjust cameras"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><path d="M5 5l2 2M17 17l2 2"/></svg><span>Cameras</span></button>' : '') +
       '<button class="rmglass rmtool" data-act="rm-freset" aria-label="Reset layout"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>Reset layout</span></button>' +
@@ -757,7 +766,7 @@ function rmApplyView(v, uid, slot){
   if (!v) return;
   if (uid === 'me'){
     const a = rmAdjMe();
-    v.style.transform = a.mi ? 'scaleX(-1)' : ''; v.style.objectFit = 'cover'; v.classList.remove('mirror'); return;
+    v.style.transform = a.mi && RM.facing !== 'environment' ? 'scaleX(-1)' : ''; v.style.objectFit = 'cover'; v.classList.remove('mirror'); return;
   }
   const a = rmAdjOf(uid), rot = ((a.r % 360) + 360) % 360, side = rot % 180 !== 0;
   let k = 1;
@@ -824,3 +833,76 @@ document.addEventListener('change', e => {
   try { saveLocal(); } catch(e2){}
   if (el.dataset.rmadj === 'me' && el.dataset.k === 'z'){ if (RM.full) rmFullRender(); else render(); }   // show or hide the framing sliders
 });
+
+/* ============================================================
+   Desk view: switch a phone or tablet to its back camera so others see your desk and notes, not your face.
+   ============================================================ */
+RM.facing = 'user';
+async function rmCamDevices(){
+  try { const d = await navigator.mediaDevices.enumerateDevices(); RM.multiCam = d.filter(x => x.kind === 'videoinput').length > 1; } catch(e){ RM.multiCam = false; }
+}
+function rmCamOpts(facing, exact){ return { video: { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 10, max: 12 }, facingMode: exact ? { exact: facing } : facing }, audio: false }; }
+async function rmCamFlip(){
+  if (!RM.cam || RM.flipping) return;
+  RM.flipping = true; render();
+  const want = RM.facing === 'environment' ? 'user' : 'environment', old = RM.cam;
+  old.getTracks().forEach(t => t.stop());            // many phones can't open two cameras at once
+  let s = null;
+  try { s = await navigator.mediaDevices.getUserMedia(rmCamOpts(want, true)); }
+  catch(e){ try { s = await navigator.mediaDevices.getUserMedia(rmCamOpts(want, false)); } catch(e2){} }
+  if (s && want === 'environment'){ const st = s.getVideoTracks()[0].getSettings(); if (st.facingMode && st.facingMode !== 'environment'){ s.getTracks().forEach(t => t.stop()); s = null; } }
+  if (!s){
+    toast(want === 'environment' ? 'This device has no back camera to switch to.' : 'Couldn’t switch back to the front camera.');
+    try { s = await navigator.mediaDevices.getUserMedia(rmCamOpts(RM.facing, false)); } catch(e){ RM.cam = old; RM.flipping = false; rmCamOff(); return; }
+  } else RM.facing = want;
+  RM.cam = s; RM.flipping = false;
+  try { s.getVideoTracks()[0].contentHint = 'motion'; } catch(e){}
+  if (RM.pipe){ RM.pipe.src.srcObject = s; RM.pipe.src.play().catch(() => {}); }
+  const tr = rmSendTrack();
+  await Promise.all(Object.values(RM.pcs).map(p => p.tx ? p.tx.sender.replaceTrack(tr).catch(() => {}) : null));
+  Object.values(RM.pcs).forEach(p => { p.encKey = ''; }); try { rmTuneAll(); } catch(e){}
+  if (RM.full) rmFullRender(); else render();
+}
+function rmFlipBtn(){
+  if (!RM.cam || !RM.multiCam) return '';
+  const desk = RM.facing === 'environment';
+  return '<button class="rmglass rmtool' + (desk ? ' live' : '') + '" data-act="rm-flip" aria-pressed="' + desk + '"' + (RM.flipping ? ' disabled' : '') + ' aria-label="' + (desk ? 'Switch to face view' : 'Switch to desk view') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20l2-8h8l2 8M9 12V8h6v4"/></svg><span>' + (desk ? 'Face view' : 'Desk view') + '</span></button>';
+}
+
+/* ============================================================
+   Quiet check-ins: say what this session is for, tick it when it's done; everyone in the room sees it.
+   Public rooms use the preset goals only (no free text with strangers); camera rooms can type their own.
+   ============================================================ */
+const RM_GOALS = [['pp', 'A past paper'], ['qs', 'Practice questions'], ['fc', 'Flashcards'], ['notes', 'Notes for a topic'], ['mist', 'Going over my mistakes'], ['hw', 'Homework'], ['read', 'Reading'], ['plan', 'Planning my week']];
+function rmGoalLabel(g, kind){ const p = RM_GOALS.find(x => x[0] === g); return p ? p[1] : (kind === 'cam' ? String(g || '').slice(0, 60) : ''); }
+function rmGoalKey(){ return 'ial-room-goal-' + (RM.rid || ''); }
+function rmGoal(){
+  if (!RM.goal || RM.goal.rid !== RM.rid){ let g = null; try { g = JSON.parse(localStorage.getItem(rmGoalKey()) || 'null'); } catch(e){} RM.goal = Object.assign({ g: '', gd: false }, g || {}, { rid: RM.rid }); }
+  return RM.goal;
+}
+function rmGoalSet(g, gd){
+  const G = rmGoal(); G.g = String(g || '').replace(/\s+/g, ' ').trim().slice(0, 60); G.gd = !!gd; G.edit = false;
+  if (RM.room && RM.room.kind !== 'cam' && !RM_GOALS.some(x => x[0] === G.g)) G.g = '';
+  try { localStorage.setItem(rmGoalKey(), JSON.stringify({ g: G.g, gd: G.gd })); } catch(e){}
+  rmBeat(); render();
+}
+function rmGoalCard(){
+  const r = RM.room, G = rmGoal(), cam = r.kind === 'cam', lab = rmGoalLabel(G.g, r.kind);
+  const mem = rmMembers(r).filter(m => m.g && rmGoalLabel(m.g, r.kind)), done = mem.filter(m => m.gd).length;
+  if (lab && !G.edit){
+    const brk = T.phase === 'break' && !G.gd;
+    return '<div class="card stack rmgoal' + (G.gd ? ' done' : '') + '"><div class="card-h"><h2>Check-in</h2>' + (mem.length > 1 ? '<span class="small muted">' + done + ' of ' + mem.length + ' done</span>' : '') + '</div>' +
+      '<div class="rmgoalnow"><span class="rmgtick" aria-hidden="true">' + (G.gd ? '✓' : '') + '</span><div><div class="small muted">' + (G.gd ? 'Done' : 'This session') + '</div><b>' + esc(lab) + '</b></div></div>' +
+      (brk ? '<p class="small" style="margin:0">Break time. Did you finish it?</p>' : '') +
+      '<div class="row">' + (G.gd ? '<button class="btn sm" data-act="rm-gnew">Set the next goal</button><button class="btn sm ghost" data-act="rm-gdone">Not done yet</button>' : '<button class="btn sm primary" data-act="rm-gdone">Mark as done</button><button class="btn sm ghost" data-act="rm-gedit">Change</button>') + '</div></div>';
+  }
+  return '<div class="card stack rmgoal"><div class="card-h"><h2>Check-in</h2><span class="small muted">Everyone in the room sees it</span></div>' +
+    '<p class="small muted" style="margin:0">What will you work on this session?</p>' +
+    '<div class="chips" role="group" aria-label="Goal">' + RM_GOALS.map(([k, n]) => '<button class="chip" data-act="rm-gset" data-v="' + k + '" aria-pressed="' + (G.g === k) + '">' + n + '</button>').join('') + '</div>' +
+    (cam ? '<form class="row" data-form="rm-goal" style="align-items:flex-end"><label class="f" style="flex:1;min-width:180px">Or type your own<input name="g" maxlength="60" autocomplete="off" placeholder="e.g. P3 integration, exercise 5B" value="' + esc(RM_GOALS.some(x => x[0] === G.g) ? '' : G.g) + '"></label><button class="btn" type="submit">Set</button></form>' : '') +
+    (lab ? '<div class="row"><button class="linkbtn small" data-act="rm-gcancel">Keep “' + esc(lab) + '”</button></div>' : '') + '</div>';
+}
+function rmGoalLine(m){
+  const lab = m && m.g ? rmGoalLabel(m.g, RM.room ? RM.room.kind : 'public') : '';
+  return lab ? '<div class="small rmgline' + (m.gd ? ' done' : '') + '"><span aria-hidden="true">' + (m.gd ? '✓' : '◎') + '</span> <span>' + esc(lab) + '</span>' + (m.gd ? ' <span class="sr-only">(done)</span>' : '') + '</div>' : '';
+}
