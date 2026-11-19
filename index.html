@@ -846,6 +846,8 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 .rmcam video.rmv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
 .rmcam video.mirror{transform:scaleX(-1)}
 .rmcam video.rmv{transition:transform .2s ease}
+.rmrecon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,16,28,.62);color:#fff;font-size:14px;font-weight:600;z-index:2;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.rmcam.stale video{filter:grayscale(.6) brightness(.7)}
 .rmgoalnow{display:flex;gap:12px;align-items:center}
 .rmgtick{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--edge);display:grid;place-items:center;font-weight:700;color:#fff}
 .rmgoal.done .rmgtick{background:var(--good);border-color:var(--good)}

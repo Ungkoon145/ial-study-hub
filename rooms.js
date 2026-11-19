@@ -129,7 +129,9 @@ function rmOnRoom(d){
   if (!RM.rid) return;
   if (!d){ toast('This room was closed.'); rmLeave(); return; }
   if ((d.ban || []).includes(rmUid())){ rmKicked(); return; }
+  const prevM = RM.room && RM.room.id === RM.rid ? RM.room.m : null;
   RM.room = Object.assign({ id: RM.rid }, d);
+  try { rmGoalWatch(prevM, d.m); } catch(e){}
   if (!d.m || !d.m[rmUid()]) rmBeat();
   if (RM.room.kind === 'cam'){ rmSyncPeers(); rmTuneAll(); rmNvUpdate(); }
   if (RM.room.owner === rmUid()) rmTidy();
@@ -188,7 +190,7 @@ function rmNewPc(uid, sess){
   rmClosePc(uid);
   const pc = new RTCPeerConnection({ iceServers: RM_ICE });
   const p = RM.pcs[uid] = { pc, sess, tx: null, state: 'connecting', made: Date.now(), tries: (RM.pcs[uid] && RM.pcs[uid].tries) || 0 };
-  pc.ontrack = ev => { const v = rmVideo(uid); v.srcObject = ev.streams[0] || new MediaStream([ev.track]); v.play().catch(() => {}); rmPlace(); };
+  pc.ontrack = ev => { const v = rmVideo(uid); v.srcObject = ev.streams[0] || new MediaStream([ev.track]); v.play().catch(() => {}); RM.lastFrame[uid] = performance.now(); rmFrameWatch(uid, v); rmPlace(); };
   pc.onconnectionstatechange = () => {
     p.state = pc.connectionState;
     if (pc.connectionState === 'connected'){ p.encKey = ''; rmTune(uid); }
@@ -264,7 +266,7 @@ function rmPlace(){
     }
     else slot.classList.remove('on');
   });
-  try { rmWatchSlots(); rmNvUpdate(); } catch(e){}
+  try { rmWatchSlots(); rmNvUpdate(); rmStaleApply(); } catch(e){}
 }
 
 /* ---------- views ---------- */
@@ -351,6 +353,7 @@ function rmPanel(sc, lay){
       RMX_SOUNDS.map(([id, ic, n]) => { const on = rmxOn(id), v = Math.round((P.mix[id] == null ? .7 : P.mix[id]) * 100); return '<div class="rmsnd' + (on ? ' on' : '') + '"><button class="rmsndbtn" data-act="rm-snd" data-v="' + id + '" aria-pressed="' + on + '"><span class="ic" aria-hidden="true">' + ic + '</span><span>' + n + '</span></button>' + (on ? '<input type="range" min="0" max="100" value="' + v + '" data-rmvol="' + id + '" aria-label="' + n + ' volume">' : '') + '</div>'; }).join('') + '</div>' +
       '<label class="row rmmaster"><span class="small muted">Volume</span><input type="range" min="0" max="100" value="' + Math.round(P.vol * 100) + '" data-rmvol="master" aria-label="Volume"></label>' +
       (snd ? '<div class="row"><button class="btn sm ghost" data-act="rm-snd-off">Stop all sounds</button></div>' : '') +
+      '<label class="row small" style="gap:8px;align-items:center;min-height:44px"><input type="checkbox" data-act="rm-gchime"' + (P.gchime ? ' checked' : '') + '> <span>Play a soft chime when someone in the room finishes their check-in</span></label>' +
       '<p class="small muted" style="margin:0">Made by your device as you listen, so they work offline. They keep playing if you switch tabs, until you stop them or leave a room.</p></div>' : '';
 }
 function viewRoom(){
@@ -443,6 +446,7 @@ function rmAct(el){
   const a = el.dataset.act, v = el.dataset.v, id = el.dataset.id;
   if (/^rm-a(for|rot|flip|fit|mirror|reset|djust)$/.test(a)) return rmAdjAct(el);
   if (a === 'rm-flip'){ rmCamFlip(); return true; }
+  if (a === 'rm-gchime'){ const on = el.checked; rmvPrefs().gchime = on ? 1 : 0; try { saveLocal(); } catch(e){} if (on) rmChime(); return true; }
   if (a === 'rm-gset'){ rmGoalSet(v, false); return true; }
   if (a === 'rm-gdone'){ const G = rmGoal(); rmGoalSet(G.g, !G.gd); if (G.gd) toast('Nice work. Ticked off.'); return true; }
   if (a === 'rm-gnew'){ rmGoalSet('', false); return true; }
@@ -910,4 +914,67 @@ function rmGoalCard(){
 function rmGoalLine(m){
   const lab = m && m.g ? rmGoalLabel(m.g, RM.room ? RM.room.kind : 'public') : '';
   return lab ? '<div class="small rmgline' + (m.gd ? ' done' : '') + '"><span aria-hidden="true">' + (m.gd ? '✓' : '◎') + '</span> <span>' + esc(lab) + '</span>' + (m.gd ? ' <span class="sr-only">(done)</span>' : '') + '</div>' : '';
+}
+
+/* ============================================================
+   Frozen video: if someone's camera is on and their tile is on your screen, but no new frame has arrived for
+   3 seconds (or the connection dropped), their tile shows "Reconnecting…" instead of a frozen picture.
+   ============================================================ */
+RM.lastFrame = {}; RM.stale = {};
+function rmFrameWatch(uid, v){
+  if (v._rmWatch) return; v._rmWatch = true;
+  const mark = () => { RM.lastFrame[uid] = performance.now(); };
+  if (v.requestVideoFrameCallback){ const f = () => { mark(); v.requestVideoFrameCallback(f); }; v.requestVideoFrameCallback(f); }
+  else { let t = -1; setInterval(() => { if (v.currentTime !== t){ t = v.currentTime; mark(); } }, 500); }
+}
+function rmStaleCheck(){
+  if (!RM.room || RM.room.kind !== 'cam' || document.hidden) return;
+  const now = performance.now(); let changed = false;
+  for (const uid of Object.keys(RM.room.m || {})){
+    if (uid === rmUid()) continue;
+    const m = RM.room.m[uid], p = RM.pcs[uid], v = RM.vids[uid];
+    const slot = document.querySelector('[data-rmvid="' + CSS.escape(uid) + '"]');
+    const expect = rmFresh(m) && m.cam && !RM.hidden[uid] && !(RM.nv || []).includes(uid) && !!slot && !!p;
+    let stale = false;
+    if (expect){
+      if (p.state === 'disconnected') stale = true;
+      else if (p.state === 'connected' && v && RM.lastFrame[uid]) stale = now - RM.lastFrame[uid] > 3000;
+    }
+    if (!!RM.stale[uid] !== stale){ RM.stale[uid] = stale; changed = true; }
+  }
+  if (changed) rmStaleApply();
+}
+function rmStaleApply(){
+  (document.getElementById('rmfull') || document).querySelectorAll('[data-rmvid]').forEach(slot => {
+    const uid = slot.dataset.rmvid, on = uid !== 'me' && !!RM.stale[uid];
+    slot.classList.toggle('stale', on);
+    let lab = slot.querySelector('.rmrecon');
+    if (on){
+      if (!lab){ lab = document.createElement('span'); lab.className = 'rmrecon'; lab.setAttribute('role', 'status'); slot.appendChild(lab); }
+      const first = !slot.classList.contains('on'), th = typeof isTH === 'function' && isTH();   // no picture yet = still connecting
+      lab.textContent = first ? (th ? 'กำลังเชื่อมต่อ…' : 'Connecting…') : (th ? 'กำลังเชื่อมต่อใหม่…' : 'Reconnecting…');
+    }
+    else if (lab) lab.remove();
+  });
+}
+setInterval(rmStaleCheck, 1000);
+
+/* ============================================================
+   Check-in chime: a soft two-note tone when someone else ticks their goal done. Off unless you turn it on.
+   ============================================================ */
+function rmChime(){
+  const c = rmxCtx(); if (!c) return;
+  const t = c.currentTime, vol = Math.max(.05, Math.min(1, rmvPrefs().vol || .6)) * .18;
+  [[784, 0], [1047, .14]].forEach(([f, d]) => {
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t + d); g.gain.linearRampToValueAtTime(vol, t + d + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d + .9);
+    o.connect(g); g.connect(c.destination); o.start(t + d); o.stop(t + d + 1);
+  });
+}
+function rmGoalWatch(prev, next){
+  if (!rmvPrefs().gchime || !prev || !next) return;
+  const me = rmUid();
+  const fin = Object.keys(next).some(uid => uid !== me && next[uid] && next[uid].gd && next[uid].g && prev[uid] && !prev[uid].gd);
+  if (fin && Date.now() - (RM.chimeAt || 0) > 2000){ RM.chimeAt = Date.now(); rmChime(); }
 }
