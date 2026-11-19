@@ -28,6 +28,11 @@
 <link rel="preload" as="script" href="keyphrases.js">
 <style>
 /* Thai text uses Sarabun (the open web version of the TH Sarabun typeface, SIL OFL); Latin text keeps Gill Sans */
+/* Thai: TH Sarabun PSK when the device has it (most Thai school and government computers). It draws Thai
+   about a quarter smaller than other fonts at the same size, so it is scaled up to match. Otherwise the
+   bundled Sarabun, the open-licence (OFL) release of the same design. */
+@font-face{font-family:"IAL PSK";font-style:normal;font-weight:100 599;src:local("TH SarabunPSK"),local("TH Sarabun PSK"),local("THSarabunPSK");size-adjust:133%;unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
+@font-face{font-family:"IAL PSK";font-style:normal;font-weight:600 900;src:local("TH SarabunPSK Bold"),local("TH Sarabun PSK Bold"),local("THSarabunPSK-Bold"),local("THSarabunPSK Bold");size-adjust:133%;unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
 @font-face{font-family:"IAL Thai";font-style:normal;font-weight:300 499;font-display:swap;src:url(fonts/sarabun-thai-400-normal.woff2) format("woff2");unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
 @font-face{font-family:"IAL Thai";font-style:normal;font-weight:500 649;font-display:swap;src:url(fonts/sarabun-thai-600-normal.woff2) format("woff2");unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
 @font-face{font-family:"IAL Thai";font-style:normal;font-weight:650 749;font-display:swap;src:url(fonts/sarabun-thai-700-normal.woff2) format("woff2");unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
@@ -42,9 +47,9 @@
   --hl-y:#c9a96e; --hl-p:#c9a96e; --hl-m:#c9a96e; --hl-b:#c9a96e; --hl-o:#c9a96e;
   --c-blue:#4C6A9E; --c-violet:#6E5A9E; --c-orange:#A8714A; --c-mint:#4E8A79; --c-lime:#6B8A3E; --c-cyan:#3F7F8C; --c-coral:#A35A4E; --c-pink:#9C5577; --c-yellow:#A38A3A; --c-sand:#8C7A5C; --c-slate:#6B7385;
   --math:var(--c-blue); --hist:var(--c-blue); --fm:var(--c-violet); --enlit:var(--c-violet); --phys:var(--c-orange); --bus:var(--c-orange); --chem:var(--c-mint); --law:var(--c-mint); --bio:var(--c-lime); --acc:var(--c-lime); --cs:var(--c-cyan); --gre:var(--c-cyan); --econ:var(--c-coral); --ara:var(--c-coral); --psych:var(--c-pink); --fre:var(--c-pink); --geog:var(--c-yellow); --spa:var(--c-yellow); --enlang:var(--c-sand); --ger:var(--c-sand); --it:var(--c-slate);
-  --display:"IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
-  --body:"IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", "Leelawadee UI", Thonburi, "Noto Sans Thai", Sarabun, sans-serif;
-  --mono:"IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
+  --display:"IAL PSK", "IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
+  --body:"IAL PSK", "IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", "Leelawadee UI", Thonburi, "Noto Sans Thai", Sarabun, sans-serif;
+  --mono:"IAL PSK", "IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
   --r:14px;
   color-scheme: light;
 }
@@ -3028,7 +3033,7 @@ function summaryHtml(){
   const D = summaryData(), e = esc;
   const body = D.map(x => '<section><h2>' + e(x.s.name) + (x.status === 'finished' ? ' <small>(finished)</small>' : '') + '</h2><p>' + (x.grade ? '<b>' + (x.grade.proj ? 'Projected ' : '') + e(x.grade.g) + '</b> · ' + x.grade.t + '/' + x.grade.max + ' UMS' : 'No grade yet') + (x.target ? ' · target ' + e(x.target) : '') + ' · open mistakes: ' + x.open + '</p>' +
     '<table><tr><th>Unit</th><th>UMS</th><th>Papers</th><th>Avg</th><th>Exam</th><th>Work on</th></tr>' + x.units.map(u => '<tr><td>' + e(u.l + ' ' + u.n) + (u.opt ? ' [' + e(u.opt) + ']' : '') + (u.st === 'sat' ? ' <small>sat</small>' : u.st === 'resit' ? ' <small>resit</small>' : '') + '</td><td>' + (u.ums !== null ? u.ums + '/' + u.max + (u.umsSrc === 'mock' ? '*' : '') : '–') + '</td><td>' + u.papers + '</td><td>' + (u.avg !== null ? u.avg + '%' : '–') + '</td><td>' + (u.exam ? e(fmtDate(u.exam, {day:'numeric', month:'short', year:'numeric'})) : '–') + '</td><td>' + e(u.weak.join('; ')) + '</td></tr>').join('') + '</table></section>').join('');
-  return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IAL progress summary</title><style>body{font-family:"Gill Sans","Gill Sans MT",Calibri,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;color:#14213a}h1{margin:0}h2{margin:22px 0 4px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dde3ec;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f3f5f8}small{color:#5a6880}footer{margin-top:24px;font-size:12px;color:#5a6880}</style></head><body><h1>IAL progress summary' + (prof().name ? ': ' + e(prof().name) : '') + '</h1><p>' + e([fmtDate(todayStr()), prof().school, (YEAR_OPTS.find(x => x[0] === prof().year) || [, ''])[1]].filter(Boolean).join(' · ')) + (prof().goal ? '<br>Goal: ' + e(prof().goal) : '') + '</p>' + (body || '<p>No subjects yet.</p>') + '<footer>* estimated from past papers using official Pearson grade boundaries; other UMS from results slips. Made with IAL Revise.</footer><\/body><\/html>';
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IAL progress summary</title><style>body{font-family:"Gill Sans","Gill Sans MT","Gill Sans Nova",Calibri,"TH SarabunPSK","TH Sarabun PSK",Sarabun,"Leelawadee UI",Thonburi,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;color:#14213a}h1{margin:0}h2{margin:22px 0 4px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dde3ec;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f3f5f8}small{color:#5a6880}footer{margin-top:24px;font-size:12px;color:#5a6880}</style></head><body><h1>IAL progress summary' + (prof().name ? ': ' + e(prof().name) : '') + '</h1><p>' + e([fmtDate(todayStr()), prof().school, (YEAR_OPTS.find(x => x[0] === prof().year) || [, ''])[1]].filter(Boolean).join(' · ')) + (prof().goal ? '<br>Goal: ' + e(prof().goal) : '') + '</p>' + (body || '<p>No subjects yet.</p>') + '<footer>* estimated from past papers using official Pearson grade boundaries; other UMS from results slips. Made with IAL Revise.</footer><\/body><\/html>';
 }
 /* ============================================================
    Weekly summary for a parent: the student turns it on, previews it and chooses how to send it.
