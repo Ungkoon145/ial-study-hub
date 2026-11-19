@@ -474,6 +474,28 @@ details.unit[open]>summary{border-bottom:1px solid var(--line)}
 .phase.brk{color:var(--good)}
 .mini{position:fixed;right:16px;bottom:24px;z-index:25;background:var(--ink);color:var(--bg);border:0;border-radius:999px;padding:9px 16px;font-family:var(--mono);font-size:.95rem;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.18);display:none}
 @media (max-width:720px){.mini{bottom:calc(16px + env(safe-area-inset-bottom))}}
+#moment{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:45;width:min(420px,calc(100% - 24px));transform:translate(-50%,calc(100% + 40px));opacity:0;pointer-events:none;cursor:pointer}
+#moment.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.mcard{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:18px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-bottom:4px solid var(--mc,var(--good));box-shadow:0 14px 40px rgba(20,33,58,.22)}
+.mcard svg{flex:none;display:block}
+.mtxt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mtxt b{font-family:var(--display);font-size:1.08rem;line-height:1.25}
+.mtxt span{font-size:.9rem;color:var(--muted);line-height:1.35}
+.mtxt span b{font-size:.9rem;color:var(--ink);font-family:var(--body);display:inline-block}
+.mdisc{flex:none;width:44px;height:44px;border-radius:50%;background:var(--mc);display:grid;place-items:center}
+@media (prefers-reduced-motion:no-preference){
+  #moment{transition:transform .34s cubic-bezier(.2,1.25,.4,1),opacity .2s}
+  #moment.out{transition:transform .22s ease-in,opacity .22s}
+  #moment.on .mring{animation:mring .7s .15s cubic-bezier(.3,.7,.3,1) both}
+  #moment.on .mk-goal .mtick,#moment.on .mk-topic .mtick{stroke-dasharray:24;animation:mtick .3s .7s ease-out both}
+  #moment.on .mk-topic .mtick{animation-delay:.25s}
+  #moment.on .mdisc{animation:mpop .4s .1s cubic-bezier(.3,1.6,.5,1) both}
+  #moment.on .mpop{animation:mpop .45s .85s cubic-bezier(.3,1.6,.5,1) both}
+}
+@keyframes mring{from{stroke-dashoffset:var(--from)}to{stroke-dashoffset:0}}
+.mk-paper .mring{stroke-dashoffset:0}
+@keyframes mtick{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+@keyframes mpop{0%{transform:scale(.4);opacity:0}100%{transform:none;opacity:1}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);top:70px;z-index:40;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:.92rem;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.2);display:none;max-width:calc(100% - 32px)}
 .toggle{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);cursor:pointer}
 .toggle:first-child{border-top:0}
@@ -990,6 +1012,7 @@ function setSync(s){
 }
 function commit(){
   state.updatedAt = Date.now();
+  try { moments(); } catch(err){ console.error(err); }
   saveLocal();
   scheduleSave();
   buddySchedule();
@@ -1930,6 +1953,7 @@ function timerStopLog(){
 }
 function timerSkip(){ T.phase = T.phase === 'focus' ? 'break' : 'focus'; T.running = false; T.remain = phaseLen(); saveT(); render(); }
 function timerComplete(){
+  try { momentArm(); } catch(err){}
   beep();
   if (T.phase === 'focus'){
     logFocus(state.timerPrefs.focus);
@@ -3655,6 +3679,71 @@ function bumpTopic(c, i, level, why){
   state.topics[id] = level; state.topicAt = state.topicAt || {}; state.topicAt[id] = todayStr(); return why ? (UNIT[c].t[i] + ' → ' + TOPIC_LABELS[level]) : true;
 }
 function topicIndexByName(c, name){ return UNIT[c] ? UNIT[c].t.indexOf(name) : -1; }
+
+/* ---- Moments: a short card when something worth celebrating happens ----
+   The state is noted just before each tap, key or timer finish, and compared at the next save.
+   Progress arriving from another device replaces the state object, so it never triggers one. */
+let MSNAP = null, MQ = [], MTIMER = null;
+function momentSnap(){
+  const t = todayStr(), conf = new Set(), papers = new Set();
+  for (const k in state.topics) if (state.topics[k] >= 3) conf.add(k);
+  for (const k in state.papers) papers.add(k);
+  return { obj: state, day: t, min: studyMinutes(t), conf, papers };
+}
+function momentArm(){ MSNAP = momentSnap(); }
+['click', 'submit', 'keydown', 'change'].forEach(ev => document.addEventListener(ev, () => { try { momentArm(); } catch(err){} }, true));
+const mT = (en, th) => isTH() ? th : en;
+const thName = x => isTH() ? (thText(x) || x) : x;
+function subjCovered(sid){ const us = SUBJ[sid].units.filter(u => !isHidden(u.c)); return us.length ? Math.round(us.reduce((a, u) => a + unitProgress(u), 0) / us.length * 100) : 0; }
+function moments(){
+  const o = MSNAP; if (!o || o.obj !== state || o.day !== todayStr()) return;
+  const n = momentSnap(); MSNAP = n;
+  const g = goalMin(), list = [];
+  const newPapers = [...n.papers].filter(k => !o.papers.has(k));
+  newPapers.slice(0, 1).forEach(key => {
+    const [c, sr] = key.split('|'), r = state.papers[key], pc = r && r.m ? r.s / r.m : 0;
+    const prev = Object.keys(state.papers).filter(k => k !== key && k.startsWith(c + '|')).map(k => paperPct(state.papers[k]));
+    const best = prev.length && prev.every(x => pc > x);
+    list.push({ kind: 'paper', col: 'var(--' + scoreColor(pc) + ')', pct: Math.round(pc * 100),
+      title: mT('Past paper logged', 'บันทึกข้อสอบเก่าแล้ว'),
+      sub: (UNIT[c] ? thName(UNIT[c].l) + ' ' : '') + srBase(sr) + ': ' + Math.round(pc * 100) + '%' + (best ? mT('. Your best on this unit so far.', ' คะแนนดีที่สุดของยูนิตนี้') : '') });
+  });
+  if (o.min < g && n.min >= g){
+    const st = goalStreak();
+    list.push({ kind: 'goal', col: 'var(--good)', from: Math.min(1, o.min / g), streak: st,
+      title: mT('Daily goal met', 'ถึงเป้าวันนี้แล้ว'),
+      sub: st >= 2 ? mT('<b class="mpop">🔥 ' + st + '-day streak.</b> Keep it going tomorrow.', '<b class="mpop">🔥 ต่อเนื่อง ' + st + ' วัน</b> พรุ่งนี้มาต่อกัน') : mT('Your streak starts today.', 'เริ่มนับวันต่อเนื่องตั้งแต่วันนี้') });
+  }
+  const newConf = [...n.conf].filter(k => !o.conf.has(k));
+  if (newConf.length){
+    const k = newConf[0], c = k.slice(0, k.lastIndexOf('-')), i = +k.slice(k.lastIndexOf('-') + 1), sid = UNIT_SUBJ[c];
+    if (UNIT[c] && sid) list.push({ kind: 'topic', col: 'var(--' + sid + ')',
+      title: newConf.length === 1 ? mT('Confident: ', 'มั่นใจแล้ว: ') + esc(thName(UNIT[c].t[i])) : mT(newConf.length + ' topics now Confident', 'มั่นใจแล้ว ' + newConf.length + ' หัวข้อ'),
+      sub: esc(thName(SUBJ[sid].name)) + mT(': ' + subjCovered(sid) + '% covered', ': ครอบคลุมแล้ว ' + subjCovered(sid) + '%') });
+  }
+  if (list.length){ MQ = MQ.concat(list).slice(0, 3); if (!MTIMER) momentNext(); }
+}
+function momentIcon(m){
+  const r = 18, C = 2 * Math.PI * r;
+  if (m.kind === 'goal') return '<svg viewBox="0 0 44 44" width="44" height="44" aria-hidden="true"><circle cx="22" cy="22" r="' + r + '" fill="none" stroke="var(--soft)" stroke-width="5"/><circle class="mring" cx="22" cy="22" r="' + r + '" fill="none" stroke="var(--good)" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + C.toFixed(1) + '" style="--from:' + (C * (1 - m.from)).toFixed(1) + '" transform="rotate(-90 22 22)"/><path class="mtick" d="M15 22.5l4.5 4.5L29 17.5" fill="none" stroke="var(--good)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  if (m.kind === 'paper') return '<svg viewBox="0 0 44 44" width="44" height="44" aria-hidden="true"><circle cx="22" cy="22" r="' + r + '" fill="none" stroke="var(--soft)" stroke-width="5"/><circle class="mring" cx="22" cy="22" r="' + r + '" fill="none" stroke="' + m.col + '" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + (C * m.pct / 100).toFixed(1) + ' ' + C.toFixed(1) + '" style="--from:' + (C * m.pct / 100).toFixed(1) + '" transform="rotate(-90 22 22)"/><text x="22" y="26.5" text-anchor="middle" font-size="12" font-weight="700" fill="currentColor">' + m.pct + '</text></svg>';
+  return '<span class="mdisc" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path class="mtick" d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+}
+function momentNext(){
+  let el = document.getElementById('moment');
+  if (!el){ el = document.createElement('div'); el.id = 'moment'; el.className = 'notr'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el);
+    el.addEventListener('click', () => { clearTimeout(MTIMER); momentHide(); }); }
+  const m = MQ.shift(); if (!m){ MTIMER = null; return; }
+  el.style.setProperty('--mc', m.col);
+  el.innerHTML = '<div class="mcard mk-' + m.kind + '">' + momentIcon(m) + '<div class="mtxt"><b>' + m.title + '</b><span>' + m.sub + '</span></div></div>';
+  el.classList.remove('out'); void el.offsetWidth; el.classList.add('on');
+  MTIMER = setTimeout(momentHide, m.kind === 'goal' ? 4200 : 3400);
+}
+function momentHide(){
+  const el = document.getElementById('moment'); if (!el) return;
+  el.classList.add('out'); el.classList.remove('on');
+  MTIMER = setTimeout(() => { MTIMER = null; if (MQ.length) momentNext(); }, 260);
+}
 
 /* data protection */
 const SNOOZE_KEY = 'ial-study-hub-backup-snooze';
