@@ -74,15 +74,19 @@
     const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), todo = []; let n;
     while ((n = w.nextNode())){ if (n.nodeValue.indexOf('$') >= 0 && MATH1.test(n.nodeValue)){ const p = n.parentElement; if (p && !p.closest('script,style,textarea,.katex,.notex')) todo.push(n); } }
     todo.forEach(n => {
-      const frag = document.createDocumentFragment(), parts = n.nodeValue.split(SPLIT);
+      const frag = document.createDocumentFragment(), parts = n.nodeValue.split(SPLIT); let lastMath = null;
       parts.forEach(x => {
+        /* keep punctuation that follows a formula on the same line as it */
+        const pm = !WHOLE.test(x) && lastMath && x.match(/^[.,;:?!)\u2026%]+/);
+        if (pm){ const wr = document.createElement('span'); wr.className = 'texglue'; wr.style.whiteSpace = 'nowrap'; frag.replaceChild(wr, lastMath); wr.appendChild(lastMath); wr.appendChild(document.createTextNode(pm[0])); x = x.slice(pm[0].length); }
+        lastMath = null;
         if (WHOLE.test(x)){
           const src = x.slice(1, -1);
           if (window.katex){
             const sp = document.createElement('span'); sp.className = 'tex';
             try { window.katex.render(src, sp, { throwOnError: false, output: 'htmlAndMathml', strict: 'ignore' }); } catch(e){ sp.textContent = plain(src); }
-            frag.appendChild(sp);
-          } else frag.appendChild(document.createTextNode(plain(src)));
+            frag.appendChild(sp); lastMath = sp;
+          } else { lastMath = document.createTextNode(plain(src)); frag.appendChild(lastMath); }
         } else if (x) frag.appendChild(document.createTextNode(x));
       });
       n.parentNode.replaceChild(frag, n);
