@@ -14,6 +14,8 @@ It has no ads and is not affiliated with or endorsed by Pearson or Physics & Mat
 | Formula display | `katex/` | [KaTeX](https://katex.org/) and mhchem, MIT licence (`katex/LICENSE.txt`). |
 | Thai font | `fonts/` | Sarabun, SIL Open Font License 1.1 (`fonts/OFL-Sarabun.txt`). |
 
+**Study room views:** the scenes and their animation are drawn by this site. The animation follows the method of the [rossark-motion-skill](https://github.com/rossark0/rossark-motion-skill) by rossark0 (MIT licence); see `MOTION.md`. The room sounds are generated live in the browser; no recordings are used.
+
 Pearson and Edexcel are trademarks of Pearson Education Ltd. Names are used only to say where material comes from.
 
 The PMT content is used for free, non-commercial study only. While it is included, the site must stay free with no ads, sponsorship or paid features.

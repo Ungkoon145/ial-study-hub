@@ -390,12 +390,27 @@ function rmBar(){
   if (b.dataset.h !== html){ b.dataset.h = html; b.innerHTML = html; if (typeof isTH === 'function' && isTH()) try { thApply(b); } catch(e){} }
 }
 const RMV_NODE = {};
+const RMV_EPOCH = performance.now();
 function rmvMount(){
   const slot = document.querySelector('[data-rmscene]'); if (!slot) return;
-  const id = slot.dataset.rmscene;
+  const id = slot.dataset.rmscene, reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   let el = RMV_NODE[id];
-  if (!el){ el = RMV_NODE[id] = document.createElement('div'); el.className = 'rmscene sc-' + id; el.innerHTML = rmvScene(id); }
-  if (el.parentNode !== slot){ slot.textContent = ''; slot.appendChild(el); }
+  if (!el){
+    el = RMV_NODE[id] = document.createElement('div'); el.className = 'rmscene sc-' + id + ' fresh'; el.innerHTML = rmvScene(id);
+    setTimeout(() => el.classList.remove('fresh'), 2600);   // the one-shot "arrive" beat plays once per scene
+  }
+  // One clock for every loop: re-attaching a scene after a redraw carries on where it was, instead of restarting.
+  el.style.setProperty('--rmt', -Math.round(performance.now() - RMV_EPOCH) + 'ms');
+  if (el.parentNode !== slot){
+    const prev = RMV_NODE.last && RMV_NODE.last !== el ? RMV_NODE.last : null;
+    slot.textContent = '';
+    if (prev && !reduce && prev.dataset.shown){   // a new view crossfades over the old one, never through an empty frame
+      prev.classList.remove('rmin'); slot.appendChild(prev); el.classList.add('rmin'); slot.appendChild(el);
+      setTimeout(() => { if (prev.parentNode === slot) prev.remove(); el.classList.remove('rmin'); }, 520);
+    } else slot.appendChild(el);
+  }
+  el.dataset.shown = '1'; RMV_NODE.last = el;
+  if (typeof rmvWatch === 'function') rmvWatch(el);
 }
 function rmAfterRender(){
   try { rmvMount(); } catch(e){}
