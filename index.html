@@ -928,6 +928,18 @@ html[lang="th"] .herostats .lab{line-height:1.6}
   .retsheet{z-index:35}
 }
 
+/* Touch targets: every control at least 44px for a finger */
+.chip.pick,.whychip{position:relative;min-height:44px}
+.chip.pick input,.whychip input{inset:0;width:100%;height:100%;margin:0;border-radius:inherit}
+.toggle{min-height:44px}
+.toggle input,.chk input{width:22px;height:22px;accent-color:var(--primary)}
+.chk{min-height:44px;align-items:center}
+.chk input{margin-top:0}
+.f input[type="time"],.f input[type="date"],.f input[type="file"],.f select{min-height:44px}
+.f input[type="file"]{padding:8px 10px;box-sizing:border-box}
+label.row.small:has(> input[type="checkbox"]){min-height:44px}
+label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-color:var(--primary)}
+.toggle[style*="min-height:0"]{min-height:44px !important}
 /* Header profile button */
 .top .avbtn{padding:0;overflow:hidden}
 .top .avbtn .avatar{width:30px !important;height:30px !important;font-size:12px !important}
@@ -1872,8 +1884,9 @@ function kpCard(u){
   const all = CARDS.filter(k => k.u === u.c); if (!all.length) return '';
   const due = all.filter(k => cardStatus(k) === 'due').length, fresh = all.filter(k => cardStatus(k) === 'new').length, kpDueAll = allCards().filter(k => k.kp && cardStatus(k) === 'due').length;
   const n = Math.min(due + Math.min(fresh, 20), 999);
-  return '<div class="card stack kpcard"><div class="card-h"><h2>Mark-scheme phrases</h2><span class="small muted">' + all.length + ' cards · ' + esc(u.l) + '</span></div>' +
-    '<p class="small muted" style="margin:0">Definitions and explanations in the exact wording examiners reward. Say the answer out loud, show the answer, then rate yourself. Cards you miss come back sooner.</p>' +
+  const maths = /^W(MA|FM|ME|ST|DM)/.test(u.c);
+  return '<div class="card stack kpcard"><div class="card-h"><h2>' + (maths ? 'Formulae and methods' : 'Mark-scheme phrases') + '</h2><span class="small muted">' + all.length + ' cards · ' + esc(u.l) + '</span></div>' +
+    '<p class="small muted" style="margin:0">' + (maths ? 'Formulae you must remember (they are not in the exam formula booklet), standard methods, and the wording mark schemes expect. Say the answer out loud, show the answer, then rate yourself. Cards you miss come back sooner.' : 'Definitions and explanations in the exact wording examiners reward. Say the answer out loud, show the answer, then rate yourself. Cards you miss come back sooner.') + '</p>' +
     '<div class="row"><button class="btn primary" data-act="kp-review" data-v="' + u.c + '"' + (n ? '' : ' disabled') + '>' + (n ? 'Practise ' + esc(u.l) + ' (' + n + ')' : 'All caught up for ' + esc(u.l)) + '</button>' +
     (kpDueAll && kpDueAll !== due ? '<button class="btn" data-act="kp-review" data-v="due">All due phrases (' + kpDueAll + ')</button>' : '') + '</div></div>';
 }
@@ -1898,7 +1911,7 @@ function viewCards(){
     (units.length ? '<label class="f">Unit<select id="cards-unit">' + units.map(x => { const ds = unitDecks(x.c); const started = ds.filter(d => state.deckState[d.url]).length; return '<option value="' + x.c + '"' + (x.c === c.unit ? ' selected' : '') + '>' + esc(x.l + ' · ' + x.n) + (ds.length ? ' (' + started + '/' + ds.length + ' decks)' : ' (no PMT decks)') + '</option>'; }).join('') + '</select></label>' : '') +
     (u ? (decks.length
       ? '<div class="card subjpat" data-pat="' + c.subj + '" style="--sc:var(--' + c.subj + ')"><div class="card-h"><h2>' + esc(u.l + ' ' + u.n) + '</h2><span class="small muted">' + decks.length + ' decks</span></div><div class="stack" style="gap:0">' + decks.map(deckRow).join('') + '</div></div>'
-      : '<div class="empty">Physics &amp; Maths Tutor doesn’t have flashcards for ' + esc(u.l + ' ' + u.n) + '. Make your own cards below, or use the revision notes in Revise.</div>')
+      : '<div class="empty">Physics &amp; Maths Tutor doesn’t have flashcards for ' + esc(u.l + ' ' + u.n) + (CARDS.some(k => k.u === u.c) ? '. Use the built-in cards below, or make your own.' : '. Make your own cards below, or use the revision notes in Revise.') + '</div>')
       : '<div class="empty">All ' + esc(SUBJ[c.subj].short) + ' units are hidden. <a href="#prefs">Choose your units</a>.</div>') +
     kpCard(u) +
     '<div class="card"><div class="card-h"><h2>My own cards</h2><span class="small muted">' + mine.length + ' card' + (mine.length === 1 ? '' : 's') + '</span></div>' +
