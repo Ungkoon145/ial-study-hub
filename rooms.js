@@ -255,7 +255,7 @@ function rmPlace(){
   (document.getElementById('rmfull') || document).querySelectorAll('[data-rmvid]').forEach(slot => {
     const uid = slot.dataset.rmvid;
     let v = null;
-    if (uid === 'me'){ if (RM.cam){ v = rmVideo('me'); const st = RM.camOut || RM.cam; if (v.srcObject !== st) v.srcObject = st; } }
+    if (uid === 'me'){ if (RM.cam){ v = rmVideo('me'); if (v.srcObject !== RM.cam) v.srcObject = RM.cam; } }
     else if (RM.vids[uid] && RM.room && (RM.room.m[uid] || {}).cam && !RM.hidden[uid]) v = RM.vids[uid];
     if (v){
       if (v.parentNode !== slot){ const keep = slot.querySelector('.avatar'); slot.textContent = ''; if (keep) slot.appendChild(keep); slot.appendChild(v); }
@@ -733,10 +733,10 @@ async function rmCamPipe(){
     const src = document.createElement('video'); src.muted = true; src.playsInline = true; src.setAttribute('playsinline', ''); src.srcObject = RM.cam; src.play().catch(() => {});
     const cv = document.createElement('canvas'), ctx = cv.getContext('2d', { alpha: false });
     const pipe = RM.pipe = { src, cv, ctx, on: true };
-    const draw = () => {
+    const draw = (now) => {
       if (!pipe.on) return;
-      const w = src.videoWidth, h = src.videoHeight;
-      if (w && h){
+      const w = src.videoWidth, h = src.videoHeight, t = performance.now();
+      if (w && h && t - (pipe.last || 0) >= 80){ pipe.last = t;
         const a = rmAdjMe(), rot = ((a.r % 360) + 360) % 360, side = rot % 180 !== 0;
         const W = side ? h : w, H = side ? w : h;
         if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
@@ -765,8 +765,13 @@ async function rmCamPipe(){
 function rmApplyView(v, uid, slot){
   if (!v) return;
   if (uid === 'me'){
-    const a = rmAdjMe();
-    v.style.transform = a.mi && RM.facing !== 'environment' ? 'scaleX(-1)' : ''; v.style.objectFit = 'cover'; v.classList.remove('mirror'); return;
+    /* your own preview stays the live camera (full frame rate) and copies the canvas framing with CSS */
+    const a = rmAdjMe(), rot = ((a.r % 360) + 360) % 360, z = Math.min(3, Math.max(1, +a.z || 1));
+    let k = 1; if (rot % 180 && slot){ const q = (slot.clientWidth || 4) / (slot.clientHeight || 3); k = Math.max(q, 1 / q); }
+    const tx = -(+a.x || 0) * (1 - 1 / z) / 2 * 100, ty = -(+a.y || 0) * (1 - 1 / z) / 2 * 100;
+    v.style.objectFit = 'cover'; v.classList.remove('mirror');
+    v.style.transform = (a.mi && RM.facing !== 'environment' ? 'scaleX(-1) ' : '') + (rot ? 'rotate(' + rot + 'deg) ' : '') + 'scale(' + (k * z).toFixed(3) + ')' + (tx || ty ? ' translate(' + tx.toFixed(2) + '%,' + ty.toFixed(2) + '%)' : '');
+    return;
   }
   const a = rmAdjOf(uid), rot = ((a.r % 360) + 360) % 360, side = rot % 180 !== 0;
   let k = 1;
@@ -841,7 +846,7 @@ RM.facing = 'user';
 async function rmCamDevices(){
   try { const d = await navigator.mediaDevices.enumerateDevices(); RM.multiCam = d.filter(x => x.kind === 'videoinput').length > 1; } catch(e){ RM.multiCam = false; }
 }
-function rmCamOpts(facing, exact){ return { video: { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 10, max: 12 }, facingMode: exact ? { exact: facing } : facing }, audio: false }; }
+function rmCamOpts(facing, exact){ return { video: { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 24, max: 30 }, facingMode: exact ? { exact: facing } : facing }, audio: false }; }
 async function rmCamFlip(){
   if (!RM.cam || RM.flipping) return;
   RM.flipping = true; render();
