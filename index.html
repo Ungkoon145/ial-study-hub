@@ -981,6 +981,9 @@ body.rmfulling .rmbar,body.rmfulling #mini{display:none !important}
 .rmfhint .linkbtn{color:#f3e2bd;min-height:36px;padding:0 10px}
 @media (max-width:520px){.rmfbar{flex-wrap:nowrap;gap:6px}.rmfbar .rmtool span{display:none}.rmfbar .rmtool{padding:0 12px;min-width:46px;justify-content:center;flex:none}}
 @media (prefers-reduced-motion:reduce){.rmfull,.rmfull.rmtravel .rmfloat{animation:none;transition:none}}
+.rmlow{position:absolute;left:8px;top:8px;z-index:2;display:inline-flex;align-items:center;gap:6px;background:rgba(16,26,46,.78);color:#fff;border-radius:999px;padding:3px 9px 3px 7px;font-size:.72rem;line-height:1.4;max-width:calc(100% - 16px);animation:rmpop .22s cubic-bezier(.23,1,.32,1)}
+.rmlow i{width:8px;height:8px;border-radius:50%;background:#e0a23a;flex:none}
+.rmlow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* panels */
 .rmpanel{animation:rmpanel .22s cubic-bezier(.23,1,.32,1)}
 .rmswatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}

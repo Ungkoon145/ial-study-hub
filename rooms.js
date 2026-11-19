@@ -58,6 +58,8 @@ function rmMine(){
   return { n: pub ? rmPubName() : String(prof().name || 'A student').slice(0, 40), c: avatarColor(), st, end: T.running ? T.endsAt : 0, left: T.running ? 0 : Math.round(ms), ph: T.phase,
     sub: sj ? sj.short : '', min: rmTodayMin(), cam: !pub && !!RM.cam, r: RM.react ? RM.react.e : '', ra: RM.react ? RM.react.at : 0, at: Date.now() };
 }
+const _rmMine0 = rmMine;
+rmMine = function(){ const m = _rmMine0(); if (RM.room && RM.room.kind === 'cam') m.nv = (RM.nv || []).slice(0, 12); return m; };
 async function rmBeat(){
   if (!RM.rid || !rmUid()) return;
   try { await rmDb().setMe(RM.rid, rmUid(), rmMine()); }
@@ -115,7 +117,7 @@ async function rmLeave(quiet){
   if (RM.unsub){ try { RM.unsub(); } catch(e){} } if (RM.sigUnsub){ try { RM.sigUnsub(); } catch(e){} }
   clearInterval(RM.beat); clearTimeout(RM.sched);
   const wasCam = RM.room && RM.room.kind === 'cam';
-  RM.unsub = RM.sigUnsub = null; RM.rid = null; RM.room = null; RM.react = null; RM.vids = {};
+  RM.unsub = RM.sigUnsub = null; RM.rid = null; RM.room = null; RM.react = null; RM.vids = {}; RM.nv = []; RM.vis = {}; RM.lowIn = {}; RM.cpuQ = null;
   try { localStorage.removeItem('ial-room'); } catch(e){}
   try { await rmDb().dropMember(id, uid); } catch(e){}
   RM.leaving = false;
@@ -129,7 +131,7 @@ function rmOnRoom(d){
   if ((d.ban || []).includes(rmUid())){ rmKicked(); return; }
   RM.room = Object.assign({ id: RM.rid }, d);
   if (!d.m || !d.m[rmUid()]) rmBeat();
-  if (RM.room.kind === 'cam') rmSyncPeers();
+  if (RM.room.kind === 'cam'){ rmSyncPeers(); rmTuneAll(); rmNvUpdate(); }
   if (RM.room.owner === rmUid()) rmTidy();
   rmRefresh();
 }
@@ -157,19 +159,22 @@ async function rmCamOn(){
   if (!RM.room || RM.room.kind !== 'cam' || RM.cam) return;
   RM.camErr = '';
   try {
-    RM.cam = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 15, max: 20 }, facingMode: 'user' }, audio: false });
+    RM.cam = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 10, max: 12 }, facingMode: 'user' }, audio: false });
   } catch(e){
     RM.camErr = /NotAllowed|Permission/.test(String(e && e.name)) ? 'Camera permission was blocked. Allow the camera for this site in your browser settings, then try again.' : 'No camera found, or another app is using it.';
     render(); return;
   }
   const tr = RM.cam.getVideoTracks()[0];
-  Object.values(RM.pcs).forEach(p => { if (p.tx) p.tx.sender.replaceTrack(tr).catch(() => {}); });
+  try { tr.contentHint = 'motion'; } catch(e){}
+  await Promise.all(Object.values(RM.pcs).map(p => p.tx ? p.tx.sender.replaceTrack(tr).catch(() => {}) : null));
+  Object.values(RM.pcs).forEach(p => { p.encKey = ''; }); rmTuneAll();
   rmBeat(); render();
 }
 function rmCamOff(quiet){
   if (!RM.cam) return;
   RM.cam.getTracks().forEach(t => t.stop()); RM.cam = null;
-  Object.values(RM.pcs).forEach(p => { if (p.tx) p.tx.sender.replaceTrack(null).catch(() => {}); });
+  Object.values(RM.pcs).forEach(p => { if (p.tx) p.tx.sender.replaceTrack(null).catch(() => {}); p.encKey = ''; });
+  try { rmTuneAll(); } catch(e){}
   if (!quiet){ rmBeat(); render(); }
 }
 
@@ -182,6 +187,7 @@ function rmNewPc(uid, sess){
   pc.ontrack = ev => { const v = rmVideo(uid); v.srcObject = ev.streams[0] || new MediaStream([ev.track]); v.play().catch(() => {}); rmPlace(); };
   pc.onconnectionstatechange = () => {
     p.state = pc.connectionState;
+    if (pc.connectionState === 'connected'){ p.encKey = ''; rmTune(uid); }
     if (pc.connectionState === 'failed' && rmUid() < uid && p.tries < 3 && RM.pcs[uid] === p){ p.tries++; setTimeout(() => { if (RM.pcs[uid] === p) rmOffer(uid, p.tries); }, 3000); }
     rmRefresh();
   };
@@ -250,6 +256,7 @@ function rmPlace(){
     if (v){ if (v.parentNode !== slot){ slot.textContent = ''; slot.appendChild(v); } v.play().catch(() => {}); slot.classList.add('on'); }
     else slot.classList.remove('on');
   });
+  try { rmWatchSlots(); rmNvUpdate(); } catch(e){}
 }
 
 /* ---------- views ---------- */
@@ -266,6 +273,7 @@ function rmTile(m, me){
   return '<div class="rmtile st-' + esc(m.st || 'idle') + (me ? ' me' : '') + '">' +
     (cam ? '<div class="rmcam" data-rmvid="' + (me ? 'me' : esc(m.id)) + '">' + av + '</div>' : '<div class="rmcam nocam">' + av + '</div>') +
     (react ? '<span class="rmreact" aria-label="Reaction">' + esc(react) + '</span>' : '') +
+    rmLowDot(m, me) +
     '<div class="rmmeta"><div class="t"><b>' + esc(m.n || 'A student') + '</b>' + (me ? ' <span class="small muted">(you)</span>' : '') + '</div>' +
       '<div class="small rmst"><span>' + rmStatus(m) + '</span> ' + rmClock(m) + '</div>' +
       '<div class="small muted">' + (m.sub ? esc(m.sub) + ' · ' : '') + '<span>' + fmtMin(+m.min || 0) + ' today</span></div>' +
@@ -429,7 +437,7 @@ function rmAct(el){
     case 'rm-cam-on': rmCamOn(); break;
     case 'rm-cam-off': rmCamOff(); break;
     case 'rm-react': rmReact(v); break;
-    case 'rm-hide': RM.hidden[id] = !RM.hidden[id]; render(); break;
+    case 'rm-hide': RM.hidden[id] = !RM.hidden[id]; render(); rmNvUpdate(); break;
     case 'rm-kick': rmRemove(id); break;
     case 'rm-close': rmDelete(); break;
     case 'rm-full': rmFullOpen(); break;
@@ -504,7 +512,7 @@ function rmFullRender(){
   const card = (m, isMe) => {
     const av = '<span class="avatar" aria-hidden="true" style="background:' + esc(/^#[0-9a-fA-F]{6}$/.test(m.c) ? m.c : '#4b5a70') + '">' + esc(initials(m.n) || '?') + '</span>';
     const react = m.r && Date.now() - (m.ra || 0) < 8000 ? '<span class="rmreact">' + esc(m.r) + '</span>' : '';
-    return (cam ? '<div class="rmcam" data-rmvid="' + (isMe ? 'me' : esc(m.id)) + '">' + av + '</div>' : '<div class="rmcam nocam">' + av + '</div>') + react +
+    return (cam ? '<div class="rmcam" data-rmvid="' + (isMe ? 'me' : esc(m.id)) + '">' + av + '</div>' : '<div class="rmcam nocam">' + av + '</div>') + react + rmLowDot(m, isMe) +
       '<div class="rmfname"><b>' + esc(m.n || 'A student') + '</b>' + (isMe ? ' <span>(you)</span>' : '') + ' <span class="rmfst">' + rmStatus(m) + ' ' + rmClock(m) + '</span></div>';
   };
   const html = '<div class="rmscene-slot" data-rmscene="' + sc + '"></div><div class="rmshade"></div>' +
@@ -569,3 +577,115 @@ function rmFullReset(){
   rmFullRender();
 }
 function rmFullTick(){ const c = document.getElementById('rmfclock'); if (c) c.textContent = fmtClock(remainMs()); }
+
+/* ============================================================
+   Video quality. Study cameras barely move, so they run at a low frame rate with a data cap per
+   person that shrinks as the room fills. Every few seconds each connection is checked (lost data,
+   delay, and whether the phone's processor or the network is the limit); quality steps down when
+   things get worse and back up once they have been good for a while. When quality must drop, the
+   picture loses sharpness rather than freezing. Nobody is sent video they aren't watching: each
+   person's entry lists whose video is hidden or off screen for them ("nv"), and senders pause
+   those streams without reconnecting.
+   ============================================================ */
+const RMQ = {
+  // per stream, by how many people are watching you: [max kbps, shrink factor, frames per second]
+  base: n => n <= 1 ? [450, 1, 12] : n <= 3 ? [250, 1.25, 10] : [170, 1.5, 10],
+  steps: [[1, 1, 0], [.6, 1.5, 8], [.35, 2, 6]],   // level 0, 1, 2: data ×, shrink ×, fps cap
+  every: 4000, recover: 3,                          // check every 4 s; 3 good checks in a row to step back up
+  bad: s => s.loss > .05 || s.rtt > .5 || s.limit === 'bandwidth',
+  good: s => s.loss < .02 && s.rtt < .25 && s.limit === 'none'
+};
+// one step of the quality ladder (kept pure so it can be tested)
+function rmQStep(q, s){
+  q = { lvl: q.lvl || 0, ok: q.ok || 0 };
+  if (RMQ.bad(s)) return { lvl: Math.min(2, q.lvl + 1), ok: 0 };
+  if (RMQ.good(s)){ q.ok++; if (q.ok >= RMQ.recover && q.lvl > 0) return { lvl: q.lvl - 1, ok: 0 }; return q; }
+  return { lvl: q.lvl, ok: 0 };
+}
+function rmEnc(watchers, lvl){
+  const [kb, sc, fps] = RMQ.base(watchers), st = RMQ.steps[Math.max(0, Math.min(2, lvl))];
+  return { maxBitrate: Math.round(kb * st[0]) * 1000, scaleResolutionDownBy: Math.min(3, +(sc * st[1]).toFixed(2)), maxFramerate: st[2] ? Math.min(fps, st[2]) : fps };
+}
+function rmWatchers(){
+  const me = rmUid();
+  return rmMembers(RM.room || {}).filter(m => m.id !== me && !((m.nv || []).includes(me))).length;
+}
+async function rmTune(uid){
+  const p = RM.pcs[uid]; if (!p || !p.tx || !RM.room) return;
+  const s = p.tx.sender, me = rmUid(), them = RM.room.m[uid] || {};
+  const active = !!RM.cam && !((them.nv || []).includes(me));
+  const lvl = Math.max(p.q ? p.q.lvl : 0, RM.cpuQ ? RM.cpuQ.lvl : 0);
+  const e = rmEnc(Math.max(1, rmWatchers()), lvl);
+  const key = active + '|' + e.maxBitrate + '|' + e.scaleResolutionDownBy + '|' + e.maxFramerate;
+  if (p.encKey === key) return;
+  try {
+    const prm = s.getParameters();
+    if (!prm.encodings || !prm.encodings.length) return;       // not negotiated yet; tried again once connected
+    Object.assign(prm.encodings[0], e, { active });
+    try { prm.degradationPreference = 'maintain-framerate'; } catch(err){}
+    await s.setParameters(prm);
+    p.encKey = key;
+  } catch(err){}
+}
+function rmTuneAll(){ Object.keys(RM.pcs).forEach(rmTune); }
+
+/* whose video am I actually watching? hidden, off screen, page in the background or on another tab = not watching */
+RM.vis = {}; RM.nv = []; RM.lowIn = {};
+const RMQ_IO = 'IntersectionObserver' in window ? new IntersectionObserver(es => {
+  es.forEach(e => { const id = e.target.dataset.rmvid; if (id && id !== 'me') RM.vis[id] = e.isIntersecting; });
+  rmNvUpdate();
+}, { threshold: .05 }) : null;
+function rmWatchSlots(){
+  if (!RMQ_IO) return;
+  (document.getElementById('rmfull') || document).querySelectorAll('[data-rmvid]').forEach(el => { if (el.dataset.rmvid !== 'me' && !el.dataset.io){ el.dataset.io = '1'; RMQ_IO.observe(el); } });
+}
+function rmNvUpdate(){
+  if (!RM.room || RM.room.kind !== 'cam') return;
+  const me = rmUid(), away = document.hidden || route() !== 'rooms';
+  const nv = rmMembers(RM.room).filter(m => m.id !== me && (away || RM.hidden[m.id] || RM.vis[m.id] === false)).map(m => m.id).sort().slice(0, 12);
+  if (nv.join() === RM.nv.join()) return;
+  RM.nv = nv; clearTimeout(RM.nvT); RM.nvT = setTimeout(rmBeat, 1200);
+}
+document.addEventListener('visibilitychange', () => { try { rmNvUpdate(); } catch(e){} });
+
+/* the regular check */
+async function rmQCheck(){
+  if (!RM.room || RM.room.kind !== 'cam') return;
+  let cpu = false, changedLow = false;
+  for (const uid of Object.keys(RM.pcs)){
+    const p = RM.pcs[uid]; if (!p || p.pc.connectionState !== 'connected') continue;
+    let st; try { st = await p.pc.getStats(); } catch(e){ continue; }
+    const s = { loss: 0, rtt: 0, limit: 'none' }; let inb = null, pair = null;
+    st.forEach(r => {
+      if (r.type === 'outbound-rtp' && r.kind === 'video'){ if (r.qualityLimitationReason) s.limit = r.qualityLimitationReason; }
+      else if (r.type === 'remote-inbound-rtp' && r.kind === 'video'){ if (typeof r.fractionLost === 'number') s.loss = r.fractionLost; if (typeof r.roundTripTime === 'number') s.rtt = r.roundTripTime; }
+      else if (r.type === 'inbound-rtp' && r.kind === 'video') inb = r;
+      else if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') pair = r;
+    });
+    if (!s.rtt && pair && typeof pair.currentRoundTripTime === 'number') s.rtt = pair.currentRoundTripTime;
+    if (s.limit === 'cpu'){ cpu = true; s.limit = 'none'; }
+    const sending = RM.cam && p.encKey && p.encKey.indexOf('true') === 0;
+    if (sending) p.q = rmQStep(p.q || {}, s);
+    // what I receive from them: few frames or much lost data while I'm watching = weak connection
+    let low = false;
+    if (inb && (RM.room.m[uid] || {}).cam && !RM.nv.includes(uid)){
+      const lost = inb.packetsLost || 0, got = inb.packetsReceived || 0, prev = p.inPrev || { lost, got };
+      const dl = lost - prev.lost, dg = got - prev.got;
+      p.inPrev = { lost, got };
+      low = (typeof inb.framesPerSecond === 'number' && inb.framesPerSecond < 4) || (dl + dg > 20 && dl / (dl + dg) > .08);
+    }
+    if (!!RM.lowIn[uid] !== low){ RM.lowIn[uid] = low; changedLow = true; }
+  }
+  const before = rmQReduced();
+  RM.cpuQ = rmQStep(RM.cpuQ || {}, { loss: 0, rtt: 0, limit: cpu ? 'bandwidth' : 'none' });
+  rmTuneAll();
+  if (changedLow || before !== rmQReduced()) rmRefresh();
+}
+function rmQReduced(){ return (RM.cpuQ && RM.cpuQ.lvl > 0) || Object.values(RM.pcs).some(p => p.q && p.q.lvl > 0 && p.encKey && p.encKey.indexOf('true') === 0); }
+setInterval(() => { try { rmQCheck(); } catch(e){} }, RMQ.every);
+
+function rmLowDot(m, me){
+  if (!RM.room || RM.room.kind !== 'cam') return '';
+  const t = me ? (RM.cam && rmQReduced() ? 'Video lowered to keep it smooth' : '') : (RM.lowIn[m.id] ? 'Weak connection' : '');
+  return t ? '<span class="rmlow" role="status"><i aria-hidden="true"></i><span>' + t + '</span></span>' : '';
+}
