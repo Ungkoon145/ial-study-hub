@@ -110,6 +110,7 @@ async function rmLeave(quiet){
   const id = RM.rid, uid = rmUid(); if (!id) return;
   RM.leaving = true;
   try { rmxStopAll(); } catch(e){} RM.panel = null;
+  if (RM.full){ RM.full = false; try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e){} const fe = document.getElementById('rmfull'); if (fe) fe.remove(); document.body.classList.remove('rmfulling'); }
   rmCamOff(true); Object.keys(RM.pcs).forEach(rmClosePc);
   if (RM.unsub){ try { RM.unsub(); } catch(e){} } if (RM.sigUnsub){ try { RM.sigUnsub(); } catch(e){} }
   clearInterval(RM.beat); clearTimeout(RM.sched);
@@ -241,7 +242,7 @@ function rmVideo(uid){
   return v;
 }
 function rmPlace(){
-  document.querySelectorAll('[data-rmvid]').forEach(slot => {
+  (document.getElementById('rmfull') || document).querySelectorAll('[data-rmvid]').forEach(slot => {
     const uid = slot.dataset.rmvid;
     let v = null;
     if (uid === 'me'){ if (RM.cam){ v = rmVideo('me'); if (v.srcObject !== RM.cam) v.srcObject = RM.cam; v.classList.add('mirror'); } }
@@ -353,7 +354,7 @@ function viewRoom(){
           '<div class="row rmctl">' + (T.running ? '<button class="btn primary big" data-act="t-pause">Pause</button>' : '<button class="btn primary big" data-act="t-start">' + (ms < phaseLen() ? 'Resume' : 'Start focus') + '</button>') +
             (T.phase === 'focus' ? '<button class="btn big rmglass" data-act="t-stoplog"' + (ms < phaseLen() ? '' : ' disabled') + '>Stop &amp; log</button>' : '<button class="btn big rmglass" data-act="t-skip">Skip break</button>') + '</div></div>' +
         '<div class="rmbottom"><div class="row rmreacts" role="group" aria-label="Reactions">' + RM_REACT.map(e => '<button class="rmglass rmre" data-act="rm-react" data-v="' + e + '" aria-label="React ' + e + '">' + e + '</button>').join('') + '</div>' +
-          rmTools() +
+          rmTools() + '<button class="rmglass rmtool" data-act="rm-full" aria-label="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg><span>Full screen</span></button>' +
             (cam ? '<button class="rmglass rmtool' + (RM.cam ? ' live' : '') + '" data-act="' + (RM.cam ? 'rm-cam-off' : 'rm-cam-on') + '" aria-pressed="' + !!RM.cam + '" aria-label="' + (RM.cam ? 'Turn camera off' : 'Turn camera on') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/>' + (RM.cam ? '' : '<path d="M3 3l18 18"/>') + '</svg><span>Camera</span></button>' : '') +
           '</div></div>' +
       '</div></section>' +
@@ -379,6 +380,7 @@ function rmForFriends(){ return RM.rid && RM.room && RM.room.kind === 'cam' && s
 function rmTick(){
   document.querySelectorAll('.rmclk[data-end]').forEach(el => { const e = +el.dataset.end; if (e) el.textContent = fmtClock(Math.max(0, e - Date.now())); });
   const c = document.getElementById('rmclock'); if (c) c.textContent = fmtClock(remainMs());
+  rmFullTick();
 }
 function rmBar(){
   let b = document.getElementById('rmbar');
@@ -392,7 +394,7 @@ function rmBar(){
 const RMV_NODE = {};
 const RMV_EPOCH = performance.now();
 function rmvMount(){
-  const slot = document.querySelector('[data-rmscene]'); if (!slot) return;
+  const slot = document.querySelector('#rmfull [data-rmscene]') || document.querySelector('[data-rmscene]'); if (!slot) return;
   const id = slot.dataset.rmscene, reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   let el = RMV_NODE[id];
   if (!el){
@@ -413,7 +415,7 @@ function rmvMount(){
   if (typeof rmvWatch === 'function') rmvWatch(el);
 }
 function rmAfterRender(){
-  try { rmvMount(); } catch(e){}
+  try { if (RM.full) rmFullRender(); else rmvMount(); } catch(e){}
   if (route() !== 'rooms'){ if (RM.cam){ rmCamOff(true); rmBeat(); } rmListStop(); }
   rmPlace(); rmBar();
 }
@@ -430,6 +432,11 @@ function rmAct(el){
     case 'rm-hide': RM.hidden[id] = !RM.hidden[id]; render(); break;
     case 'rm-kick': rmRemove(id); break;
     case 'rm-close': rmDelete(); break;
+    case 'rm-full': rmFullOpen(); break;
+    case 'rm-fexit': rmFullClose(); break;
+    case 'rm-freset': rmFullReset(); break;
+    case 'rm-fhint': rmvPrefs().fullHint = 1; try { saveLocal(); } catch(e){} rmFullRender(); break;
+    case 'rm-fview': { const i = RMV_SCENES.findIndex(x => x[0] === rmvPrefs().scene); rmvPrefs().scene = RMV_SCENES[(i + 1) % RMV_SCENES.length][0]; try { saveLocal(); } catch(e){} rmFullRender(); break; }
     case 'rm-panel': RM.panel = RM.panel === v ? null : v; render(); break;
     case 'rm-scene': rmvPrefs().scene = v; commit(); break;
     case 'rm-layout': rmvPrefs().layout = v; commit(); break;
@@ -446,3 +453,119 @@ function rmResume(){
   if (id && !RM.rid && rmAvailable()) rmJoin(id, true);
 }
 window.addEventListener('pagehide', () => { if (RM.rid && rmUid()) try { rmDb().dropMember(RM.rid, rmUid()); } catch(e){} });
+
+/* ============================================================
+   Full screen room: the view fills the screen; the timer and every person's tile (camera or name card)
+   float on top and can be dragged anywhere and resized from the corner. Positions are saved per device,
+   as percentages of the screen, so they survive rotation and different window sizes.
+   ============================================================ */
+function rmFullPos(){ const P = rmvPrefs(); P.pos = P.pos || {}; return P.pos; }
+function rmFullDefault(key, i){
+  const port = innerWidth < innerHeight, ar = innerWidth / innerHeight;
+  const hPct = w => w * .75 * ar;                       // a 4:3 tile's height, as % of the screen height
+  if (key === 'timer') return port ? { x: 10, y: 7, w: 80 } : { x: 34, y: 6, w: 32 };
+  if (key === 'me') { const w = port ? 44 : 22; return { x: 100 - w - 3, y: Math.max(8, 100 - hPct(w) - (port ? 22 : 17)), w }; }
+  const w = port ? 44 : 18, col = port ? i % 2 : i % 2, row = Math.floor(i / 2);
+  return port ? { x: 4 + col * 48, y: 34 + row * (hPct(w) + 2), w } : { x: 2 + col * (w + 1.5), y: 30 + row * (hPct(w) + 2.5), w };
+}
+function rmFullGet(key, i){ const p = rmFullPos()[key]; return p && typeof p.x === 'number' ? p : rmFullDefault(key, i); }
+function rmFullOpen(){
+  if (!RM.room) return;
+  RM.full = true; RM.panel = null; rmFullRender();
+  const el = document.getElementById('rmfull');
+  const req = el && (el.requestFullscreen || el.webkitRequestFullscreen);
+  if (req){ try { const r = req.call(el, { navigationUI: 'hide' }); if (r && r.then) r.then(() => { RM.fsReq = true; }, () => {}); else RM.fsReq = true; } catch(e){} }
+  rmFullIdle();
+}
+function rmFullClose(){
+  RM.full = false; RM.fsReq = false; RM.drag = null;
+  try { if (document.fullscreenElement) document.exitFullscreen(); else if (document.webkitFullscreenElement) document.webkitExitFullscreen(); } catch(e){}
+  const el = document.getElementById('rmfull'); if (el) el.remove();
+  document.body.classList.remove('rmfulling');
+  render();
+}
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && RM.full && RM.fsReq) rmFullClose(); });
+document.addEventListener('webkitfullscreenchange', () => { if (!document.webkitFullscreenElement && RM.full && RM.fsReq) rmFullClose(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && RM.full && !RM.fsReq) rmFullClose(); });
+function rmFullTile(key, i, inner, cls){
+  const p = rmFullGet(key, i);
+  return '<div class="rmfloat ' + (cls || '') + '" data-fk="' + esc(key) + '" style="left:' + p.x + '%;top:' + p.y + '%;width:' + p.w + '%;--fw:' + p.w + '">' + inner +
+    '<span class="rmfres" data-res aria-hidden="true"></span></div>';
+}
+function rmFullRender(){
+  let el = document.getElementById('rmfull');
+  if (!RM.full || !RM.rid || !RM.room){ if (el){ el.remove(); document.body.classList.remove('rmfulling'); } return; }
+  if (RM.drag) { RM.fullDirty = true; return; }
+  const r = RM.room, cam = r.kind === 'cam', me = rmUid(), P = rmvPrefs(), ms = remainMs();
+  const sc = RMV_SCENES.some(x => x[0] === P.scene) ? P.scene : 'library';
+  const mem = rmMembers(r); if (!mem.find(m => m.id === me)) mem.unshift(Object.assign({ id: me }, rmMine()));
+  const others = mem.filter(m => m.id !== me).sort((a, b) => (a.n || '').localeCompare(b.n || '')), mine = mem.find(m => m.id === me);
+  const focusing = mem.filter(m => m.st === 'focus').length;
+  const card = (m, isMe) => {
+    const av = '<span class="avatar" aria-hidden="true" style="background:' + esc(/^#[0-9a-fA-F]{6}$/.test(m.c) ? m.c : '#4b5a70') + '">' + esc(initials(m.n) || '?') + '</span>';
+    const react = m.r && Date.now() - (m.ra || 0) < 8000 ? '<span class="rmreact">' + esc(m.r) + '</span>' : '';
+    return (cam ? '<div class="rmcam" data-rmvid="' + (isMe ? 'me' : esc(m.id)) + '">' + av + '</div>' : '<div class="rmcam nocam">' + av + '</div>') + react +
+      '<div class="rmfname"><b>' + esc(m.n || 'A student') + '</b>' + (isMe ? ' <span>(you)</span>' : '') + ' <span class="rmfst">' + rmStatus(m) + ' ' + rmClock(m) + '</span></div>';
+  };
+  const html = '<div class="rmscene-slot" data-rmscene="' + sc + '"></div><div class="rmshade"></div>' +
+    rmFullTile('timer', 0, '<div class="rmphase' + (T.phase === 'break' ? ' brk' : '') + '">' + (T.phase === 'focus' ? 'Focus' : 'Break') + '</div><div class="rmfclock" id="rmfclock">' + fmtClock(ms) + '</div><div class="rmnow">' + (focusing ? '<span>' + focusing + ' focusing now</span>' : '<span>Start the timer to focus together</span>') + '</div>', 'rmftimer') +
+    others.map((m, i) => rmFullTile(m.id, i, card(m, false), 'rmftile' + (cam ? ' cam' : ''))).join('') +
+    rmFullTile('me', 0, card(mine, true), 'rmftile me' + (cam ? ' cam' : '')) +
+    '<div class="rmfbar" role="toolbar" aria-label="Room controls">' +
+      (T.running ? '<button class="rmglass rmtool" data-act="t-pause">Pause</button>' : '<button class="rmglass rmtool rmfgo" data-act="t-start">' + (ms < phaseLen() ? 'Resume' : 'Start focus') + '</button>') +
+      (cam ? '<button class="rmglass rmtool' + (RM.cam ? ' live' : '') + '" data-act="' + (RM.cam ? 'rm-cam-off' : 'rm-cam-on') + '" aria-pressed="' + !!RM.cam + '" aria-label="' + (RM.cam ? 'Turn camera off' : 'Turn camera on') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/>' + (RM.cam ? '' : '<path d="M3 3l18 18"/>') + '</svg><span>Camera</span></button>' : '') +
+      '<button class="rmglass rmtool" data-act="rm-fview" aria-label="Next view"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg><span>' + esc((RMV_SCENES.find(x => x[0] === sc) || ['', 'View'])[1]) + '</span></button>' +
+      '<button class="rmglass rmtool" data-act="rm-freset" aria-label="Reset layout"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>Reset layout</span></button>' +
+      '<button class="rmglass rmtool" data-act="rm-fexit" aria-label="Exit full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6"/></svg><span>Exit</span></button>' +
+    '</div>' +
+    (P.fullHint ? '' : '<div class="rmfhint" role="status"><span>Drag anything to move it. Drag a corner to resize it.</span> <button class="linkbtn" data-act="rm-fhint">OK</button></div>');
+  if (!el){
+    el = document.createElement('div'); el.id = 'rmfull'; el.className = 'rmfull'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', r.name);
+    document.body.appendChild(el); document.body.classList.add('rmfulling');
+    el.addEventListener('pointerdown', rmFullDown); el.addEventListener('pointermove', rmFullIdle); el.addEventListener('click', rmFullIdle);
+  }
+  el.innerHTML = html;
+  if (typeof isTH === 'function' && isTH()) try { thApply(el); } catch(e){}
+  try { rmvMount(); } catch(e){}
+  rmPlace();
+}
+function rmFullIdle(){
+  const el = document.getElementById('rmfull'); if (!el) return;
+  el.classList.remove('idle'); clearTimeout(RM.idleT);
+  RM.idleT = setTimeout(() => { const x = document.getElementById('rmfull'); if (x && !RM.drag) x.classList.add('idle'); }, 3500);
+}
+function rmFullDown(e){
+  const t = e.target.closest('.rmfloat'); if (!t || e.target.closest('button, a, input')) return;
+  const box = t.getBoundingClientRect(), size = !!e.target.closest('[data-res]');
+  RM.drag = { el: t, key: t.dataset.fk, size, sx: e.clientX, sy: e.clientY, x: box.left, y: box.top, w: box.width, id: e.pointerId };
+  t.classList.add('dragging'); try { t.setPointerCapture(e.pointerId); } catch(err){}
+  t.addEventListener('pointermove', rmFullMove); t.addEventListener('pointerup', rmFullUp); t.addEventListener('pointercancel', rmFullUp);
+  e.preventDefault();
+}
+function rmFullMove(e){
+  const d = RM.drag; if (!d || e.pointerId !== d.id) return;
+  const W = innerWidth, H = innerHeight, dx = e.clientX - d.sx, dy = e.clientY - d.sy;
+  if (d.size){
+    const w = Math.max(W * .12, Math.min(W * .95, d.w + dx));
+    d.el.style.width = (w / W * 100) + '%'; d.el.style.setProperty('--fw', w / W * 100);
+  } else {
+    const r = d.el.getBoundingClientRect();
+    const x = Math.max(0, Math.min(W - r.width, d.x + dx)), y = Math.max(0, Math.min(H - r.height, d.y + dy));
+    d.el.style.left = (x / W * 100) + '%'; d.el.style.top = (y / H * 100) + '%';
+  }
+}
+function rmFullUp(e){
+  const d = RM.drag; if (!d) return;
+  const t = d.el; t.classList.remove('dragging');
+  t.removeEventListener('pointermove', rmFullMove); t.removeEventListener('pointerup', rmFullUp); t.removeEventListener('pointercancel', rmFullUp);
+  const pos = rmFullPos(), round = v => Math.round(parseFloat(v) * 10) / 10;
+  pos[d.key] = { x: round(t.style.left), y: round(t.style.top), w: round(t.style.width) };
+  RM.drag = null; try { saveLocal(); } catch(err){}
+  if (RM.fullDirty){ RM.fullDirty = false; rmFullRender(); }
+}
+function rmFullReset(){
+  const el = document.getElementById('rmfull'); rmvPrefs().pos = {}; try { saveLocal(); } catch(e){}
+  if (el){ el.classList.add('rmtravel'); setTimeout(() => el.classList.remove('rmtravel'), 420); }
+  rmFullRender();
+}
+function rmFullTick(){ const c = document.getElementById('rmfclock'); if (c) c.textContent = fmtClock(remainMs()); }
