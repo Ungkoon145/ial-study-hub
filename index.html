@@ -5390,7 +5390,14 @@ if (OFFLINE_OK){
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (route() === 'prefs') render(); });
   window.addEventListener('appinstalled', () => { installEvt = null; toast('Installed. Open IAL Revise from your home screen.'); });
   const hadCtl = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadCtl) toast('IAL Revise has been updated. Close and reopen it to see what’s new.'); else if (route() === 'prefs') render(); });
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadCtl){ if (route() === 'prefs') render(); return; }
+    // A new version is ready. Switch to it now unless the student is in the middle of something.
+    const a = document.activeElement, busy = document.body.classList.contains('focusing') || (typeof RM !== 'undefined' && RM.rid) || (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) || (typeof T !== 'undefined' && T.running && route() === 'planner');
+    if (!busy){ try { sessionStorage.setItem('ial-updated', '1'); } catch(e){} location.reload(); }
+    else toast('IAL Revise has been updated. Close and reopen it to see what’s new.');
+  });
+  try { if (sessionStorage.getItem('ial-updated')){ sessionStorage.removeItem('ial-updated'); setTimeout(() => toast('IAL Revise has been updated.'), 800); } } catch(e){}
 }
 function offImgList(){
   if (typeof DECK_QUIZ === 'undefined') return [];
