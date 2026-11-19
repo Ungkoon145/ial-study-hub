@@ -34,10 +34,13 @@
 @font-face{font-family:"IAL Thai";font-style:normal;font-weight:750 900;font-display:swap;src:url(fonts/sarabun-thai-800-normal.woff2) format("woff2");unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
 :root{
   /* Layout: one centered column, top tabs on desktop, bottom tab bar on phones */
-  --bg:#f3f5f8; --surface:#ffffff; --ink:#14213a; --muted:#5a6880; --line:#dde3ec;
-  --primary:#19325c; --on-primary:#ffffff; --hi:#f0b429; --soft:#e9eef6;
-  --good:#2b8a3e; --warn:#d9480f; --bad:#c2255c;
-  --math:#4058e0; --fm:#8a3fd1; --phys:#e0702a; --chem:#0e9384; --bio:#3f8f2f; --econ:#c0392b; --geog:#8a6a2e; --psych:#c2367f; --cs:#4b5a70; --hist:#7a4b2a; --acc:#2f6f9f; --bus:#b5651d; --enlang:#6b4fa0; --enlit:#9c2f5a; --law:#5a5a2a; --it:#1f7a8c; --fre:#2a5db0; --ger:#8a6d00; --spa:#c2410c; --ara:#0f766e; --gre:#3355aa;
+  --bg:#ffffff; --surface:#ffffff; --ink:#20222a; --muted:#5e6270; --line:#d5d8df;
+  --primary:#20222a; --on-primary:#ffffff; --hi:#ffe15a; --soft:#f2f3f6;
+  --good:#1e7a4c; --warn:#b4540f; --bad:#c2255c;
+  --edge:#20222a; --rule:#c9cdd5; --on-hl:#20222a;
+  --hl-y:#ffe15a; --hl-p:#ff9ec4; --hl-m:#8ef0c0; --hl-b:#9fd3ff; --hl-o:#ffc48a;
+  --c-blue:#9FD3FF; --c-violet:#C9B3FF; --c-orange:#FFC48A; --c-mint:#8EF0C0; --c-lime:#C8EE7A; --c-cyan:#8FE8F0; --c-coral:#FF9F8F; --c-pink:#FF9EC4; --c-yellow:#FFE15A; --c-sand:#E8D4A8; --c-slate:#CDD3DE;
+  --math:var(--c-blue); --hist:var(--c-blue); --fm:var(--c-violet); --enlit:var(--c-violet); --phys:var(--c-orange); --bus:var(--c-orange); --chem:var(--c-mint); --law:var(--c-mint); --bio:var(--c-lime); --acc:var(--c-lime); --cs:var(--c-cyan); --gre:var(--c-cyan); --econ:var(--c-coral); --ara:var(--c-coral); --psych:var(--c-pink); --fre:var(--c-pink); --geog:var(--c-yellow); --spa:var(--c-yellow); --enlang:var(--c-sand); --ger:var(--c-sand); --it:var(--c-slate);
   --display:"IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
   --body:"IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", "Leelawadee UI", Thonburi, "Noto Sans Thai", Sarabun, sans-serif;
   --mono:"IAL Thai", "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Gill Sans Std", Calibri, "Trebuchet MS", sans-serif;
@@ -46,18 +49,24 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0d1320; --surface:#151d2c; --ink:#e7ecf4; --muted:#95a3b9; --line:#253149;
-    --primary:#f0b429; --on-primary:#141a26; --hi:#f0b429; --soft:#1c2638;
-    --good:#51cf66; --warn:#ff922b; --bad:#f06595;
-    --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f; --econ:#f07b6e; --geog:#d1ad6c; --psych:#f07fbb; --cs:#a3b2c7; --hist:#d79a6e; --acc:#7fb3db; --bus:#e6a061; --enlang:#b39ae0; --enlit:#e483aa; --law:#c4c47a; --it:#5fc4d6; --fre:#7aa6ef; --ger:#e0c45a; --spa:#f59a6a; --ara:#4fd1c5; --gre:#8aa3e6;
+    --bg:#16181f; --surface:#1e2029; --ink:#e9ebf2; --muted:#a3a9b8; --line:#343845;
+    --primary:#e9ebf2; --on-primary:#16181f; --hi:#ffe15a; --soft:#262935;
+    --good:#4ade80; --warn:#fb923c; --bad:#f472b6;
+    --edge:#5a6070; --rule:#3a3f4c; --on-hl:#ffffff;
+    --hl-y:#8a6d00; --hl-p:#b83a78; --hl-m:#187a50; --hl-b:#2b6cb0; --hl-o:#a3521a;
+    --c-blue:#2B6CB0; --c-violet:#6B4FC8; --c-orange:#A3521A; --c-mint:#187A50; --c-lime:#4E7A12; --c-cyan:#17717D; --c-coral:#B03E32; --c-pink:#B83A78; --c-yellow:#8A6D00; --c-sand:#8A6A3A; --c-slate:#5A6478;
+  --math:var(--c-blue); --hist:var(--c-blue); --fm:var(--c-violet); --enlit:var(--c-violet); --phys:var(--c-orange); --bus:var(--c-orange); --chem:var(--c-mint); --law:var(--c-mint); --bio:var(--c-lime); --acc:var(--c-lime); --cs:var(--c-cyan); --gre:var(--c-cyan); --econ:var(--c-coral); --ara:var(--c-coral); --psych:var(--c-pink); --fre:var(--c-pink); --geog:var(--c-yellow); --spa:var(--c-yellow); --enlang:var(--c-sand); --ger:var(--c-sand); --it:var(--c-slate);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0d1320; --surface:#151d2c; --ink:#e7ecf4; --muted:#95a3b9; --line:#253149;
-  --primary:#f0b429; --on-primary:#141a26; --hi:#f0b429; --soft:#1c2638;
-  --good:#51cf66; --warn:#ff922b; --bad:#f06595;
-  --math:#7c8ff5; --fm:#b48cf2; --phys:#f5964f; --chem:#2ec4b3; --bio:#74c95f; --econ:#f07b6e; --geog:#d1ad6c; --psych:#f07fbb; --cs:#a3b2c7; --hist:#d79a6e; --acc:#7fb3db; --bus:#e6a061; --enlang:#b39ae0; --enlit:#e483aa; --law:#c4c47a; --it:#5fc4d6; --fre:#7aa6ef; --ger:#e0c45a; --spa:#f59a6a; --ara:#4fd1c5; --gre:#8aa3e6;
+  --bg:#16181f; --surface:#1e2029; --ink:#e9ebf2; --muted:#a3a9b8; --line:#343845;
+  --primary:#e9ebf2; --on-primary:#16181f; --hi:#ffe15a; --soft:#262935;
+  --good:#4ade80; --warn:#fb923c; --bad:#f472b6;
+  --edge:#5a6070; --rule:#3a3f4c; --on-hl:#ffffff;
+  --hl-y:#8a6d00; --hl-p:#b83a78; --hl-m:#187a50; --hl-b:#2b6cb0; --hl-o:#a3521a;
+  --c-blue:#2B6CB0; --c-violet:#6B4FC8; --c-orange:#A3521A; --c-mint:#187A50; --c-lime:#4E7A12; --c-cyan:#17717D; --c-coral:#B03E32; --c-pink:#B83A78; --c-yellow:#8A6D00; --c-sand:#8A6A3A; --c-slate:#5A6478;
+  --math:var(--c-blue); --hist:var(--c-blue); --fm:var(--c-violet); --enlit:var(--c-violet); --phys:var(--c-orange); --bus:var(--c-orange); --chem:var(--c-mint); --law:var(--c-mint); --bio:var(--c-lime); --acc:var(--c-lime); --cs:var(--c-cyan); --gre:var(--c-cyan); --econ:var(--c-coral); --ara:var(--c-coral); --psych:var(--c-pink); --fre:var(--c-pink); --geog:var(--c-yellow); --spa:var(--c-yellow); --enlang:var(--c-sand); --ger:var(--c-sand); --it:var(--c-slate);
   color-scheme: dark;
 }
 *{box-sizing:border-box}
@@ -812,6 +821,91 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 @media (max-width:560px){ .retcard .grow{flex-basis:100%} }
 @keyframes retin{from{transform:translateY(100%);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){ .retsheet{animation:none} }
+
+/* ================= Highlighter redesign =================
+   Ink outlines on white paper, highlighter colours for subjects and key numbers,
+   page-marker tabs along the bottom on phones. */
+body{background:var(--bg)}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+h1{font-size:2rem;letter-spacing:-.015em}
+@media (max-width:720px){h1{font-size:1.7rem}}
+.hl{--hlc:var(--hl-y);background:linear-gradient(104deg,transparent .5%,var(--hlc) 2.5%,var(--hlc) 96%,transparent 98%);padding:0 .25em;color:var(--on-hl);font-weight:700;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.hl.p{--hlc:var(--hl-p)}.hl.m{--hlc:var(--hl-m)}.hl.b{--hlc:var(--hl-b)}.hl.o{--hlc:var(--hl-o)}
+/* header */
+.top{background:var(--bg);border-bottom:1.5px solid var(--edge)}
+.brand-mark{background:var(--hl-y);color:var(--on-hl);border:1.5px solid var(--edge);border-radius:8px}
+.iconbtn{border:1.5px solid var(--edge);border-radius:12px;width:42px;height:42px}
+.iconbtn[aria-current="page"]{background:var(--hl-y);color:var(--on-hl)}
+.tabs a{border-radius:999px;color:var(--ink)}
+.tabs a:hover{background:var(--soft)}
+.tabs a[aria-current="page"]{background:var(--hl-y);color:var(--on-hl);box-shadow:inset 0 0 0 1.5px var(--edge);font-weight:700}
+/* cards, lists, controls */
+.card,details.unit{border:1.5px solid var(--edge);border-radius:14px;box-shadow:none}
+.li{border-top:1px dashed var(--rule)}
+.btn{border:1.5px solid var(--edge);border-radius:999px;min-height:44px;padding:9px 18px}
+.btn.sm{min-height:36px;padding:6px 14px}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.btn.ghost{border-color:transparent}
+.chip{border:1.5px solid var(--edge);min-height:38px}
+.chip[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+html .chip[data-subj][aria-pressed="true"]{background:var(--sc);border-color:var(--edge);color:var(--on-hl);font-weight:700}
+html .chip[data-subj][aria-pressed="true"] .dot{background:var(--on-hl) !important}
+.dot{box-shadow:0 0 0 1px var(--edge)}
+.seg{background:transparent;border:1.5px solid var(--edge)}
+.seg a{color:var(--ink)}
+.seg a[aria-current="page"]{background:var(--primary);color:var(--on-primary);box-shadow:none}
+.pill{border-radius:999px}
+.pill.s-math{background:var(--math);color:var(--on-hl)}.pill.s-hist{background:var(--hist);color:var(--on-hl)}.pill.s-fm{background:var(--fm);color:var(--on-hl)}.pill.s-enlit{background:var(--enlit);color:var(--on-hl)}.pill.s-phys{background:var(--phys);color:var(--on-hl)}.pill.s-bus{background:var(--bus);color:var(--on-hl)}.pill.s-chem{background:var(--chem);color:var(--on-hl)}.pill.s-law{background:var(--law);color:var(--on-hl)}.pill.s-bio{background:var(--bio);color:var(--on-hl)}.pill.s-acc{background:var(--acc);color:var(--on-hl)}.pill.s-cs{background:var(--cs);color:var(--on-hl)}.pill.s-gre{background:var(--gre);color:var(--on-hl)}.pill.s-econ{background:var(--econ);color:var(--on-hl)}.pill.s-ara{background:var(--ara);color:var(--on-hl)}.pill.s-psych{background:var(--psych);color:var(--on-hl)}.pill.s-fre{background:var(--fre);color:var(--on-hl)}.pill.s-geog{background:var(--geog);color:var(--on-hl)}.pill.s-spa{background:var(--spa);color:var(--on-hl)}.pill.s-enlang{background:var(--enlang);color:var(--on-hl)}.pill.s-ger{background:var(--ger);color:var(--on-hl)}.pill.s-it{background:var(--it);color:var(--on-hl)}
+.status{border:1.5px solid var(--edge)}
+.status[data-v="1"]{background:var(--hl-p);color:var(--on-hl)}
+.status[data-v="2"]{background:var(--hl-y);color:var(--on-hl)}
+.status[data-v="3"]{background:var(--hl-m);color:var(--on-hl)}
+/* progress bars become highlighter strokes on a ruled line */
+.meter{height:10px;background:transparent;border-radius:0;border-bottom:1.5px solid var(--edge);overflow:visible}
+.meter i{height:10px;border-radius:2px 6px 2px 6px;background:var(--hl-m)}
+.progressline{height:10px;background:transparent;border-radius:0;border-bottom:1.5px solid var(--edge);overflow:visible}
+.progressline i{height:10px;border-radius:2px 6px 2px 6px;background:var(--hl-y)}
+/* subject headers: a thick stroke in the subject colour, the number highlighted (no patterns) */
+.subjpat::before{display:none}
+.subjpat{border-top:6px solid var(--sc)}
+.subjpct{color:var(--on-hl);display:inline-block;background:linear-gradient(104deg,transparent .5%,var(--sc) 2.5%,var(--sc) 96%,transparent 98%);padding:0 .2em}
+.subjtint details.unit>summary .code{color:var(--on-hl);background:var(--sc);padding:1px 6px;border-radius:5px}
+.sdnum{color:var(--ink)}
+.mdisc path{stroke:var(--on-hl)}
+.flash{box-shadow:7px 7px 0 -1.5px var(--surface),7px 7px 0 0 var(--edge);background-color:var(--surface);background-image:repeating-linear-gradient(transparent 0 31px,color-mix(in srgb,var(--hl-b) 45%,transparent) 31px 32px);background-position:0 60px}
+/* phones: the five sections become page-marker tabs along the bottom */
+@media (max-width:720px){
+  .top{backdrop-filter:none;-webkit-backdrop-filter:none}
+  #tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;align-items:end;padding:0 10px calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1.5px solid var(--edge)}
+  #tabs a{min-height:50px;border:1.5px solid var(--edge);border-top:none;border-radius:0 0 10px 10px;background:var(--tabc);color:var(--on-hl);box-shadow:none;flex-direction:column;justify-content:center;gap:2px;padding:4px 2px;font-size:.7rem;font-weight:500}
+  #tabs a svg{width:18px;height:18px;color:var(--on-hl)}
+  #tabs a[aria-current="page"]{min-height:60px;margin-top:-10px;font-weight:700}
+  #tabs a:nth-child(1){--tabc:var(--hl-y)}#tabs a:nth-child(2){--tabc:var(--hl-b)}#tabs a:nth-child(3){--tabc:var(--hl-p)}#tabs a:nth-child(4){--tabc:var(--hl-m)}#tabs a:nth-child(5){--tabc:var(--hl-o)}
+  body.focusing #tabs{display:none}
+  #view{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+  #moment{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  body.focusing #moment{bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  .mini{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  body.focusing .mini{bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  .retsheet{z-index:35}
+}
+
+/* Today */
+.todayhead{align-items:flex-start;flex-wrap:nowrap;gap:12px}
+.todayhead .goal{flex:none}
+@media (max-width:720px){.todayhead .goaltxt{display:none}}
+h1.hero span{display:inline}
+h1.hero{display:block;font-size:2.3rem;line-height:1.08;letter-spacing:-.02em}
+@media (max-width:720px){h1.hero{font-size:2rem}}
+.herosent{font-size:1.12rem;line-height:1.55;max-width:40ch}
+html[lang="th"] .herosent{line-height:1.8}
+.duestack{position:relative;display:block;text-decoration:none;color:var(--ink);margin:4px 14px 10px 0}
+.duestack::before,.duestack::after{content:"";position:absolute;inset:0;border:1.5px solid var(--edge);border-radius:12px;background:var(--surface)}
+.duestack::before{transform:translate(10px,8px) rotate(2.5deg)}
+.duestack::after{transform:translate(5px,4px) rotate(-1.5deg)}
+.duecard{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid var(--edge);border-radius:12px;background-color:var(--surface);background-image:repeating-linear-gradient(transparent 0 27px,color-mix(in srgb,var(--hl-b) 45%,transparent) 27px 28px);background-position:0 30px}
+.duen{font-family:var(--display);font-size:2rem;line-height:1}
+.duestack:hover .duecard{background-color:var(--soft)}
 </style>
 </head>
 <body>
@@ -1050,7 +1144,8 @@ const ICONS = {
  calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
  planner:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>'
 };
-const ROUTES = [['today','Today'],['syllabus','Study'],['quiz','Questions'],['grades','Grades'],['planner','Planner'],['calendar','Calendar']];
+const ROUTES = [['today','Today'],['syllabus','Study'],['quiz','Practise'],['grades','Progress'],['planner','Plan']];
+function pSeg(cur){ return '<nav class="seg" aria-label="Plan"><a href="#planner"' + (cur === 'planner' ? ' aria-current="page"' : '') + '>Planner</a><a href="#calendar"' + (cur === 'calendar' ? ' aria-current="page"' : '') + '>Calendar</a></nav>'; }
 function sSeg(cur){ const due = decksIn('all').filter(d => deckStatus(d) === 'due').length + allCards().filter(c => cardStatus(c) === 'due').length; return '<nav class="seg" aria-label="Study"><a href="#syllabus"' + (cur === 'syllabus' ? ' aria-current="page"' : '') + '>Revise</a><a href="#cards"' + (cur === 'cards' ? ' aria-current="page"' : '') + '>Flashcards' + (due ? ' <span class="badge">' + due + '</span>' : '') + '</a></nav>'; }
 
 /* ============================================================
@@ -1216,6 +1311,19 @@ function streak(){
   return n;
 }
 function upcomingExams(){ const t = todayStr(); return state.exams.filter(e => e.d >= t && (!UNIT[e.u] || !isHidden(e.u))).sort((a, b) => a.d.localeCompare(b.d)); }
+/* Subject colours: 11 highlighter colours shared by 21 subjects. If two of the student's own subjects
+   would share one, the later subject (A to Z) takes the first free colour. */
+const SUBJ_FAM = {"math": "blue", "hist": "blue", "fm": "violet", "enlit": "violet", "phys": "orange", "bus": "orange", "chem": "mint", "law": "mint", "bio": "lime", "acc": "lime", "cs": "cyan", "gre": "cyan", "econ": "coral", "ara": "coral", "psych": "pink", "fre": "pink", "geog": "yellow", "spa": "yellow", "enlang": "sand", "ger": "sand", "it": "slate"};
+const FAM_ORDER = ['blue','orange','mint','violet','pink','lime','coral','cyan','yellow','sand','slate'];
+let subjColKey = '';
+function subjColours(){
+  const mine = mySubjects().map(x => x.id).filter(id => SUBJ_FAM[id]).sort((a, b) => SUBJ[a].name.localeCompare(SUBJ[b].name));
+  const key = mine.join(','); if (key === subjColKey) return; subjColKey = key;
+  const root = document.documentElement.style; Object.keys(SUBJ_FAM).forEach(id => root.removeProperty('--' + id));
+  if (mine.length > 11) return;
+  const used = new Set();
+  mine.forEach(id => { let f = SUBJ_FAM[id]; if (used.has(f)) { f = FAM_ORDER.find(x => !used.has(x)) || f; root.setProperty('--' + id, 'var(--c-' + f + ')'); } used.add(f); });
+}
 function subjPill(sid, text){ return '<span class="pill s-' + sid + '">' + esc(text || SUBJ[sid].short) + '</span>'; }
 function unitPill(code){ const u = UNIT[code]; if (!u) return ''; return subjPill(UNIT_SUBJ[code], u.l + ' · ' + code); }
 
@@ -1291,6 +1399,22 @@ function unitSelect(id, sid, cur, withAll = true, onlyWithContent = null){
     units.map(u => '<option value="' + u.c + '"' + (u.c === cur ? ' selected' : '') + '>' + esc(u.l + ' · ' + u.n + ' (' + dispCode(u.c) + ')') + '</option>').join('') + '</select>';
 }
 
+/* Today's opening line: the next exam and today's study time, with the numbers highlighted. */
+function todaySentence(t, ex){
+  const th = isTH(), out = [];
+  if (ex.length){ const e = ex[0], n = daysBetween(t, e.d), u = UNIT[e.u], nm = esc(u ? (th ? (thText(u.l + ' ' + u.n) || (thText(u.l) || u.l) + ' ' + (thText(u.n) || u.n)) : u.l + ' ' + u.n) : e.u);
+    out.push(n === 1 ? (th ? nm + ' สอบ<span class="hl">พรุ่งนี้</span>' : nm + ' is <span class="hl">tomorrow</span>.') : (th ? nm + ' อีก <span class="hl">' + n + ' วัน</span>' : nm + ' is in <span class="hl">' + n + ' days</span>.')); }
+  const m = Math.round(studyMinutes(t)), g = goalMin(), st = goalStreak();
+  if (m >= g) out.push(th ? 'วันนี้ถึงเป้า <span class="hl m">' + fmtMin(g) + '</span> แล้ว' + (st >= 2 ? ' ต่อเนื่อง ' + st + ' วัน' : '') : 'You’ve hit today’s goal of <span class="hl m">' + fmtMin(g) + '</span>' + (st >= 2 ? ', ' + st + ' days in a row.' : '.'));
+  else if (m > 0) out.push(th ? 'วันนี้ทำไปแล้ว <span class="hl m">' + fmtMin(m) + ' จาก ' + fmtMin(g) + '</span>' + (st ? ' อีก ' + fmtMin(g - m) + ' จะต่อเนื่องเป็น ' + (st + 1) + ' วัน' : '') : 'You’ve done <span class="hl m">' + fmtMin(m) + ' of ' + fmtMin(g) + '</span> today' + (st ? ', so ' + fmtMin(g - m) + ' more keeps your ' + st + '-day streak going.' : '.'));
+  else out.push(th ? 'เป้าวันนี้ <span class="hl m">' + fmtMin(g) + '</span>' + (st ? ' เพื่อรักษาสถิติ ' + st + ' วัน' : '') : 'Today’s goal is <span class="hl m">' + fmtMin(g) + '</span>' + (st ? ', to keep your ' + st + '-day streak.' : '.'));
+  return '<p class="herosent notr">' + out.join(th ? ' · ' : ' ') + '</p>';
+}
+/* Flashcards due, drawn as a small stack of index cards. */
+function dueStack(due){
+  if (!due) return '';
+  return '<a class="duestack" href="#cards"><span class="duecard"><span class="stack" style="gap:2px"><span class="small muted">Flashcards due</span><b class="duen">' + due + '</b><span class="small muted">decks and cards to review</span></span><span class="btn primary" aria-hidden="true">Start</span></span></a>';
+}
 function viewToday(){
   const t = todayStr();
   { const td = examsOn(t); if (td.length && ui.edOff !== t) return viewExamDay(t, td, true); if (ui.edPreview && !td.length){ const tm = examsOn(addDays(t, 1)); if (tm.length) return viewExamDay(addDays(t, 1), tm, false); ui.edPreview = false; } }
@@ -1345,7 +1469,7 @@ function viewToday(){
   }
 
   return '<div class="stack today">' +
-    '<div class="todayhead"><div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#prefs" class="avlink" aria-label="Your profile">' + avatar(44) + '</a>' : '') + '<div><p class="muted small notr">' + todayLong(t) + '</p><h1>' + greet + (firstName() ? ', ' + esc(firstName()) : '') + '</h1></div></div>' + goalRing() + '</div>' + profileNudge() +
+    '<div class="todayhead"><div class="stack" style="gap:6px;min-width:0"><div class="row" style="gap:10px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#prefs" class="avlink" aria-label="Your profile">' + avatar(36) + '</a>' : '') + '<p class="muted small notr">' + todayLong(t) + '</p></div><h1 class="hero"><span>' + greet + '</span>' + (firstName() ? ', ' + esc(firstName()) : '') + (isTH() ? '' : '.') + '</h1>' + todaySentence(t, ex) + '</div>' + goalRing() + '</div>' + dueStack(due) + profileNudge() +
     verifyBanner() + examTomorrowCard() + nextCard() + meetInviteCard() + friendReqCard() + studyBoard() + reviewCard(ui.showReview) + weeklyTodayCard() + backupNudge() + planCard() + examsTimeline() + buddyCard() +
     '<div class="grid2">' + (ex.length ? '' : exHtml) +
       '<div class="card"><div class="card-h"><h2>Tasks</h2><a class="small muted" href="#planner">' + (openTasks.length > 5 ? 'All ' + openTasks.length : 'Planner') + '</a></div>' +
@@ -2096,7 +2220,7 @@ function viewPlanner(){
   const p = state.timerPrefs;
   const ms = remainMs();
   const bySubj = {}; state.sessions.forEach(s => { if (daysBetween(s.d, t) < 7) bySubj[s.s] = (bySubj[s.s] || 0) + s.m; });
-  return '<div class="stack">' +
+  return '<div class="stack">' + pSeg('planner') +
     '<div><h1>Planner</h1><p class="muted">Your tasks with deadlines and priorities, exam countdowns, and a focus timer.</p></div>' +
     rtCard() + tasksCard + regCard() +
     '<div class="grid2">' +
@@ -3430,7 +3554,7 @@ function viewCalendar(){
   const title = new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
   const pend = theirMeets().filter(x => !x.rsp && x.d >= t);
   const soon = allMeets().filter(x => x.d >= t && (x.host === 'me' || x.rsp === 'yes')).slice(0, 3);
-  return '<div class="stack calpage"><div><h1>Calendar</h1><p class="muted" style="margin:4px 0 0">Your exams, tasks, mocks and study time in one view. Tap a day to see it or add to it.</p></div>' +
+  return '<div class="stack calpage">' + pSeg('calendar') + '<div><h1>Calendar</h1><p class="muted" style="margin:4px 0 0">Your exams, tasks, mocks and study time in one view. Tap a day to see it or add to it.</p></div>' +
     (pend.length ? '<div class="card stack"><div class="card-h"><h2>Mock invitation' + (pend.length > 1 ? 's' : '') + '</h2></div>' + pend.map(x => '<div><div class="small muted">' + fmtDate(x.d, {weekday:'short', day:'numeric', month:'short'}) + '</div>' + meetRow(x) + '</div>').join('') + '</div>' : '') +
     (ui.meetForm ? meetForm() : '') +
     '<div class="calwrap"><div class="card calcard"><div class="calhead"><button class="btn sm" data-act="cal-nav" data-v="-1" aria-label="Previous month">‹</button><h2 aria-live="polite">' + title + '</h2><button class="btn sm" data-act="cal-nav" data-v="1" aria-label="Next month">›</button>' +
@@ -5293,8 +5417,9 @@ function renderRet(){
 
 function render(){
   applyPrefs(); ensureSubjects(); try { sortSubjects(); } catch(err){ console.error(err); }
-  const r = route(); setHdr();
-  $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && r === 'cards') ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
+  const r = route(); setHdr(); try { subjColours(); } catch(err){}
+  document.body.classList.toggle('focusing', (r === 'cards' && !!(ui.cards && (ui.cards.review || ui.cards.dq))) || (r === 'quiz' && !!(ui.quiz && ui.quiz.run)));
+  $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && r === 'cards') || (id === 'planner' && r === 'calendar') ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
   $('#nav-settings').setAttribute('aria-current', r === 'prefs' ? 'page' : 'false'); { const ns = $('#nav-search'); if (ns) ns.setAttribute('aria-current', r === 'search' ? 'page' : 'false'); } fsSync();
   const v = { today:viewToday, cards:viewCards, quiz:viewQuiz, papers:viewPapers, syllabus:viewSyllabus, planner:viewPlanner, calendar:viewCalendar, prefs:viewSettings, search:viewSearch, grades:viewGrades, mistakes:viewMistakes, setup:viewSetup }[r];
   const gate = needLogin() || !!(ACCT && FB.action); document.body.classList.toggle('gate', gate);
