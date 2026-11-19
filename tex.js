@@ -11,6 +11,7 @@
   const FR = {'1/2':'½','1/4':'¼','3/4':'¾','1/3':'⅓','2/3':'⅔','1/8':'⅛'};
   function arg(s, i){ // read {…} or a single char starting at i; returns [content, next]
     while (s[i] === ' ') i++;
+    if (s[i] === '\\'){ const m = /^\\([A-Za-z]+|.?)/.exec(s.slice(i)); return [m[0], i + m[0].length]; }
     if (s[i] !== '{') return [s[i] || '', i + 1];
     let d = 0;
     for (let j = i; j < s.length; j++){ if (s[j] === '{') d++; else if (s[j] === '}'){ d--; if (!d) return [s.slice(i + 1, j), j + 1]; } }
@@ -30,7 +31,7 @@
     while (i < s.length){
       const c = s[i];
       if (c === '\\'){
-        const m = /^\\([A-Za-z]+|.)/.exec(s.slice(i)); const name = m[1]; i += m[0].length;
+        const m = /^\\([A-Za-z]+|.?)/.exec(s.slice(i)); const name = m[1]; i += m[0].length;
         if (name === 'frac' || name === 'tfrac' || name === 'dfrac'){
           const [a, i2] = arg(s, i), [b, i3] = arg(s, i2); i = i3;
           const A = plain(a), B = plain(b);
@@ -41,7 +42,9 @@
         else if (name === 'begin'){ const [env, i2] = arg(s, i); const end = s.indexOf('\\end{' + env + '}', i2); const body = s.slice(i2, end < 0 ? s.length : end); i = end < 0 ? s.length : end + 6 + env.length;
           const rows = body.split('\\\\').map(r => r.split('&').map(c => plain(c.trim())).join(' ')); const br = env === 'vmatrix' ? ['|', '|'] : env === 'bmatrix' ? ['[', ']'] : ['(', ')']; out += br[0] + rows.join('; ') + br[1]; }
         else if (name === 'ce'){ const [a, i2] = arg(s, i); i = i2; out += ce(a); }
-        else if (name === 'mathrm' || name === 'text' || name === 'operatorname' || name === 'textrm' || name === 'mathit'){ const [a, i2] = arg(s, i); i = i2; out += plain(a); }
+        else if (name === 'text' || name === 'textrm'){ const [a, i2] = arg(s, i); i = i2; out += a.replace(/[{}]/g, ''); }
+        else if (name === 'mathrm' || name === 'operatorname' || name === 'mathit'){ const [a, i2] = arg(s, i); i = i2; out += plain(a); }
+        else if (name === 'displaystyle' || name === 'textstyle' || name === 'limits' || name === 'nolimits'){ }
         else if (name === 'bar' || name === 'dot' || name === 'ddot' || name === 'hat'){ const [a, i2] = arg(s, i); i = i2; out += plain(a) + ({bar:'\u0304', dot:'\u0307', ddot:'\u0308', hat:'\u0302'})[name]; }
         else if (name === 'mathbf' || name === 'boldsymbol'){ const [a, i2] = arg(s, i); i = i2; out += plain(a); }
         else if (name === 'mathbb'){ const [a, i2] = arg(s, i); i = i2; out += ({Z:'ℤ', R:'ℝ', N:'ℕ', Q:'ℚ', C:'ℂ'})[a] || a; }
