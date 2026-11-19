@@ -940,6 +940,8 @@ html[lang="th"] .herostats .lab{line-height:1.6}
 label.row.small:has(> input[type="checkbox"]){min-height:44px}
 label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-color:var(--primary)}
 .toggle[style*="min-height:0"]{min-height:44px !important}
+.pracrow{display:flex;align-items:center;gap:12px;padding:10px 0 4px;margin-top:6px;border-top:1px dashed var(--rule)}
+.qtext{white-space:pre-line}
 /* Header profile button */
 .top .avbtn{padding:0;overflow:hidden}
 .top .avbtn .avatar{width:30px !important;height:30px !important;font-size:12px !important}
@@ -995,6 +997,7 @@ label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-
 
 <script src="papers.js"></script>
 <script src="topicqs.js"></script>
+<script src="practiceqs.js"></script>
 <script src="notes.js"></script>
 <script src="decks.js"></script>
 <script src="boundaries.js"></script>
@@ -2022,6 +2025,7 @@ const hasPmt = code => typeof PMT_TQ !== 'undefined' && PMT_TQ[code] && Object.k
 function pmtPacks(code, i){ return (typeof PMT_TQ !== 'undefined' && PMT_TQ[code] && PMT_TQ[code][i]) || []; }
 function unitPmtStats(code){ let n = 0, d = 0; const u = UNIT[code]; u.t.forEach((_, i) => pmtPacks(code, i).forEach((x, k) => { n++; if (state.pmtDone[code + '-' + i + '-' + k]) d++; })); return { n, d }; }
 function viewQuiz(){
+  if (ui.quiz.run) return viewQuizRun();
   const q = ui.quiz;
   const s = SUBJ[q.subj];
   const units = s.units.filter(u => !isHidden(u.c));
@@ -2038,12 +2042,15 @@ function viewQuiz(){
     const st = unitPmtStats(u.c);
     body = '<div class="card stack subjpat" data-pat="' + q.subj + '" style="gap:10px;--sc:var(--' + q.subj + ')"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="code muted">' + dispCode(u.c) + '</div><h2>' + esc(u.l + ' ' + u.n) + '</h2>' +
         '<p class="small muted">' + st.n + ' question packs · ' + st.d + ' done</p></div>' +
+        (UNITS_WITH_TQ.has(u.c) ? '<button class="btn sm primary" data-act="tq-start" data-u="' + u.c + '" data-t="all">Practise all (' + TQ_LIST.filter(x => x.u === u.c).length + ')</button>' : '') +
         (typeof PAPERS !== 'undefined' && PAPERS[u.c] ? '<button class="btn sm" data-act="goto-papers" data-u="' + u.c + '">Past papers (' + PAPERS[u.c].length + ')</button>' : '') + '</div>' +
         '<div class="meter"><i style="width:' + (st.n ? Math.round(st.d / st.n * 100) : 0) + '%"></i></div></div>' +
       '<div class="card"><div class="list">' + u.t.map((name, i) => {
         const pq = pmtPacks(u.c, i);
         const done = pq.filter((_, k) => state.pmtDone[u.c + '-' + i + '-' + k]).length;
+        const own = TQ_LIST.filter(x => x.u === u.c && x.t === i), os = qStats(own);
         return '<div class="tqtopic"><div class="row" style="justify-content:space-between;gap:8px"><b>' + esc(name) + '</b>' + (pq.length ? '<span class="small muted">' + done + '/' + pq.length + ' done</span>' : '') + '</div>' +
+          (own.length ? '<div class="pracrow"><div class="grow"><div class="t">Practice questions</div><div class="small muted">' + own.length + ' questions, marked instantly' + (os.att ? ' · ' + os.att + ' tried, ' + Math.round(os.sc / Math.max(1, os.mx) * 100) + '%' : '') + '</div></div><button class="btn sm" data-act="tq-start" data-u="' + u.c + '" data-t="' + i + '">Practise</button></div>' : '') +
           (pq.length ? pq.map((x, k) => { const key = u.c + '-' + i + '-' + k; const d = !!state.pmtDone[key];
             return '<div class="pmtrow' + (d ? ' done' : '') + '"><button class="check" role="checkbox" aria-checked="' + d + '" aria-label="Mark this pack done" data-act="pmt-done" data-key="' + key + '">' + (d ? '✓' : '') + '</button><div class="grow"><div class="t">' + esc(x.n) + '</div>' +
               '<div class="meta"><a class="btn sm" href="' + x.qp + '" target="_blank" rel="noopener">Questions ↗</a>' + (x.ms ? '<a class="btn sm" href="' + x.ms + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + flagBtn('Topic pack: ' + x.n + ' (' + key + ')') + '</div>' +
@@ -2053,7 +2060,7 @@ function viewQuiz(){
   }
   return '<div class="stack">' +
     qSeg('quiz') +
-    '<div><h1>Topic questions</h1><p class="muted">Real exam questions grouped by topic, from Physics &amp; Maths Tutor. Open a pack, answer the questions, mark them with the mark scheme, then tick the pack off.</p></div>' +
+    '<div><h1>Topic questions</h1><p class="muted">Real exam questions grouped by topic, from Physics &amp; Maths Tutor. Open a pack, answer the questions, mark them with the mark scheme, then tick the pack off.' + (UNITS_WITH_TQ.has(q.unit) ? ' <span>For quick practice, each topic also has short questions written for this site, marked straight away.</span>' : '') + '</p></div>' +
     '<div class="chips" role="group" aria-label="Subject">' + mySubjects().map(x => '<button class="chip" data-subj style="--sc:var(--' + x.id + ')" data-act="tq-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === q.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
     '<label class="f">Unit<select id="tq-unit">' + units.map(x => { const st = hasPmt(x.c) ? unitPmtStats(x.c) : null; return '<option value="' + x.c + '"' + (x.c === q.unit ? ' selected' : '') + '>' + esc(x.l + ' · ' + x.n) + (st ? ' (' + st.d + '/' + st.n + ' packs)' : ' (practical: past papers)') + '</option>'; }).join('') + '</select></label>' +
     body +
