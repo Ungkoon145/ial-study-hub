@@ -940,6 +940,7 @@ html[lang="th"] .herostats .lab{line-height:1.6}
 label.row.small:has(> input[type="checkbox"]){min-height:44px}
 label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-color:var(--primary)}
 .toggle[style*="min-height:0"]{min-height:44px !important}
+.kpts{margin-top:6px}.kpts>summary{cursor:pointer;font-size:.875rem;font-weight:600;color:var(--primary);min-height:44px;display:flex;align-items:center;list-style:none}.kpts>summary::-webkit-details-marker{display:none}.kpts>summary::before{content:"+";display:inline-block;width:1.1em;font-weight:700}.kpts[open]>summary::before{content:"\2212"}.kpts ul{margin:2px 0 8px;padding-left:1.2em;display:grid;gap:6px;font-size:.9375rem;line-height:1.55}
 .pracrow{display:flex;align-items:center;gap:12px;padding:10px 0 4px;margin-top:6px;border-top:1px dashed var(--rule)}
 .qtext{white-space:pre-line}
 /* Header profile button */
@@ -998,6 +999,7 @@ label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-
 <script src="papers.js"></script>
 <script src="topicqs.js"></script>
 <script src="practiceqs.js"></script>
+<script src="mathnotes.js"></script>
 <script src="notes.js"></script>
 <script src="decks.js"></script>
 <script src="boundaries.js"></script>
@@ -2191,7 +2193,9 @@ function unitNotesBlock(code){
 function topicNotes(code, i){
   const N = (typeof PMT_NOTES !== 'undefined' && PMT_NOTES[code]) || null;
   const items = N && N.t[i] ? N.t[i] : [];
-  return items.length ? '<div class="notes">' + items.map(x => noteLink(x, true)).join('') + '</div>' : '';
+  const kp = (typeof MATH_KEYPOINTS !== 'undefined' && MATH_KEYPOINTS[code] && MATH_KEYPOINTS[code][i]) || null;
+  return (items.length ? '<div class="notes">' + items.map(x => noteLink(x, true)).join('') + '</div>' : '') +
+    (kp ? '<details class="kpts"><summary>Key points</summary><ul>' + kp.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></details>' : '');
 }
 
 function viewSyllabus(){
@@ -2213,7 +2217,7 @@ function viewSyllabus(){
         '<div>' + u.t.map((t, i) => { const v = state.topics[topicId(u.c, i)] || 0; const tm = topicMistakes(u.c, i), tl = tm.reduce((a, m) => a + m.lost, 0); return '<div class="topic"><div class="grow"><div>' + esc(t) + (tl ? ' <a class="pill mkpill" href="#mistakes" title="Open mistakes on this topic">−' + tl + ' mark' + (tl === 1 ? '' : 's') + ' in mistakes</a>' : '') + '</div>' + topicNotes(u.c, i) + '</div><button class="status" data-v="' + v + '" data-act="topic" data-id="' + topicId(u.c, i) + '" aria-label="' + esc(t) + ': ' + labels[v] + '. Tap to change">' + labels[v] + '</button></div>'; }).join('') + '</div></details>';
     }).join('') : '<div class="empty">All ' + esc(s.short) + ' units are hidden. <a href="#prefs">Choose your units</a>.</div>') +
     practicalsBlock(sid) +
-    '<p class="small muted">≡ notes (PDF) · ▤ flashcards. Revision notes by Physics &amp; Maths Tutor; Maths and Physics notes were written for the older Edexcel spec but cover the same content.</p>' +
+    '<p class="small muted">≡ notes (PDF) · ▤ flashcards. Revision notes by Physics &amp; Maths Tutor; Maths and Physics notes were written for the older Edexcel spec but cover the same content. <span>Maths key points were written for this site.</span></p>' +
   '</div>';
 }
 

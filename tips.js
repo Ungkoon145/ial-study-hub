@@ -12,36 +12,36 @@ const UNIT_TIPS = {
  WMA12: [
   'Show the log law step that combines logs before you remove them. Answers without it lose marks.',
   'Check solutions in the original equation and reject ones that don’t work (e.g. a negative value inside a log).',
-  'Binomial: square the a in $(ax)^{2}$, and simplify fully: the first term is 1 and signs are combined.',
-  'Read carefully whether you need the nth term or the sum of the first n terms.',
-  'Trapezium rule: get the strip width h right, and interpret answers in context (money to 2 d.p.).'
+  'Binomial: square the $a$ in $(ax)^{2}$, and simplify fully: the first term is 1 and signs are combined.',
+  'Read carefully whether you need the $n$th term or the sum of the first $n$ terms.',
+  'Trapezium rule: get the strip width $h$ right, and interpret answers in context (money to 2 d.p.).'
  ],
  WMA13: [
   'Put your calculator in radians for calculus and trig modelling. Degree mode was a frequent cause of lost marks.',
-  'gf(x) means apply f first, then g. Mixing up the order is the most common composite-function slip.',
+  '$gf(x)$ means apply $f$ first, then $g$. Mixing up the order is the most common composite-function slip.',
   'Ranges of functions need both ends, with the correct strict or non-strict inequality.',
   'Don’t mix up tangent and normal gradients; keep exact values when a later part uses them.',
   'Pick the most direct log method and avoid rounding part-way through.'
  ],
  WMA14: [
-  'Always state the range of x for which a binomial expansion is valid, rearranged correctly.',
+  'Always state the range of $x$ for which a binomial expansion is valid, rearranged correctly.',
   'Proofs need algebra ($n = 2k$, $n = 2k + 1$), not a few numerical examples.',
-  'Watch double negatives in expansions, and remember square roots when solving for y.',
+  'Watch double negatives in expansions, and remember square roots when solving for $y$.',
   'If the question asks for a rational or exact answer, don’t give a decimal.',
   'Combine ln terms fully into a single final answer.'
  ],
  WME01: [
   'Draw a force diagram and choose a positive direction. Keep signs consistent, e.g. when a particle lands below where it started.',
-  'Convert units (tonnes, km h⁻¹) before using $F = ma$ or suvat.',
+  'Convert units (tonnes, $\\text{km h}^{-1}$) before using $F = ma$ or suvat.',
   'When a string breaks or a particle hits the ground, work out the next stage of motion separately.',
   'With $g = 9.8$, give answers to 2 or 3 s.f., not 4.',
   'Velocity from position vectors = change in position ÷ time. Subtract the right way round.'
  ],
  WME02: [
   'If asked for speed, give the magnitude, not a vector.',
-  'Answer exactly what is asked: the angle with the rod, or the distance d as defined.',
+  'Answer exactly what is asked: the angle with the rod, or the distance $d$ as defined.',
   '“Show that” questions need every step, set out clearly.',
-  'Include g, and use zero acceleration where the motion is at constant velocity.'
+  'Include $g$, and use zero acceleration where the motion is at constant velocity.'
  ],
  WME03: [
   'A string goes slack when $T = 0$, not when $v = 0$.',
@@ -58,8 +58,8 @@ const UNIT_TIPS = {
   'Name distributions fully (e.g. discrete uniform), and back up skewness claims with values.'
  ],
  WST02: [
-  '$P(X > a) = 1 - P(X \\le a)$. Be careful with ≤ and < for discrete variables.',
-  'Write hypotheses in terms of the parameter ($\\lambda$ or p), not in words.',
+  '$\\mathrm{P}(X>a)=1-\\mathrm{P}(X\\le a)$. Be careful with $\\le$ and $<$ for discrete variables.',
+  'Write hypotheses in terms of the parameter ($\\lambda$ or $p$), not in words.',
   'For critical regions, check the tail probabilities on both sides of the boundary.',
   'State the distribution with its parameter values, and reject impossible roots.',
   'Conclusions must be in context and must not contradict each other.'
@@ -79,25 +79,25 @@ const UNIT_TIPS = {
   'Answer exactly what the question asks; answering a similar-looking question earns nothing.'
  ],
  WFM01: [
-  'Induction: finish with a full conclusion: true for $n = 1$, and if true for $n = k$ then true for $n = k + 1$, so true for all n.',
+  'Induction: finish with a full conclusion: true for $n = 1$, and if true for $n = k$ then true for $n = k + 1$, so true for all $n$.',
   '“Without using a calculator” means the working must be visible.',
   'Watch signs in expansions and series ($\\Sigma r = \\tfrac{1}{2}n(n + 1)$).',
   'Draw Argand diagrams accurately, with conjugate pairs mirrored in the real axis.',
-  'Interval bisection and interpolation: check the sign of each f value.'
+  'Interval bisection and interpolation: check the sign of each $f$ value.'
  ],
  WFM02: [
   'Area between curves: assign the correct limits to each integral.',
-  'Give the general solution of a differential equation as y = …',
-  'Inequalities and roots: respect restrictions (e.g. n must be positive) and give what is asked.',
-  'Define f before writing $f(x)$ = … in Maclaurin/Taylor answers.',
+  'Give the general solution of a differential equation as $y=\\ldots$.',
+  'Inequalities and roots: respect restrictions (e.g. $n$ must be positive) and give what is asked.',
+  'Define $f$ before writing $f(x)=\\ldots$ in Maclaurin/Taylor answers.',
   'Perpendicular bisector loci need the midpoint and the negative reciprocal gradient.'
  ],
  WFM03: [
   '“Show that” results need enough working to show how you got there.',
   'Matrix of cofactors: sign errors and miscopying were the most common slips.',
-  'Conics: don’t confuse a with $a^{2}$; for an ellipse $b^{2} = a^{2}(1 - e^{2})$.',
+  'Conics: don’t confuse $a$ with $a^{2}$; for an ellipse $b^{2} = a^{2}(1 - e^{2})$.',
   'Bracket clearly. Ambiguous brackets were penalised.',
-  'Know the $r \\times b = a \\times b$ form of a line.'
+  'Know the $\\mathbf{r}\\times\\mathbf{b}=\\mathbf{a}\\times\\mathbf{b}$ form of a line.'
  ],
  WPH11: [
   'Young modulus = stress ÷ strain, using the extension (not the new length) and the radius (half the diameter), squared.',
