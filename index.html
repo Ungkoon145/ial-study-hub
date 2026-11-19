@@ -367,7 +367,7 @@ textarea{min-height:90px;resize:vertical}
 .gainu + .gainu{border-top:1px solid var(--line);padding-top:12px}
 .chk{display:flex;gap:8px;align-items:flex-start;min-height:32px;font-size:.92rem}
 .chk input{margin-top:3px;width:18px;height:18px;flex:none}
-.clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
+.clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;clip-path:inset(0)}
 .morebtn{align-self:flex-start;background:none;border:0;padding:8px 14px 8px 0;margin:-6px 0 -6px;color:var(--ink);text-decoration:underline;cursor:pointer;font:inherit;font-size:.82rem;font-weight:700;min-height:40px;min-width:44px;text-align:left;display:block}
 .stack > .morebtn{margin-top:-16px}
 .pdot{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);flex:none;margin-top:6px}
@@ -559,6 +559,21 @@ body.sheet-open{overflow:hidden}
 @keyframes shdown{to{transform:translateY(100%)}}
 @keyframes shpop{from{opacity:0;transform:scale(.95) translateY(8px)}}
 @keyframes shout{to{opacity:0;transform:scale(.96)}}
+/* Space between the header and the page (the .wrap padding rule was cancelling main's) */
+main#view{padding-top:20px}
+@media (max-width:720px){main#view{padding-top:14px}}
+/* Thai: vowels and tone marks sit above and below the line, so Thai text needs taller lines,
+   or marks get cut off and peek through folded text. */
+html[lang="th"] body{line-height:1.6}
+html[lang="th"] h1,html[lang="th"] h2,html[lang="th"] h3,html[lang="th"] .flash .front,html[lang="th"] .mtxt b{line-height:1.4}
+html[lang="th"] .small,html[lang="th"] small,html[lang="th"] .muted{line-height:1.55}
+html[lang="th"] .clamp{line-height:1.85;clip-path:inset(0 0 .2em 0)}
+html[lang="th"] .cmk{line-height:1.55}
+html[lang="th"] .btn,html[lang="th"] .chip,html[lang="th"] .pill,html[lang="th"] .status,html[lang="th"] .seg a,html[lang="th"] select,html[lang="th"] input{line-height:1.45}
+html[lang="th"] .tabs a span{white-space:nowrap}
+@media (max-width:380px){html[lang="th"] .tabs a{font-size:.64rem}}
+/* Grades on phones: the "What if" box and button wrap under each other instead of pushing over the grade */
+@media (max-width:560px){div.li.gu{grid-template-columns:max-content minmax(0,1fr)}div.li.gu > .gval{min-width:max-content}div.li.gu > .row{flex-wrap:wrap !important}.wiin span{white-space:nowrap}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);top:70px;z-index:40;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:.92rem;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.2);display:none;max-width:calc(100% - 32px)}
 .toggle{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);cursor:pointer}
 .toggle:first-child{border-top:0}
@@ -1016,6 +1031,8 @@ function parseD(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y,
 function addDays(s, n){ const d = parseD(s); d.setDate(d.getDate()+n); return todayStr(d); }
 function daysBetween(a, b){ const A = parseD(a), B = parseD(b); return Math.round((Date.UTC(B.getFullYear(),B.getMonth(),B.getDate()) - Date.UTC(A.getFullYear(),A.getMonth(),A.getDate()))/86400000); }
 function fmtDate(s, opts){ return parseD(s).toLocaleDateString('en-GB', opts || {weekday:'short', day:'numeric', month:'short', year:'numeric'}); }
+/* Today's full date with the year. Thai uses the Thai calendar and Buddhist year, as Thai readers expect. */
+function todayLong(t){ const o = {weekday:'long', day:'numeric', month:'long', year:'numeric'}; if (isTH()) try { return parseD(t).toLocaleDateString('th-TH', o); } catch(e){} return fmtDate(t, o).replace(',', ''); }
 function fmtMin(m){ m = Math.round(m); if (m < 60) return m + 'm'; return Math.floor(m/60) + 'h ' + (m%60 ? (m%60)+'m' : ''); }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function shuffle(a){ a = a.slice(); for (let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -1328,7 +1345,7 @@ function viewToday(){
   }
 
   return '<div class="stack today">' +
-    '<div class="todayhead"><div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#prefs" class="avlink" aria-label="Your profile">' + avatar(44) + '</a>' : '') + '<div><p class="muted small">' + fmtDate(t, {weekday:'long', day:'numeric', month:'long'}) + '</p><h1>' + greet + (firstName() ? ', ' + esc(firstName()) : '') + '</h1></div></div>' + goalRing() + '</div>' + profileNudge() +
+    '<div class="todayhead"><div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#prefs" class="avlink" aria-label="Your profile">' + avatar(44) + '</a>' : '') + '<div><p class="muted small notr">' + todayLong(t) + '</p><h1>' + greet + (firstName() ? ', ' + esc(firstName()) : '') + '</h1></div></div>' + goalRing() + '</div>' + profileNudge() +
     verifyBanner() + examTomorrowCard() + nextCard() + meetInviteCard() + friendReqCard() + studyBoard() + reviewCard(ui.showReview) + weeklyTodayCard() + backupNudge() + planCard() + examsTimeline() + buddyCard() +
     '<div class="grid2">' + (ex.length ? '' : exHtml) +
       '<div class="card"><div class="card-h"><h2>Tasks</h2><a class="small muted" href="#planner">' + (openTasks.length > 5 ? 'All ' + openTasks.length : 'Planner') + '</a></div>' +
@@ -3384,7 +3401,7 @@ function calGrid(){
     I.exams.forEach(e => mk.push('<span class="cmk ex">' + esc(UNIT[e.u] ? UNIT[e.u].l : e.u) + ' exam</span>'));
     I.meets.forEach(x => mk.push('<span class="cmk mt' + (x.host !== 'me' && !x.rsp ? ' pend' : '') + '">' + esc(x.tm) + ' mock</span>'));
     I.reg.forEach(() => mk.push('<span class="cmk rg">Entries close</span>'));
-    I.tasks.slice(0, 3).forEach(x => mk.push('<span class="cmk tk' + (d < t ? ' late' : '') + '">' + esc(x.t) + '</span>'));
+    I.tasks.slice(0, 3).forEach(x => mk.push('<span class="cmk tk' + (d < t ? ' late' : '') + '" title="' + esc(x.t) + '">' + esc(x.t) + '</span>'));
     if (I.tasks.length > 3) mk.push('<span class="cmk more">+' + (I.tasks.length - 3) + '</span>');
     if (!I.tasks.length && I.done.length) mk.push('<span class="cmk dn">' + I.done.length + ' done</span>');
     const lvl = I.mins >= 120 ? 3 : I.mins >= 45 ? 2 : I.mins > 0 ? 1 : 0;
