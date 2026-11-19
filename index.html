@@ -830,6 +830,34 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 @keyframes retin{from{transform:translateY(100%);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){ .retsheet{animation:none} }
 
+/* ---------- Study rooms ---------- */
+.rmgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.rmtile{position:relative;border:1px solid var(--line);border-radius:14px;background:var(--surface,var(--bg));overflow:hidden;display:flex;flex-direction:column}
+.rmtile.me{border-color:var(--hi)}
+.rmtile.st-focus .rmst span:first-child{color:var(--primary);font-weight:600}
+.rmcam{position:relative;aspect-ratio:4/3;background:var(--navy);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.rmcam.nocam{aspect-ratio:auto;padding:18px 0 6px;background:transparent}
+.rmcam video.rmv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+.rmcam video.mirror{transform:scaleX(-1)}
+.rmcam:not(.on) video{display:none}
+.rmreact{position:absolute;top:8px;right:8px;font-size:1.6rem;line-height:1;background:var(--bg);border-radius:999px;padding:6px 8px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.rmmeta{padding:10px 12px 12px;display:grid;gap:2px}
+.rmmeta .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rmclk,.rmbig{font-variant-numeric:tabular-nums lining-nums}
+.rmclk{color:var(--muted)}
+.rmbig{font-size:1.9rem;font-weight:600;color:var(--hi);margin-left:6px;vertical-align:middle}
+.rmown{gap:14px;margin-top:4px}
+.rmreacts{gap:6px}
+.rmreacts .chip{font-size:1.15rem;min-width:44px;justify-content:center}
+.rmcode{font-size:1.5rem;font-weight:600;letter-spacing:.12em;font-variant-numeric:tabular-nums}
+.rmname{overflow-wrap:anywhere}
+.rmbar{position:fixed;left:16px;bottom:24px;z-index:26;max-width:calc(100% - 200px);display:flex;align-items:center;gap:12px;background:var(--navy);color:#fff;border-radius:999px;padding:6px 8px 6px 16px;box-shadow:0 6px 20px rgba(0,0,0,.2);min-height:44px}
+.rmbar a{color:#fff;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.rmbar a span{color:var(--navy-soft)}
+.rmbar .linkbtn{color:var(--brass);min-height:36px;padding:0 8px;flex:none}
+@media (max-width:720px){.rmbar{bottom:calc(88px + env(safe-area-inset-bottom,0px));left:10px;max-width:calc(100% - 170px)}.rmgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rmmeta{padding:8px 10px 10px}.rmbig{font-size:1.5rem}}
+@media (max-width:360px){.rmgrid{grid-template-columns:1fr}}
+body.focusing .rmbar{display:none}
 /* ================= Midnight & brass =================
    A navy frame (header, Today band, phone tab bar) with brass for the numbers that matter,
    calm white pages with hairlines, subjects as small muted dots. */
@@ -1012,6 +1040,7 @@ label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-
 <script src="tips.js"></script>
 <script src="practicals.js"></script>
 <script src="keyphrases.js"></script>
+<script src="rooms.js"></script>
 <script>
 /* ============================================================
    CONTENT: Pearson Edexcel International A Level units
@@ -1217,7 +1246,7 @@ const ICONS = {
  planner:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>'
 };
 const ROUTES = [['today','Today'],['syllabus','Study'],['quiz','Practise'],['grades','Progress'],['planner','Plan']];
-function pSeg(cur){ return '<nav class="seg" aria-label="Plan"><a href="#planner"' + (cur === 'planner' ? ' aria-current="page"' : '') + '>Planner</a><a href="#calendar"' + (cur === 'calendar' ? ' aria-current="page"' : '') + '>Calendar</a></nav>'; }
+function pSeg(cur){ return '<nav class="seg" aria-label="Plan"><a href="#planner"' + (cur === 'planner' ? ' aria-current="page"' : '') + '>Planner</a><a href="#calendar"' + (cur === 'calendar' ? ' aria-current="page"' : '') + '>Calendar</a><a href="#rooms"' + (cur === 'rooms' ? ' aria-current="page"' : '') + '>Rooms</a></nav>'; }
 function sSeg(cur){ const due = decksIn('all').filter(d => deckStatus(d) === 'due').length + allCards().filter(c => cardStatus(c) === 'due').length; return '<nav class="seg" aria-label="Study"><a href="#syllabus"' + (cur === 'syllabus' ? ' aria-current="page"' : '') + '>Revise</a><a href="#cards"' + (cur === 'cards' ? ' aria-current="page"' : '') + '>Flashcards' + (due ? ' <span class="badge">' + due + '</span>' : '') + '</a></nav>'; }
 
 /* ============================================================
@@ -1431,7 +1460,7 @@ const ui = {
   confirm: null
 };
 let curRoute = null;
-function route(){ let h = curRoute; if (h == null){ try { h = (location.hash || '').slice(1); } catch(e){ h = ''; } } if (h === 'settings') h = 'prefs'; return ['today','cards','quiz','papers','mistakes','grades','syllabus','planner','calendar','prefs','setup','search','profile'].includes(h) ? h : (h === '' && ['today','syllabus','quiz','papers','grades','planner'].includes(prefs().start) ? prefs().start : 'today'); }
+function route(){ let h = curRoute; if (h == null){ try { h = (location.hash || '').slice(1); } catch(e){ h = ''; } } if (h === 'settings') h = 'prefs'; return ['today','cards','quiz','papers','mistakes','grades','syllabus','planner','calendar','rooms','prefs','setup','search','profile'].includes(h) ? h : (h === '' && ['today','syllabus','quiz','papers','grades','planner'].includes(prefs().start) ? prefs().start : 'today'); }
 // Navigate without relying on the host page delivering hashchange events (artifact viewers differ).
 function go(r){ const changed = route() !== r; setTimeout(() => { if (route() === 'search' && changed){ const i = $('#search-q'); if (i) i.focus(); } }, 30); curRoute = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch(e){} ui.confirm = null; ui.editTask = null; render(); if (changed) window.scrollTo({ top: 0 }); if (ui.scrollCp){ ui.scrollCp = false; const o = document.querySelector('details.cp[open]'); if (o) o.scrollIntoView({ block: 'center' }); } }
 
@@ -2227,7 +2256,7 @@ let T = (() => { try { const t = JSON.parse(localStorage.getItem(TKEY)); if (t &
 let audioCtx = null;
 function phaseLen(){ return (T.phase === 'focus' ? state.timerPrefs.focus : state.timerPrefs.brk) * 60000; }
 function remainMs(){ if (T.remain === null) T.remain = phaseLen(); return T.running ? Math.max(0, T.endsAt - Date.now()) : T.remain; }
-function saveT(){ try { localStorage.setItem(TKEY, JSON.stringify(T)); } catch(e){} try { frSchedule(); } catch(e){} }
+function saveT(){ try { localStorage.setItem(TKEY, JSON.stringify(T)); } catch(e){} try { frSchedule(); } catch(e){} try { rmSchedule(); } catch(e){} }
 function fmtClock(ms){ const s = Math.ceil(ms / 1000); return pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
 function beep(){
   try {
@@ -2266,7 +2295,8 @@ function tick(force){
   const ms = remainMs();
   const clock = $('#clock'); if (clock) clock.textContent = fmtClock(ms);
   const mini = $('#mini');
-  const showMini = route() !== 'planner' && (T.running || (T.remain !== null && T.remain < phaseLen()));
+  try { rmTick(); } catch(e){}
+  const showMini = route() !== 'planner' && route() !== 'rooms' && (T.running || (T.remain !== null && T.remain < phaseLen()));
   mini.style.display = showMini ? 'block' : 'none';
   if (showMini) mini.textContent = (T.phase === 'focus' ? 'Focus ' : 'Break ') + fmtClock(ms) + (T.running ? '' : ' (paused)');
   if (T.running) document.title = fmtClock(ms) + ' · IAL Revise'; else if (force || document.title !== 'IAL Revise') document.title = 'IAL Revise';
@@ -4706,7 +4736,7 @@ function frClean(o){
   if (!o || typeof o !== 'object') return null;
   const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
   const ph = str(o.ph, 60000);
-  return { n: str(o.n, 40), c: /^#[0-9a-fA-F]{6}$/.test(o.c) ? o.c : '#4b5a70', s: str(o.s, 60), y: str(o.y, 40), sub: Array.isArray(o.sub) ? o.sub.filter(x => typeof x === 'string').slice(0, 12).map(x => x.slice(0, 30)) : [], ph: /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(ph) ? ph : '', act: actClean(o.act), inv: Array.isArray(o.inv) ? o.inv.slice(0, 20).map(meetClean).filter(Boolean) : [], rsp: (() => { const r = {}; if (o.rsp && typeof o.rsp === 'object') Object.keys(o.rsp).slice(0, 40).forEach(k => { if (k.length <= 24 && (o.rsp[k] === 'yes' || o.rsp[k] === 'no')) r[k] = o.rsp[k]; }); return r; })() };
+  return { n: str(o.n, 40), c: /^#[0-9a-fA-F]{6}$/.test(o.c) ? o.c : '#4b5a70', s: str(o.s, 60), y: str(o.y, 40), sub: Array.isArray(o.sub) ? o.sub.filter(x => typeof x === 'string').slice(0, 12).map(x => x.slice(0, 30)) : [], ph: /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(ph) ? ph : '', act: actClean(o.act), rm: o.rm && typeof o.rm === 'object' && /^[A-Z2-9]{8}$/.test(o.rm.id) ? { id: o.rm.id, n: str(o.rm.n, 40) } : null, inv: Array.isArray(o.inv) ? o.inv.slice(0, 20).map(meetClean).filter(Boolean) : [], rsp: (() => { const r = {}; if (o.rsp && typeof o.rsp === 'object') Object.keys(o.rsp).slice(0, 40).forEach(k => { if (k.length <= 24 && (o.rsp[k] === 'yes' || o.rsp[k] === 'no')) r[k] = o.rsp[k]; }); return r; })() };
 }
 function frSchedule(){ if (!frOn() || !cloud.db || !cloud.id) return; clearTimeout(FR.timer); FR.timer = setTimeout(frPublish, 1500); }
 async function frPublish(){
@@ -4715,14 +4745,14 @@ async function frPublish(){
     const f = frState(); await frKeys();
     const mineObj = frMine(), t0 = addDays(todayStr(), -1), hosted = (state.meets || []).filter(m => m.d >= t0), rsp = {};
     Object.keys(state.meetRsp || {}).slice(-40).forEach(k => rsp[k] = state.meetRsp[k]);
-    const mine = JSON.stringify(mineObj) + JSON.stringify(hosted) + JSON.stringify(rsp), ids = Object.keys(f.friends).filter(id => !f.ignored.includes(id)).sort();
+    const mine = JSON.stringify(mineObj) + JSON.stringify(hosted) + JSON.stringify(rsp) + JSON.stringify(typeof rmForFriends === 'function' ? rmForFriends() : null), ids = Object.keys(f.friends).filter(id => !f.ignored.includes(id)).sort();
     const known = ids.map(id => FR.cards.find(c => c.id === id)).filter(c => c && c.pub);
     const sig = mine + '|' + f.code + '|' + known.map(c => c.id + c.pub.x).join(',');
     if (sig === FR.sent) return;
     const box = {};
     for (const c of known){
       const { key, tag } = await frPair(c), iv = crypto.getRandomValues(new Uint8Array(12));
-      const forThem = JSON.stringify(Object.assign({}, mineObj, { inv: hosted.filter(m => (m.with || []).includes(c.id)).map(m => ({ id: m.id, u: m.u, sr: m.sr, d: m.d, tm: m.tm })), rsp }));
+      const forThem = JSON.stringify(Object.assign({}, mineObj, { inv: hosted.filter(m => (m.with || []).includes(c.id)).map(m => ({ id: m.id, u: m.u, sr: m.sr, d: m.d, tm: m.tm })), rsp, rm: typeof rmForFriends === 'function' ? rmForFriends() : null }));
       box[tag] = { iv: b64(iv), ct: b64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(forThem))) };
     }
     await cloud.db.doc('cards/' + cloud.id).set({ pub: f.pub, code: f.code, at: Date.now(), box });
@@ -4839,6 +4869,7 @@ async function fbInit(){
         const user = { id: async () => u.uid, profiles: async () => ({}) };
         window.claude = { use: async n => n === 'db' ? fbDb() : n === 'user' ? user : null };
         connectCloud();
+        setTimeout(() => { try { rmResume(); rmPendingJoin(); } catch(e){} }, 0);
       }
       render();
     });
@@ -5592,10 +5623,10 @@ function render(){
   applyPrefs(); ensureSubjects(); try { sortSubjects(); } catch(err){ console.error(err); }
   const r = route(); setHdr(); try { subjColours(); } catch(err){}
   document.body.classList.toggle('focusing', (r === 'cards' && !!(ui.cards && (ui.cards.review || ui.cards.dq))) || (r === 'quiz' && !!(ui.quiz && ui.quiz.run)));
-  $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && r === 'cards') || (id === 'planner' && r === 'calendar') ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
+  $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && r === 'cards') || (id === 'planner' && (r === 'calendar' || r === 'rooms')) ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
   $('#nav-settings').setAttribute('aria-current', r === 'prefs' ? 'page' : 'false');
   { const np = $('#nav-profile'); if (np){ np.setAttribute('aria-current', r === 'profile' ? 'page' : 'false'); const k = (prof().photo || '').length + '|' + (prof().name || '') + '|' + avatarColor(); if (np.dataset.k !== k){ np.dataset.k = k; np.innerHTML = hasProfile() ? avatar(30) : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'; } } } { const ns = $('#nav-search'); if (ns) ns.setAttribute('aria-current', r === 'search' ? 'page' : 'false'); } fsSync();
-  const v = { today:viewToday, cards:viewCards, quiz:viewQuiz, papers:viewPapers, syllabus:viewSyllabus, planner:viewPlanner, calendar:viewCalendar, prefs:viewSettings, search:viewSearch, grades:viewGrades, mistakes:viewMistakes, setup:viewSetup, profile:viewProfile }[r];
+  const v = { today:viewToday, cards:viewCards, quiz:viewQuiz, papers:viewPapers, syllabus:viewSyllabus, planner:viewPlanner, calendar:viewCalendar, prefs:viewSettings, search:viewSearch, grades:viewGrades, mistakes:viewMistakes, setup:viewSetup, profile:viewProfile, rooms:viewRooms }[r];
   const gate = needLogin() || !!(ACCT && FB.action); document.body.classList.toggle('gate', gate);
   try { $('#view').innerHTML = ACCT && FB.action ? viewAuthAction() : gate ? viewLogin() : mockBar() + (route() === 'today' && shouldWelcome() ? verifyBanner() + viewWelcome() : v()); }
   catch(err){ console.error(err); $('#view').innerHTML = '<div class="card" role="alert"><h2>Something went wrong on this page</h2><p class="muted">' + esc(String(err && err.message || err)) + '</p><div class="row"><button class="btn primary" data-act="err-reload">Reload</button></div></div>'; }
@@ -5610,6 +5641,7 @@ function render(){
   try { fxApply(); } catch(err){ console.error(err); }
   try { renderSheet(); } catch(err){ console.error(err); }
   try { subjFold(); } catch(err){ console.error(err); }
+  try { rmAfterRender(); } catch(err){ console.error(err); }
 }
 /* Long explanations: shown as two lines with "Show more". Short text, warnings, privacy notes and
    anything with a control inside are left alone. Opened ones stay open while the page is in use. */
@@ -5689,6 +5721,7 @@ document.addEventListener('click', e => {
   if (b.closest('#retsheet') && ui.ret){ ui.ret = null; setTimeout(renderRet, 0); }
   const act = b.dataset.act, v = b.dataset.v, id = b.dataset.id;
   if (b.tagName === 'INPUT') return;
+  if (act.indexOf('rm-') === 0 && typeof rmAct === 'function'){ e.preventDefault(); rmAct(b); return; }
   if (act !== 'restore' && act !== 'reset' && act !== 'sub-wipe' && act !== 'pf-clear') ui.confirm = null;
   switch (act){
     case 'cards-subj': ui.cards.subj = v; ui.cards.unit = 'all'; render(); break;
@@ -6004,6 +6037,7 @@ document.addEventListener('change', e => {
     commit(); toast('Saved'); }
   else if (el.dataset && el.dataset.prefMotion){ prefs().motion = el.checked; commit(); }
   else if (el.dataset && el.dataset.prefTime){ prefs().remind = el.value || '19:00'; commit(); }
+  else if (el.dataset.act === 'rm-frinv'){ state.rmInvite = !!el.checked; commit(); frSchedule(); toast(el.checked ? 'Your friends can see this room and join it.' : 'Friends invitation turned off.'); }
   else if (el.dataset.act === 'unit-toggle'){ const c = el.dataset.id; state.hidden = state.hidden.filter(x => x !== c); if (!el.checked) state.hidden.push(c); commit(); }
 });
 document.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details.cp')){ if (d.open) ui.cpOpen = d.dataset.cp; else if (ui.cpOpen === d.dataset.cp) ui.cpOpen = null; return; } if (d.matches && d.matches('details.pmtq')){ if (d.open) ui.quiz.openPmt = d.dataset.k; else if (ui.quiz.openPmt === d.dataset.k) ui.quiz.openPmt = null; return; } if (d.matches && d.matches('details.unit')){ if (d.open) ui.syllabus.open = d.dataset.unit; else if (ui.syllabus.open === d.dataset.unit) ui.syllabus.open = null; } }, true);
@@ -6011,6 +6045,8 @@ document.addEventListener('submit', e => {
   const f = e.target.closest('form[data-form]'); if (!f) return;
   if (f.dataset.form.indexOf('fb-') === 0){ e.preventDefault(); fbForm(f.dataset.form, f); return; }
   if (f.dataset.form === 'profile'){ e.preventDefault(); profileSave(f); return; }
+  if (f.dataset.form === 'rm-create'){ e.preventDefault(); rmCreate(f.elements.kind.value, f.elements.name.value); return; }
+  if (f.dataset.form === 'rm-join'){ e.preventDefault(); rmJoin(f.elements.code.value); return; }
   if (f.dataset.form === 'busy-add'){ e.preventDefault(); const d = $('#busy-d').value; if (d && !prefs().busy.includes(d)){ prefs().busy.push(d); commit(); toast('Busy day added'); } return; }
   e.preventDefault();
   const kind = f.dataset.form;
@@ -6058,10 +6094,13 @@ document.addEventListener('submit', e => {
   else if (kind === 'buddy'){ const nick = $('#bd-nick').value.trim().slice(0, 24); const was = buddyOn(); state.buddy = { on: true, nick }; BUD.writeOk = true; commit(); if (!was) buddyStart(); else { BUD.sent = ''; buddyPublish(); } toast(was ? 'Name saved.' : 'Study buddy is on.'); }
   else if (kind === 'add-card'){ const u = $('#nc-unit').value, fr = $('#nc-front').value.trim(), bk = $('#nc-back').value.trim(); if (!fr || !bk) return; state.custom.push({ id: 'u' + uid(), u, f: fr, b: bk, mine: true }); commit(); toast('Card saved. It will appear in your next review.'); }
 });
-window.addEventListener('hashchange', () => { let h = ''; try { h = location.hash.slice(1); } catch(e){} if (h === curRoute) return; curRoute = h || null; ui.confirm = null; ui.editTask = null; render(); window.scrollTo({ top: 0 }); });
+function rmHashJoin(){ let h = ''; try { h = location.hash.slice(1); } catch(e){} const m = /^join-([A-Za-z0-9]{6,12})$/.exec(h); if (!m) return false; try { localStorage.setItem('ial-room-join', m[1]); } catch(e){} curRoute = 'rooms'; try { history.replaceState(null, '', '#rooms'); } catch(e){} rmPendingJoin(); return true; }
+function rmPendingJoin(){ let c = ''; try { c = localStorage.getItem('ial-room-join') || ''; } catch(e){} if (!c || typeof rmAvailable !== 'function' || !rmAvailable()) return; try { localStorage.removeItem('ial-room-join'); } catch(e){} rmJoin(c); }
+window.addEventListener('hashchange', () => { if (rmHashJoin()) return; let h = ''; try { h = location.hash.slice(1); } catch(e){} if (h === curRoute) return; curRoute = h || null; ui.confirm = null; ui.editTask = null; render(); window.scrollTo({ top: 0 }); });
 // Every in-app link (#route) is handled here, in capture phase, before anything else can swallow it.
-document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return; const h = a.getAttribute('href').slice(1); if (!['today','cards','quiz','papers','mistakes','grades','syllabus','planner','calendar','prefs','setup','search','profile'].includes(h)) return; e.preventDefault(); setTimeout(() => go(h), 0); }, true);
+document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return; const h = a.getAttribute('href').slice(1); if (!['today','cards','quiz','papers','mistakes','grades','syllabus','planner','calendar','rooms','prefs','setup','search','profile'].includes(h)) return; e.preventDefault(); setTimeout(() => go(h), 0); }, true);
 
+try { rmHashJoin(); } catch(e){}
 render();
 { const _ra = renderAsk; renderAsk = function(){ _ra(); askTH(); }; }
 connectCloud();

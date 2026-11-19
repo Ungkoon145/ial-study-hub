@@ -1,0 +1,48 @@
+    // ---------- Study rooms (paste inside "match /databases/{database}/documents { ... }") ----------
+    match /rooms/{rid} {
+      function signedIn() { return request.auth != null; }
+      function me() { return request.auth.uid; }
+      function pubNames() { return ['Quiet library', 'Exam season focus', 'Past paper practice', 'Morning focus', 'Night owls', 'Weekend revision', 'Maths', 'Further Maths', 'Physics', 'Chemistry', 'Biology', 'Economics', 'Psychology', 'Computer Science', 'Geography', 'History', 'English']; }
+      function okMember(m) {
+        return m.keys().hasOnly(['n', 'c', 'st', 'end', 'left', 'ph', 'sub', 'min', 'cam', 'r', 'ra', 'at'])
+          && m.n is string && m.n.size() <= 40 && m.sub is string && m.sub.size() <= 30 && m.r is string && m.r.size() <= 8
+          && m.cam is bool && (m.cam == false || resource.data.kind == 'cam');
+      }
+      // Camera rooms can only be opened by someone who knows their code; only public rooms can be listed.
+      allow get: if signedIn();
+      allow list: if signedIn() && resource.data.kind == 'public';
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'kind', 'owner', 'at', 'ban', 'm'])
+        && request.resource.data.owner == me()
+        && request.resource.data.kind in ['public', 'cam']
+        && request.resource.data.m.size() == 0 && request.resource.data.ban.size() == 0
+        && request.resource.data.name is string && request.resource.data.name.size() <= 40
+        && (request.resource.data.kind == 'cam' || request.resource.data.name in pubNames());
+      allow update: if signedIn() && (
+        // the owner may remove people (and ban them), but not change who owns the room or its kind
+        (resource.data.owner == me()
+          && request.resource.data.owner == resource.data.owner
+          && request.resource.data.kind == resource.data.kind
+          && request.resource.data.name == resource.data.name
+          && request.resource.data.m.size() <= resource.data.m.size() + (me() in resource.data.m ? 0 : 1))
+        ||
+        // everyone else may only add, change or remove their own entry, and only if not banned
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['m'])
+          && request.resource.data.m.diff(resource.data.m).affectedKeys().hasOnly([me()])
+          && !(me() in resource.data.ban)
+          && (!(me() in request.resource.data.m) || (okMember(request.resource.data.m[me()])
+              && request.resource.data.m.size() <= (resource.data.kind == 'cam' ? 12 : 40))))
+      );
+      allow delete: if signedIn() && resource.data.owner == me();
+
+      // Video connection set-up between two people in a camera room
+      match /sig/{sid} {
+        allow read: if signedIn() && (resource.data.to == me() || resource.data.from == me());
+        allow create, update: if signedIn() && request.resource.data.from == me()
+          && sid == me() + '_' + request.resource.data.to
+          && get(/databases/$(database)/documents/rooms/$(rid)).data.kind == 'cam'
+          && me() in get(/databases/$(database)/documents/rooms/$(rid)).data.m
+          && request.resource.data.sdp.size() < 20000;
+        allow delete: if signedIn() && (resource.data.from == me() || resource.data.to == me());
+      }
+    }
