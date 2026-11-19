@@ -928,6 +928,11 @@ html[lang="th"] .herostats .lab{line-height:1.6}
   .retsheet{z-index:35}
 }
 
+/* Header profile button */
+.top .avbtn{padding:0;overflow:hidden}
+.top .avbtn .avatar{width:30px !important;height:30px !important;font-size:12px !important}
+.top .avbtn[aria-current="page"]{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass)}
+@media (max-width:380px){#fs-btn{display:none}}
 /* Profile */
 .pfband{gap:18px}
 .pfband .avatar{box-shadow:0 0 0 2px var(--brass)}
@@ -964,6 +969,7 @@ html[lang="th"] .herostats .lab{line-height:1.6}
     <span class="sync" id="sync" data-s="local" hidden><i></i><span id="sync-text">This device</span></span>
     <a class="iconbtn" href="#search" id="nav-search" aria-label="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></a>
     <button class="iconbtn" id="fs-btn" type="button" data-act="fullscreen" aria-label="Full screen" title="Full screen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+    <a class="iconbtn avbtn" href="#profile" id="nav-profile" aria-label="My profile"></a>
     <a class="iconbtn" href="#prefs" id="nav-settings" aria-label="Settings and my units">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
     </a>
@@ -5563,7 +5569,8 @@ function render(){
   const r = route(); setHdr(); try { subjColours(); } catch(err){}
   document.body.classList.toggle('focusing', (r === 'cards' && !!(ui.cards && (ui.cards.review || ui.cards.dq))) || (r === 'quiz' && !!(ui.quiz && ui.quiz.run)));
   $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && r === 'cards') || (id === 'planner' && r === 'calendar') ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
-  $('#nav-settings').setAttribute('aria-current', r === 'prefs' ? 'page' : 'false'); { const ns = $('#nav-search'); if (ns) ns.setAttribute('aria-current', r === 'search' ? 'page' : 'false'); } fsSync();
+  $('#nav-settings').setAttribute('aria-current', r === 'prefs' ? 'page' : 'false');
+  { const np = $('#nav-profile'); if (np){ np.setAttribute('aria-current', r === 'profile' ? 'page' : 'false'); const k = (prof().photo || '').length + '|' + (prof().name || '') + '|' + avatarColor(); if (np.dataset.k !== k){ np.dataset.k = k; np.innerHTML = hasProfile() ? avatar(30) : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'; } } } { const ns = $('#nav-search'); if (ns) ns.setAttribute('aria-current', r === 'search' ? 'page' : 'false'); } fsSync();
   const v = { today:viewToday, cards:viewCards, quiz:viewQuiz, papers:viewPapers, syllabus:viewSyllabus, planner:viewPlanner, calendar:viewCalendar, prefs:viewSettings, search:viewSearch, grades:viewGrades, mistakes:viewMistakes, setup:viewSetup, profile:viewProfile }[r];
   const gate = needLogin() || !!(ACCT && FB.action); document.body.classList.toggle('gate', gate);
   try { $('#view').innerHTML = ACCT && FB.action ? viewAuthAction() : gate ? viewLogin() : mockBar() + (route() === 'today' && shouldWelcome() ? verifyBanner() + viewWelcome() : v()); }
