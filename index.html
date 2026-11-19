@@ -533,6 +533,32 @@ details.unit[open]>summary{border-bottom:1px solid var(--line)}
 [data-pat="spa"]{--pat:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2234%22%20height%3D%2230%22%3E%3Cpath%20stroke%3D%22%23000%22%20fill%3D%22none%22%20stroke-width%3D%221.4%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M6%206h20a3%203%200%200%201%203%203v9a3%203%200%200%201-3%203H14l-5%204v-4H6a3%203%200%200%201-3-3V9a3%203%200%200%201%203-3z%22%2F%3E%3C%2Fsvg%3E");--ps:34px 30px}
 [data-pat="ara"]{--pat:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2234%22%20height%3D%2230%22%3E%3Cpath%20stroke%3D%22%23000%22%20fill%3D%22none%22%20stroke-width%3D%221.4%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M6%206h20a3%203%200%200%201%203%203v9a3%203%200%200%201-3%203H14l-5%204v-4H6a3%203%200%200%201-3-3V9a3%203%200%200%201%203-3z%22%2F%3E%3C%2Fsvg%3E");--ps:34px 30px}
 [data-pat="gre"]{--pat:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2234%22%20height%3D%2230%22%3E%3Cpath%20stroke%3D%22%23000%22%20fill%3D%22none%22%20stroke-width%3D%221.4%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M6%206h20a3%203%200%200%201%203%203v9a3%203%200%200%201-3%203H14l-5%204v-4H6a3%203%200%200%201-3-3V9a3%203%200%200%201%203-3z%22%2F%3E%3C%2Fsvg%3E");--ps:34px 30px}
+/* Pop-up sheet */
+#sheet{position:fixed;inset:0;z-index:60;background:color-mix(in srgb,#000 45%,transparent);display:flex;align-items:flex-end;justify-content:center}
+#sheet .sheetbox{background:var(--surface);color:var(--ink);width:100%;max-width:560px;max-height:92vh;overflow:auto;overscroll-behavior:contain;border-radius:20px 20px 0 0;padding:8px 18px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;box-shadow:0 -10px 34px rgba(0,0,0,.25)}
+.sheetgrab{width:40px;height:5px;border-radius:99px;background:var(--line);margin:2px auto 0}
+.sheethead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sheethead h2{margin:0}
+.sheethead .x{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:1.4rem;line-height:1;cursor:pointer;color:var(--ink)}
+@media (min-width:701px){#sheet{align-items:center}#sheet .sheetbox{border-radius:20px;padding:18px 22px 22px}.sheetgrab{display:none}}
+body.sheet-open{overflow:hidden}
+.pfnudge{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.pfnudge .grow{min-width:180px}
+.chip.morechip{border-style:dashed;color:var(--muted)}
+.chip[hidden]{display:none}
+.sync.quiet #sync-text{display:none}
+@media (prefers-reduced-motion:no-preference){
+  #sheet,#asksheet{animation:shfade .2s ease-out}
+  #sheet .sheetbox,#asksheet .askbox{animation:shup .3s cubic-bezier(.2,.9,.3,1)}
+  #sheet.leave{animation:shfade .2s ease-in reverse forwards}
+  #sheet.leave .sheetbox{animation:shdown .2s ease-in forwards}
+  @media (min-width:701px){#sheet .sheetbox,#asksheet .askbox{animation:shpop .24s cubic-bezier(.2,.9,.3,1)}#sheet.leave .sheetbox{animation:shout .18s ease-in forwards}}
+}
+@keyframes shfade{from{opacity:0}}
+@keyframes shup{from{transform:translateY(100%)}}
+@keyframes shdown{to{transform:translateY(100%)}}
+@keyframes shpop{from{opacity:0;transform:scale(.95) translateY(8px)}}
+@keyframes shout{to{opacity:0;transform:scale(.96)}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);top:70px;z-index:40;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:.92rem;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.2);display:none;max-width:calc(100% - 32px)}
 .toggle{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);cursor:pointer}
 .toggle:first-child{border-top:0}
@@ -1045,6 +1071,13 @@ function setSync(s){
   el.hidden = LOCAL_ONLY || s === 'local' || s === 'slow';
   $('#sync-text').textContent = ({synced:'Synced', saving:'Saving…', pending:'Saving…', connecting:'Connecting…', local:'This device', slow:'This device'})[s] || 'This device';
   el.title = s === 'synced' ? 'Progress is saved to your account and syncs across devices' : 'Progress is saved in this browser';
+  // Only the dot shows normally. "Synced" shows briefly after a save; "Saving…" only if a save is slow.
+  clearTimeout(setSync.t); el.classList.add('quiet');
+  if (s === 'synced' && setSync.was && setSync.was !== 'synced'){ el.classList.remove('quiet'); setSync.t = setTimeout(() => el.classList.add('quiet'), 2000); }
+  else if (s === 'pending' || s === 'saving'){ if (!setSync.slowAt) setSync.slowAt = Date.now(); setSync.t = setTimeout(() => { if (cloud.status === 'pending' || cloud.status === 'saving') el.classList.remove('quiet'); }, Math.max(0, 5000 - (Date.now() - setSync.slowAt))); }
+  else if (s === 'connecting') el.classList.remove('quiet');
+  if (s !== 'pending' && s !== 'saving') setSync.slowAt = 0;
+  setSync.was = s;
   if (typeof isTH === 'function' && isTH()) try { thApply(el); const r = thText(el.title); if (r != null) el.title = r; } catch(e){}
 }
 function commit(){
@@ -2416,7 +2449,7 @@ function profileSave(f){
   if (p.year){ const Q = quickInit(); Q.stage = p.year === 'y13' ? 'a2' : (p.year === 'both' || p.year === 'resit' || p.year === 'private') ? 'both' : 'as'; if (p.session) Q.series = p.session; }
   const where = f.dataset.where;
   if (where === 'welcome'){ ui.welcomeStep = 2; commit(); window.scrollTo({ top: 0 }); }
-  else { ui.pfEdit = false; state.pfNudged = true; commit(); toast('Profile saved'); }
+  else { ui.pfEdit = false; state.pfNudged = true; const wasSheet = ui.sheet === 'profile'; commit(); toast('Profile saved'); if (wasSheet) sheetClose(); }
 }
 function profileCard(){
   const p = prof();
@@ -2426,8 +2459,36 @@ function profileCard(){
 }
 function profileNudge(){
   if (hasProfile() || state.pfNudged || !state.welcomed) return '';
-  return '<div class="card stack"><div class="card-h"><h2>Tell us about yourself</h2></div><p class="small muted" style="margin:0">Add your name, school and year so the app can set things up for you. It takes 30 seconds.</p>' + profileForm('nudge') + '</div>';
+  return '<div class="card pfnudge">' + avatar(44) + '<div class="grow"><b>Add your name and school</b><div class="small muted">So the app can set things up for you. It takes 30 seconds.</div></div><div class="row" style="gap:6px"><button class="btn primary sm" data-act="sheet" data-v="profile">Add details</button><button class="btn ghost sm" data-act="pf-later">Not now</button></div></div>';
 }
+/* ---- Pop-up sheet: slides up on phones, opens in the middle on bigger screens ---- */
+function sheetBody(k){
+  if (k === 'profile') return { t: 'Tell us about yourself', h: '<p class="small muted" style="margin:0">Add your name, school and year so the app can set things up for you.</p>' + profileForm('nudge') };
+  if (k === 'goal'){ const g = goalMin(); return { t: 'Daily study goal', h: '<p class="small muted" style="margin:0">Focus timer sessions and timed past papers count towards it. Meet it on days in a row to build a streak.</p><div class="chips" role="group" aria-label="Daily goal">' + [30, 45, 60, 90, 120, 180].map(x => '<button class="chip" data-act="goal-set" data-v="' + x + '" aria-pressed="' + (g === x) + '">' + fmtMin(x) + '</button>').join('') + '</div>' }; }
+  return null;
+}
+let sheetFocus = null;
+function renderSheet(){
+  let el = document.getElementById('sheet'); const b = ui.sheet ? sheetBody(ui.sheet) : null;
+  if (!b){ if (el) el.remove(); document.body.classList.remove('sheet-open'); return; }
+  const fresh = !el;
+  if (fresh){ sheetFocus = document.activeElement; el = document.createElement('div'); el.id = 'sheet'; el.className = 'enter'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); document.body.appendChild(el);
+    el.addEventListener('click', e => { if (e.target === el) sheetClose(); }); }
+  el.setAttribute('aria-label', b.t);
+  const keepScroll = el.querySelector('.sheetbox') ? el.querySelector('.sheetbox').scrollTop : 0;
+  el.innerHTML = '<div class="sheetbox"><div class="sheetgrab" aria-hidden="true"></div><div class="sheethead"><h2>' + b.t + '</h2><button class="x" data-act="sheet-close" aria-label="Close">×</button></div>' + b.h + '</div>';
+  el.querySelector('.sheetbox').scrollTop = keepScroll;
+  document.body.classList.add('sheet-open');
+  if (isTH()) try { thApply(el); } catch(err){}
+  if (fresh){ setTimeout(() => { el.classList.remove('enter'); const f = el.querySelector('input:not([type=file]),select,button.chip,button[type=submit]'); if (f) f.focus({ preventScroll: true }); }, 30); }
+}
+function sheetClose(){
+  const el = document.getElementById('sheet'); if (!el || el.classList.contains('leave')) return;
+  const done = () => { ui.sheet = null; renderSheet(); try { if (sheetFocus && sheetFocus.isConnected) sheetFocus.focus({ preventScroll: true }); } catch(err){} };
+  if (FX_CALM()) return done();
+  el.classList.add('leave'); setTimeout(done, 200);
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.sheet && !document.querySelector('.schoolpick [aria-expanded="true"]')) sheetClose(); });
 
 /* ============================================================
    Settings: my subjects (add / switch / finish / drop), study habits,
@@ -3732,6 +3793,23 @@ function momentArm(){ MSNAP = momentSnap(); }
 const mT = (en, th) => isTH() ? th : en;
 const thName = x => isTH() ? (thText(x) || x) : x;
 function subjCovered(sid){ const us = SUBJ[sid].units.filter(u => !isHidden(u.c)); return us.length ? Math.round(us.reduce((a, u) => a + unitProgress(u), 0) / us.length * 100) : 0; }
+/* Subject chooser: once he has used a few subjects, show those and fold the rest away. */
+function subjFold(){
+  const rec = (state.recentSubj || []);
+  const L = t => isTH() ? (thText(t) || t) : t;
+  document.querySelectorAll('#view .chips').forEach(box => {
+    const chips = [...box.querySelectorAll(':scope > .chip[data-subj]')]; if (!chips.length) return;
+    if (chips.length <= 8 || rec.length < 2 || ui.subjAll) { if (chips.length > 8 && rec.length >= 2) box.insertAdjacentHTML('beforeend', '<button class="chip morechip" data-act="subj-all">' + L('Show fewer') + '</button>'); return; }
+    let hidden = 0;
+    chips.forEach(c => { if (c.getAttribute('aria-pressed') !== 'true' && !rec.includes(c.dataset.v)){ c.hidden = true; hidden++; } });
+    if (hidden) box.insertAdjacentHTML('beforeend', '<button class="chip morechip" data-act="subj-all">' + L('All subjects (' + chips.length + ')') + '</button>');
+  });
+}
+document.addEventListener('click', e => {
+  const c = e.target.closest && e.target.closest('.chip[data-subj]'); if (!c || !c.dataset.v) return;
+  const r = (state.recentSubj || []).filter(x => x !== c.dataset.v); r.unshift(c.dataset.v); state.recentSubj = r.slice(0, 6);
+  if (ui.subjAll) ui.subjAll = false;
+}, true);
 function moments(){
   const o = MSNAP; if (!o || o.obj !== state || o.day !== todayStr()) return;
   const n = momentSnap(); MSNAP = n;
@@ -5214,6 +5292,8 @@ function render(){
   try { dqPadInit(); } catch(err){ console.error(err); }
   try { clampLong($('#view')); } catch(err){ console.error(err); }
   try { fxApply(); } catch(err){ console.error(err); }
+  try { renderSheet(); } catch(err){ console.error(err); }
+  try { subjFold(); } catch(err){ console.error(err); }
 }
 /* Long explanations: shown as two lines with "Show more". Short text, warnings, privacy notes and
    anything with a control inside are left alone. Opened ones stay open while the page is in use. */
@@ -5380,7 +5460,7 @@ document.addEventListener('click', e => {
     case 'ask-img-del': if (ui.ask){ if (ui.ask.imgUrl) URL.revokeObjectURL(ui.ask.imgUrl); ui.ask.img = null; ui.ask.imgUrl = ''; const q = $('#ask-q'); if (q) ui.ask.q = q.value; renderAsk(); } break;
     case 'ask-mistake': { const u = ui.ask ? ui.ask.u : null; askClose(); ui.mk.subj = 'all'; mkStartForm(u); go('mistakes'); break; }
     case 'pf-edit': ui.pfEdit = true; render(); break;
-    case 'pf-later': state.pfNudged = true; commit(); break;
+    case 'pf-later': state.pfNudged = true; commit(); if (ui.sheet === 'profile') sheetClose(); break;
     case 'pf-color': pfRead(); prof().color = v; commit(); break;
     case 'pf-photo-del': pfRead(); prof().photo = ''; commit(); break;
     case 'pf-clear': if (ui.confirm === 'pf-clear'){ ui.confirm = null; state.profile = null; ui.pfEdit = false; commit(); toast('Profile cleared'); } else { ui.confirm = 'pf-clear'; render(); } break;
@@ -5466,8 +5546,11 @@ document.addEventListener('click', e => {
     }
     case 'mk-end': ui.mk.review = null; render(); break;
     case 'su-open': ui.setup = null; break;
-    case 'goal-edit': ui.goalEdit = !ui.goalEdit; render(); break;
-    case 'goal-set': state.goal = { min: +v }; ui.goalEdit = false; commit(); toast('Daily goal: ' + fmtMin(+v)); break;
+    case 'goal-edit': ui.sheet = 'goal'; renderSheet(); break;
+    case 'goal-set': state.goal = { min: +v }; ui.goalEdit = false; commit(); toast('Daily goal: ' + fmtMin(+v)); if (ui.sheet === 'goal') sheetClose(); break;
+    case 'sheet': ui.sheet = v; renderSheet(); break;
+    case 'subj-all': ui.subjAll = !ui.subjAll; render(); break;
+    case 'sheet-close': sheetClose(); break;
     case 'plan-make': state.plan = { d: todayStr(), total: +v, steps: planFor(+v) }; commit(); break;
     case 'plan-clear': state.plan = null; commit(); break;
     case 'plan-done': {
