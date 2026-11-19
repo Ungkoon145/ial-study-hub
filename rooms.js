@@ -244,7 +244,7 @@ function rmSyncPeers(){
 }
 function rmVideo(uid){
   let v = RM.vids[uid];
-  if (!v){ v = RM.vids[uid] = document.createElement('video'); v.autoplay = true; v.playsInline = true; v.muted = true; v.setAttribute('playsinline', ''); v.className = 'rmv'; }
+  if (!v){ v = RM.vids[uid] = document.createElement('video'); v.autoplay = true; v.playsInline = true; v.muted = true; v.setAttribute('playsinline', ''); v.className = 'rmv'; v.addEventListener('loadeddata', () => rmPlace()); v.addEventListener('resize', () => rmPlace()); }
   return v;
 }
 function rmPlace(){
@@ -253,7 +253,11 @@ function rmPlace(){
     let v = null;
     if (uid === 'me'){ if (RM.cam){ v = rmVideo('me'); if (v.srcObject !== RM.cam) v.srcObject = RM.cam; v.classList.add('mirror'); } }
     else if (RM.vids[uid] && RM.room && (RM.room.m[uid] || {}).cam && !RM.hidden[uid]) v = RM.vids[uid];
-    if (v){ if (v.parentNode !== slot){ slot.textContent = ''; slot.appendChild(v); } v.play().catch(() => {}); slot.classList.add('on'); }
+    if (v){
+      if (v.parentNode !== slot){ const keep = slot.querySelector('.avatar'); slot.textContent = ''; if (keep) slot.appendChild(keep); slot.appendChild(v); }
+      v.play().catch(() => {});
+      slot.classList.toggle('on', uid === 'me' || v.videoWidth > 0);   // initials stay until the first frame arrives
+    }
     else slot.classList.remove('on');
   });
   try { rmWatchSlots(); rmNvUpdate(); } catch(e){}
