@@ -273,9 +273,9 @@ function rmTile(m, me){
 }
 function viewRooms(){
   if (!(typeof ACCT !== 'undefined' && ACCT)){
-    return '<div class="stack">' + pSeg('rooms') + '<div><h1>Study rooms</h1></div><div class="card stack"><p>Study rooms work on the main IAL Revise site, where you sign in.</p><div class="row"><a class="btn primary" href="https://ungkoon145.github.io/ial-study-hub/#rooms" target="_blank" rel="noopener">Open the main site ↗</a></div></div></div>';
+    return '<div class="stack">' + '<div><h1>Study rooms</h1></div><div class="card stack"><p>Study rooms work on the main IAL Revise site, where you sign in.</p><div class="row"><a class="btn primary" href="https://ungkoon145.github.io/ial-study-hub/#rooms" target="_blank" rel="noopener">Open the main site ↗</a></div></div></div>';
   }
-  if (!FB.user) return '<div class="stack">' + pSeg('rooms') + '<div><h1>Study rooms</h1></div><div class="card"><p>Sign in to join study rooms.</p></div></div>';
+  if (!FB.user) return '<div class="stack">' + '<div><h1>Study rooms</h1></div><div class="card"><p>Sign in to join study rooms.</p></div></div>';
   return RM.rid && RM.room ? viewRoom() : viewLobby();
 }
 function viewLobby(){
@@ -289,7 +289,7 @@ function viewLobby(){
         ? '<label class="f">Room name<input name="name" maxlength="30" autocomplete="off" placeholder="e.g. Koon’s maths room"></label><p class="small muted">Only people you give the code to, or friends you invite, can join. Up to 6 people. Cameras start off, and there’s no microphone or chat.</p>'
         : '<label class="f">Room name<select name="name">' + RM_PUB_NAMES.map(n => '<option>' + esc(n) + '</option>').join('') + '</select></label><p class="small muted">Anyone signed in can join. People see your first name, your focus timer and subject. No video, no chat.</p>') +
       '<div class="row"><button class="btn primary" type="submit"' + (RM.busy ? ' disabled' : '') + '>Create and join</button><button class="btn ghost" type="button" data-act="rm-new" data-v="">Cancel</button></div></form>';
-  return '<div class="stack">' + pSeg('rooms') +
+  return '<div class="stack">' +
     '<div><h1>Study rooms</h1><p class="muted"><span>Study alongside other students with a shared focus timer.</span> <span>Public rooms show names and timers only. Camera rooms are for people you invite.</span></p></div>' +
     (RM.noRules ? '<div class="card warnline" role="alert"><p>Study rooms aren’t switched on for this site yet.</p></div>' : '') +
     (inv.length ? '<div class="card stack"><h2>Invitations from friends</h2>' + inv.map(x => '<div class="li"><div class="grow"><div class="t"><b>' + esc(x.from) + '</b></div><div class="small muted">' + esc(x.name) + ' · <span>camera room</span></div></div><button class="btn sm primary" data-act="rm-join" data-v="' + esc(x.id) + '">Join</button></div>').join('') + '</div>' : '') +
@@ -314,7 +314,7 @@ function viewRoom(){
   mem.sort((a, b) => (a.id === me ? -1 : b.id === me ? 1 : (a.n || '').localeCompare(b.n || '')));
   const ms = remainMs(), link = location.origin + location.pathname + '#join-' + r.id;
   const frOk = cam && typeof frOn === 'function' && frOn() && frLists().friends.length;
-  return '<div class="stack">' + pSeg('rooms') +
+  return '<div class="stack">' +
     '<div class="row" style="justify-content:space-between;align-items:flex-start"><div><h1 class="rmname">' + esc(r.name) + '</h1><p class="small muted"><span>' + (cam ? 'Camera room · invite only' : 'Public room · no video') + '</span> · ' + mem.length + '/' + (cam ? RM_CAM_MAX : RM_PUB_MAX) + '</p></div>' +
       '<button class="btn" data-act="rm-leave">Leave</button></div>' +
     (cam ? '<div class="card stack rminvite"><div class="row" style="justify-content:space-between;align-items:center"><div><div class="small muted">Room code</div><div class="rmcode notr">' + esc(r.id.slice(0, 4) + ' ' + r.id.slice(4)) + '</div></div>' +
