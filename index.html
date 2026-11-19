@@ -845,6 +845,13 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 .rmcam.nocam .avatar{width:44px !important;height:44px !important;font-size:17px !important}
 .rmcam video.rmv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
 .rmcam video.mirror{transform:scaleX(-1)}
+.rmcam video.rmv{transition:transform .2s ease}
+.rmadj .rmadjrow{display:flex;flex-direction:column;gap:4px}
+.rmadj input[type=range]{width:100%;max-width:440px;min-height:32px}
+.rmfadj{position:absolute;right:12px;bottom:84px;width:min(380px,calc(100vw - 24px));max-height:min(70vh,calc(100vh - 120px));overflow:auto;z-index:30;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.rmfadj .card{margin:0;background:var(--bg);color:var(--ink,var(--text,#101a2e));touch-action:auto;-webkit-user-select:auto;user-select:auto}
+.rmfadj .card .chip:not([aria-pressed=true]),.rmfadj .card .btn:not(.primary),.rmfadj .card .linkbtn{color:inherit}
+@media (prefers-reduced-motion:reduce){.rmcam video.rmv{transition:none}}
 .rmcam:not(.on) video{display:none}
 .rmcam.on>.avatar{display:none}
 .rmreact{position:absolute;top:8px;right:8px;font-size:1.5rem;line-height:1;background:var(--bg);border-radius:999px;padding:6px 8px;box-shadow:0 4px 14px rgba(0,0,0,.18);animation:rmpop .22s cubic-bezier(.23,1,.32,1)}

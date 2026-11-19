@@ -164,14 +164,17 @@ async function rmCamOn(){
     RM.camErr = /NotAllowed|Permission/.test(String(e && e.name)) ? 'Camera permission was blocked. Allow the camera for this site in your browser settings, then try again.' : 'No camera found, or another app is using it.';
     render(); return;
   }
-  const tr = RM.cam.getVideoTracks()[0];
-  try { tr.contentHint = 'motion'; } catch(e){}
+  try { RM.cam.getVideoTracks()[0].contentHint = 'motion'; } catch(e){}
+  if (rmAdjPiped()) await rmCamPipe();
+  const tr = rmSendTrack();
   await Promise.all(Object.values(RM.pcs).map(p => p.tx ? p.tx.sender.replaceTrack(tr).catch(() => {}) : null));
   Object.values(RM.pcs).forEach(p => { p.encKey = ''; }); rmTuneAll();
   rmBeat(); render();
 }
 function rmCamOff(quiet){
   if (!RM.cam) return;
+  if (RM.pipe){ RM.pipe.on = false; clearTimeout(RM.pipe.t); RM.pipe = null; }
+  if (RM.camOut){ RM.camOut.getTracks().forEach(t => t.stop()); RM.camOut = null; }
   RM.cam.getTracks().forEach(t => t.stop()); RM.cam = null;
   Object.values(RM.pcs).forEach(p => { if (p.tx) p.tx.sender.replaceTrack(null).catch(() => {}); p.encKey = ''; });
   try { rmTuneAll(); } catch(e){}
@@ -203,7 +206,7 @@ function rmGather(pc){
 async function rmOffer(uid, tries){
   const sess = rmCode(6), p = rmNewPc(uid, sess); p.tries = tries || 0;
   p.tx = p.pc.addTransceiver('video', { direction: 'sendrecv' });
-  if (RM.cam) await p.tx.sender.replaceTrack(RM.cam.getVideoTracks()[0]);
+  if (RM.cam) await p.tx.sender.replaceTrack(rmSendTrack());
   await p.pc.setLocalDescription(await p.pc.createOffer());
   await rmGather(p.pc);
   if (RM.pcs[uid] !== p || !RM.rid) return;
@@ -221,7 +224,7 @@ async function rmOnSig(list){
       const q = rmNewPc(s.from, s.sess);
       try {
         await q.pc.setRemoteDescription({ type: 'offer', sdp: s.sdp });
-        q.tx = q.pc.getTransceivers()[0]; if (q.tx){ q.tx.direction = 'sendrecv'; if (RM.cam) await q.tx.sender.replaceTrack(RM.cam.getVideoTracks()[0]); }
+        q.tx = q.pc.getTransceivers()[0]; if (q.tx){ q.tx.direction = 'sendrecv'; if (RM.cam) await q.tx.sender.replaceTrack(rmSendTrack()); }
         await q.pc.setLocalDescription(await q.pc.createAnswer());
         await rmGather(q.pc);
         if (RM.pcs[s.from] !== q || !RM.rid) continue;
@@ -251,11 +254,11 @@ function rmPlace(){
   (document.getElementById('rmfull') || document).querySelectorAll('[data-rmvid]').forEach(slot => {
     const uid = slot.dataset.rmvid;
     let v = null;
-    if (uid === 'me'){ if (RM.cam){ v = rmVideo('me'); if (v.srcObject !== RM.cam) v.srcObject = RM.cam; v.classList.add('mirror'); } }
+    if (uid === 'me'){ if (RM.cam){ v = rmVideo('me'); const st = RM.camOut || RM.cam; if (v.srcObject !== st) v.srcObject = st; } }
     else if (RM.vids[uid] && RM.room && (RM.room.m[uid] || {}).cam && !RM.hidden[uid]) v = RM.vids[uid];
     if (v){
       if (v.parentNode !== slot){ const keep = slot.querySelector('.avatar'); slot.textContent = ''; if (keep) slot.appendChild(keep); slot.appendChild(v); }
-      v.play().catch(() => {});
+      v.play().catch(() => {}); rmApplyView(v, uid, slot);
       slot.classList.toggle('on', uid === 'me' || v.videoWidth > 0);   // initials stay until the first frame arrives
     }
     else slot.classList.remove('on');
@@ -282,7 +285,8 @@ function rmTile(m, me){
       '<div class="small rmst"><span>' + rmStatus(m) + '</span> ' + rmClock(m) + '</div>' +
       '<div class="small muted">' + (m.sub ? esc(m.sub) + ' · ' : '') + '<span>' + fmtMin(+m.min || 0) + ' today</span></div>' +
       (!me && cam && m.cam && RM.pcs[m.id] && RM.pcs[m.id].state === 'failed' ? '<div class="small muted">Video couldn’t connect on this network.</div>' : '') +
-      (!me && (cam || owner) ? '<div class="row rmown">' + (cam && m.cam ? '<button class="linkbtn small" data-act="rm-hide" data-id="' + esc(m.id) + '">' + (RM.hidden[m.id] ? 'Show video' : 'Hide video') + '</button>' : '') + (owner ? '<button class="linkbtn small" data-act="rm-kick" data-id="' + esc(m.id) + '">Remove</button>' : '') + '</div>' : '') +
+      (me && cam && RM.cam ? '<div class="row rmown"><button class="linkbtn small" data-act="rm-adjust" data-id="me">Adjust my camera</button></div>' : '') +
+      (!me && (cam || owner) ? '<div class="row rmown">' + (cam && m.cam && !RM.hidden[m.id] ? '<button class="linkbtn small" data-act="rm-adjust" data-id="' + esc(m.id) + '">Adjust view</button>' : '') + (cam && m.cam ? '<button class="linkbtn small" data-act="rm-hide" data-id="' + esc(m.id) + '">' + (RM.hidden[m.id] ? 'Show video' : 'Hide video') + '</button>' : '') + (owner ? '<button class="linkbtn small" data-act="rm-kick" data-id="' + esc(m.id) + '">Remove</button>' : '') + '</div>' : '') +
     '</div></div>';
 }
 function viewRooms(){
@@ -296,7 +300,8 @@ function rmTools(){
   const snd = rmxAny();
   return '<div class="row rmtools">' +
     '<button class="rmglass rmtool" data-act="rm-panel" data-v="view" aria-pressed="' + (RM.panel === 'view') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg><span>View</span></button>' +
-    '<button class="rmglass rmtool' + (snd ? ' live' : '') + '" data-act="rm-panel" data-v="sound" aria-pressed="' + (RM.panel === 'sound') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span>Sounds</span></button>';
+    '<button class="rmglass rmtool' + (snd ? ' live' : '') + '" data-act="rm-panel" data-v="sound" aria-pressed="' + (RM.panel === 'sound') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span>Sounds</span></button>' +
+    (RM.rid && RM.room && RM.room.kind === 'cam' ? '<button class="rmglass rmtool" data-act="rm-panel" data-v="cam" aria-pressed="' + (RM.panel === 'cam') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><path d="M5 5l2 2M17 17l2 2"/></svg><span>Cameras</span></button>' : '');
 }
 function rmLobbyStage(){
   const P = rmvPrefs(), sc = RMV_SCENES.some(x => x[0] === P.scene) ? P.scene : 'library', lay = P.layout === 'grid' ? 'grid' : 'focus';
@@ -337,6 +342,7 @@ function viewLobby(){
 }
 function rmPanel(sc, lay){
   const P = rmvPrefs(), snd = rmxAny();
+  if (RM.panel === 'cam') return rmAdjPanel();
   return RM.panel === 'view' ? '<div class="card stack rmpanel"><div class="card-h"><h2>Your view</h2><span class="small muted">Only you see it</span></div><div class="rmswatches" role="group" aria-label="Your view">' +
       RMV_SCENES.map(([id, n]) => '<button class="rmswatch" data-act="rm-scene" data-v="' + id + '" aria-pressed="' + (id === sc) + '">' + rmvSwatch(id) + '<span>' + n + '</span></button>').join('') + '</div>' +
       '<div class="row" style="align-items:center;gap:10px"><span class="small muted">Layout</span><div class="chips" role="group" aria-label="Layout"><button class="chip" data-act="rm-layout" data-v="focus" aria-pressed="' + (lay === 'focus') + '">Focus</button><button class="chip" data-act="rm-layout" data-v="grid" aria-pressed="' + (lay === 'grid') + '">Grid</button></div></div></div>'
@@ -433,6 +439,7 @@ function rmAfterRender(){
 }
 function rmAct(el){
   const a = el.dataset.act, v = el.dataset.v, id = el.dataset.id;
+  if (/^rm-a(for|rot|flip|fit|mirror|reset|djust)$/.test(a)) return rmAdjAct(el);
   switch (a){
     case 'rm-new': RM.create = v ? { kind: v } : null; RM.joinErr = ''; render(); break;
     case 'rm-join': rmJoin(v); break;
@@ -527,9 +534,11 @@ function rmFullRender(){
       (T.running ? '<button class="rmglass rmtool" data-act="t-pause">Pause</button>' : '<button class="rmglass rmtool rmfgo" data-act="t-start">' + (ms < phaseLen() ? 'Resume' : 'Start focus') + '</button>') +
       (cam ? '<button class="rmglass rmtool' + (RM.cam ? ' live' : '') + '" data-act="' + (RM.cam ? 'rm-cam-off' : 'rm-cam-on') + '" aria-pressed="' + !!RM.cam + '" aria-label="' + (RM.cam ? 'Turn camera off' : 'Turn camera on') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/>' + (RM.cam ? '' : '<path d="M3 3l18 18"/>') + '</svg><span>Camera</span></button>' : '') +
       '<button class="rmglass rmtool" data-act="rm-fview" aria-label="Next view"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg><span>' + esc((RMV_SCENES.find(x => x[0] === sc) || ['', 'View'])[1]) + '</span></button>' +
+      (cam ? '<button class="rmglass rmtool" data-act="rm-panel" data-v="cam" aria-pressed="' + (RM.panel === 'cam') + '" aria-label="Adjust cameras"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><path d="M5 5l2 2M17 17l2 2"/></svg><span>Cameras</span></button>' : '') +
       '<button class="rmglass rmtool" data-act="rm-freset" aria-label="Reset layout"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>Reset layout</span></button>' +
       '<button class="rmglass rmtool" data-act="rm-fexit" aria-label="Exit full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6"/></svg><span>Exit</span></button>' +
     '</div>' +
+    (cam && RM.panel === 'cam' ? '<div class="rmfadj">' + rmAdjPanel() + '</div>' : '') +
     (P.fullHint ? '' : '<div class="rmfhint" role="status"><span>Drag anything to move it. Drag a corner to resize it.</span> <button class="linkbtn" data-act="rm-fhint">OK</button></div>');
   if (!el){
     el = document.createElement('div'); el.id = 'rmfull'; el.className = 'rmfull'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', r.name);
@@ -693,3 +702,125 @@ function rmLowDot(m, me){
   const t = me ? (RM.cam && rmQReduced() ? 'Video lowered to keep it smooth' : '') : (RM.lowIn[m.id] ? 'Weak connection' : '');
   return t ? '<span class="rmlow" role="status"><i aria-hidden="true"></i><span>' + t + '</span></span>' : '';
 }
+
+/* ============================================================
+   Camera adjustments.
+   Your camera: rotate, zoom and move the frame. When anything is changed, frames go through a canvas
+   (about 12 a second) and that is what others receive; with no change the camera is sent untouched.
+   Others' cameras: rotate, zoom, flip and fit/fill, applied on your screen only and saved per person.
+   ============================================================ */
+const RMA_DEF = { r: 0, z: 1, x: 0, y: 0, mi: 1 };
+const RMV_DEF = { r: 0, z: 1, mi: 0, fit: 'cover' };
+function rmAdjMe(){ const P = rmvPrefs(); if (!P.cam || typeof P.cam !== 'object') P.cam = Object.assign({}, RMA_DEF); for (const k in RMA_DEF) if (typeof P.cam[k] !== 'number') P.cam[k] = RMA_DEF[k]; return P.cam; }
+function rmAdjOf(uid){ const P = rmvPrefs(); P.see = P.see || {}; return Object.assign({}, RMV_DEF, P.see[uid] || {}); }
+function rmAdjSet(uid, k, v){ const P = rmvPrefs(); P.see = P.see || {}; P.see[uid] = Object.assign({}, RMV_DEF, P.see[uid] || {}, { [k]: v }); }
+function rmAdjPiped(){ const a = rmAdjMe(); return a.r % 360 !== 0 || a.z > 1.001; }
+function rmSendTrack(){ if (!RM.cam) return null; const s = RM.camOut || RM.cam; return s.getVideoTracks()[0] || null; }
+
+/* start or stop the canvas pipeline to match the settings, then hand the right track to every connection */
+async function rmCamPipe(){
+  const want = !!RM.cam && rmAdjPiped();
+  if (want && !RM.pipe){
+    const src = document.createElement('video'); src.muted = true; src.playsInline = true; src.setAttribute('playsinline', ''); src.srcObject = RM.cam; src.play().catch(() => {});
+    const cv = document.createElement('canvas'), ctx = cv.getContext('2d', { alpha: false });
+    const pipe = RM.pipe = { src, cv, ctx, on: true };
+    const draw = () => {
+      if (!pipe.on) return;
+      const w = src.videoWidth, h = src.videoHeight;
+      if (w && h){
+        const a = rmAdjMe(), rot = ((a.r % 360) + 360) % 360, side = rot % 180 !== 0;
+        const W = side ? h : w, H = side ? w : h;
+        if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
+        const z = Math.min(3, Math.max(1, +a.z || 1)), cw = w / z, ch = h / z;
+        const sx = (w - cw) / 2 * (1 + Math.max(-1, Math.min(1, +a.x || 0))), sy = (h - ch) / 2 * (1 + Math.max(-1, Math.min(1, +a.y || 0)));
+        ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(rot * Math.PI / 180);
+        ctx.drawImage(src, sx, sy, cw, ch, -w / 2, -h / 2, w, h); ctx.restore();
+      }
+      if (src.requestVideoFrameCallback && !document.hidden) src.requestVideoFrameCallback(draw); else pipe.t = setTimeout(draw, 83);
+    };
+    draw();
+    RM.camOut = cv.captureStream(12);
+    try { RM.camOut.getVideoTracks()[0].contentHint = 'motion'; } catch(e){}
+  } else if (!want && RM.pipe){
+    RM.pipe.on = false; clearTimeout(RM.pipe.t); try { RM.pipe.src.srcObject = null; } catch(e){}
+    if (RM.camOut) RM.camOut.getTracks().forEach(t => t.stop());
+    RM.pipe = null; RM.camOut = null;
+  } else return;
+  const tr = rmSendTrack();
+  await Promise.all(Object.values(RM.pcs).map(p => p.tx ? p.tx.sender.replaceTrack(tr).catch(() => {}) : null));
+  Object.values(RM.pcs).forEach(p => { p.encKey = ''; }); try { rmTuneAll(); } catch(e){}
+  rmPlace();
+}
+
+/* what you see of someone's video: CSS only, nothing is sent */
+function rmApplyView(v, uid, slot){
+  if (!v) return;
+  if (uid === 'me'){
+    const a = rmAdjMe();
+    v.style.transform = a.mi ? 'scaleX(-1)' : ''; v.style.objectFit = 'cover'; v.classList.remove('mirror'); return;
+  }
+  const a = rmAdjOf(uid), rot = ((a.r % 360) + 360) % 360, side = rot % 180 !== 0;
+  let k = 1;
+  if (side && slot){ const sw = slot.clientWidth || 4, sh = slot.clientHeight || 3, q = sw / sh; k = a.fit === 'contain' ? Math.min(q, 1 / q) : Math.max(q, 1 / q); }
+  v.style.objectFit = a.fit === 'contain' ? 'contain' : 'cover';
+  v.style.transform = (rot ? 'rotate(' + rot + 'deg) ' : '') + 'scale(' + (k * (+a.z || 1)).toFixed(3) + ')' + (a.mi ? ' scaleX(-1)' : '');
+}
+
+function rmAdjPanel(){
+  const r = RM.room; if (!r || r.kind !== 'cam') return '';
+  const me = rmUid(), a = rmAdjMe(), who = RM.adjFor || 'me';
+  const others = rmMembers(r).filter(m => m.id !== me && m.cam);
+  const rotBtns = id => '<button class="btn sm" data-act="rm-arot" data-id="' + id + '" data-v="-90" aria-label="Rotate left">⟲ Rotate left</button><button class="btn sm" data-act="rm-arot" data-id="' + id + '" data-v="90" aria-label="Rotate right">⟳ Rotate right</button>';
+  const slider = (id, k, val, min, max, step, label) => '<label class="rmadjrow"><span class="small muted">' + label + '</span><input type="range" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '" data-rmadj="' + id + '" data-k="' + k + '" aria-label="' + label + '"></label>';
+  let body;
+  if (who === 'me'){
+    body = (RM.cam ? '' : '<p class="small muted" style="margin:0">Turn your camera on to see these changes.</p>') +
+      '<div class="row">' + rotBtns('me') + '</div>' +
+      slider('me', 'z', a.z, 1, 3, 0.05, 'Zoom') +
+      (a.z > 1.001 ? slider('me', 'x', a.x, -1, 1, 0.05, 'Left / right') + slider('me', 'y', a.y, -1, 1, 0.05, 'Up / down') : '') +
+      '<label class="row small" style="gap:8px;align-items:center;min-height:44px"><input type="checkbox" data-act="rm-amirror"' + (a.mi ? ' checked' : '') + '> <span>Mirror my preview (others always see you the right way round)</span></label>' +
+      '<div class="row"><button class="btn sm ghost" data-act="rm-areset" data-id="me">Reset my camera</button></div>' +
+      '<p class="small muted" style="margin:0">Others see your camera rotated, zoomed and framed the way you set it here.</p>';
+  } else {
+    const m = others.find(x => x.id === who), o = rmAdjOf(who);
+    body = !m ? '<p class="small muted" style="margin:0">Their camera is off.</p>' :
+      '<div class="row">' + rotBtns(esc(who)) + '<button class="btn sm" data-act="rm-aflip" data-id="' + esc(who) + '" aria-pressed="' + !!o.mi + '">⇋ Flip</button></div>' +
+      slider(esc(who), 'z', o.z, 1, 3, 0.05, 'Zoom') +
+      '<div class="row" style="align-items:center;gap:10px"><span class="small muted">Shape</span><div class="chips" role="group" aria-label="Shape"><button class="chip" data-act="rm-afit" data-id="' + esc(who) + '" data-v="cover" aria-pressed="' + (o.fit !== 'contain') + '">Fill the tile</button><button class="chip" data-act="rm-afit" data-id="' + esc(who) + '" data-v="contain" aria-pressed="' + (o.fit === 'contain') + '">Show all</button></div></div>' +
+      '<div class="row"><button class="btn sm ghost" data-act="rm-areset" data-id="' + esc(who) + '">Reset</button></div>' +
+      '<p class="small muted" style="margin:0">Only you see these changes. They’re saved for next time.</p>';
+  }
+  return '<div class="card stack rmpanel rmadj"><div class="card-h"><h2>Cameras</h2>' + (RM.full ? '<button class="linkbtn small" data-act="rm-panel" data-v="cam">Done</button>' : '') + '</div>' +
+    '<div class="chips" role="group" aria-label="Whose camera"><button class="chip" data-act="rm-afor" data-id="me" aria-pressed="' + (who === 'me') + '">My camera</button>' +
+      others.map(m => '<button class="chip" data-act="rm-afor" data-id="' + esc(m.id) + '" aria-pressed="' + (who === m.id) + '">' + esc(m.n || 'A student') + '</button>').join('') + '</div>' +
+    body + '</div>';
+}
+function rmAdjAct(el){
+  const a = el.dataset.act, id = el.dataset.id, v = el.dataset.v;
+  const save = () => { try { saveLocal(); } catch(e){} };
+  switch (a){
+    case 'rm-afor': RM.adjFor = id; break;
+    case 'rm-arot': if (id === 'me'){ const c = rmAdjMe(); c.r = (((c.r || 0) + +v) % 360 + 360) % 360; rmCamPipe(); } else rmAdjSet(id, 'r', (((rmAdjOf(id).r || 0) + +v) % 360 + 360) % 360); break;
+    case 'rm-aflip': rmAdjSet(id, 'mi', rmAdjOf(id).mi ? 0 : 1); break;
+    case 'rm-afit': rmAdjSet(id, 'fit', v); break;
+    case 'rm-amirror': rmAdjMe().mi = el.checked ? 1 : 0; break;
+    case 'rm-areset': if (id === 'me'){ const mi = rmAdjMe().mi; rmvPrefs().cam = Object.assign({}, RMA_DEF, { mi }); rmCamPipe(); } else { const P = rmvPrefs(); if (P.see) delete P.see[id]; } break;
+    case 'rm-adjust': RM.panel = 'cam'; RM.adjFor = id || 'me'; break;
+    default: return false;
+  }
+  save();
+  if (RM.full) rmFullRender(); else render();
+  return true;
+}
+/* sliders change things live without redrawing the page (a redraw would drop the slider mid-drag) */
+document.addEventListener('input', e => {
+  const el = e.target; if (!el || !el.dataset || !el.dataset.rmadj) return;
+  const id = el.dataset.rmadj, k = el.dataset.k, val = +el.value;
+  if (id === 'me'){ const c = rmAdjMe(), was = rmAdjPiped(); c[k] = val; if (was !== rmAdjPiped()) rmCamPipe(); else rmPlace(); }
+  else { rmAdjSet(id, k, val); rmPlace(); }
+});
+document.addEventListener('change', e => {
+  const el = e.target; if (!el || !el.dataset || !el.dataset.rmadj) return;
+  try { saveLocal(); } catch(e2){}
+  if (el.dataset.rmadj === 'me' && el.dataset.k === 'z'){ if (RM.full) rmFullRender(); else render(); }   // show or hide the framing sliders
+});
