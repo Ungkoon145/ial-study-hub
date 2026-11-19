@@ -16,6 +16,8 @@ It has no ads and is not affiliated with or endorsed by Pearson or Physics & Mat
 
 **Study room views:** the scenes and their animation are drawn by this site. The animation follows the method of the [rossark-motion-skill](https://github.com/rossark0/rossark-motion-skill) by rossark0 (MIT licence); see `MOTION.md`. The room sounds are generated live in the browser; no recordings are used.
 
+**Blur my background (study rooms):** uses MediaPipe Selfie Segmentation by Google (Apache License 2.0), unmodified, in `vendor/mediapipe` with its licence. It runs only on the student's own device and only when they turn blur on. Where the browser has its own background blur, that is used instead.
+
 Pearson and Edexcel are trademarks of Pearson Education Ltd. Names are used only to say where material comes from.
 
 The PMT content is used for free, non-commercial study only. While it is included, the site must stay free with no ads, sponsorship or paid features.

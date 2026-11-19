@@ -1,0 +1,4 @@
+MediaPipe Selfie Segmentation (@mediapipe/selfie_segmentation 0.1.1675465747)
+Copyright Google LLC. Licensed under the Apache License, Version 2.0 (see LICENSE.txt).
+Unmodified files from the npm package. Used by IAL Revise only when a student turns on
+"Blur my background" in a camera study room; it runs on the student's own device.

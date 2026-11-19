@@ -848,6 +848,17 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 .rmcam video.rmv{transition:transform .2s ease}
 .rmrecon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,16,28,.62);color:#fff;font-size:14px;font-weight:600;z-index:2;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
 .rmcam.stale video{filter:grayscale(.6) brightness(.7)}
+.rmpanel label.row,.rmfollow,.rmboard label.row,.rmgoal label.row{flex-wrap:nowrap;align-items:flex-start!important}
+.rmpanel label.row input,.rmfollow input,.rmboard label.row input{flex:none;margin-top:2px}
+.rmgbar{height:10px;border-radius:6px;background:var(--edge);overflow:hidden}
+.rmgbar i{display:block;height:100%;background:var(--hl-y);border-radius:6px;transition:width .5s cubic-bezier(.23,1,.32,1)}
+.rmrgoal.hit .rmgbar i{background:var(--good)}
+.rmrank{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.rmrank li{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:8px}
+.rmrank li.me{background:color-mix(in srgb,var(--hl-y) 16%,transparent)}
+.rmrank .rk{width:22px;text-align:center;font-weight:700;color:var(--muted)}
+.rmrank li:first-child .rk{color:var(--hl-y)}
+@media (prefers-reduced-motion:reduce){.rmgbar i{transition:none}}
 .rmgoalnow{display:flex;gap:12px;align-items:center}
 .rmgtick{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--edge);display:grid;place-items:center;font-weight:700;color:#fff}
 .rmgoal.done .rmgtick{background:var(--good);border-color:var(--good)}
@@ -3216,6 +3227,9 @@ function notifPlan(){
     const d = addDays(x.dl, -k); if (d < t) return;
     add('reg|' + x.sr + '|' + k, at(d, '09:00'), k ? 'Exam registration closes in ' + k + ' day' + (k === 1 ? '' : 's') : 'Exam registration closes today', x.sr + ' exams. Ask your school or exam centre. Late fees start after the deadline.', '#planner');
   }));
+  if (typeof allMeets === 'function') allMeets().filter(m => m.k === 'room' && (m.host === 'me' || m.rsp === 'yes') && m.d >= t && m.d <= addDays(t, 30)).forEach(m => {
+    add('ses|' + m.id, at(m.d, m.tm) - 10 * 60000, 'Study session in 10 minutes', m.n + ' starts at ' + m.tm + '. The room is open now.', '#join-' + m.rm);
+  });
   if (n.daily){
     const p = prefs(), hm = p.remind || '19:00';
     for (let i = 0; i < 7; i++){
@@ -3892,6 +3906,10 @@ function ymd(y, m, d){ return y + '-' + pad(m + 1) + '-' + pad(d); }
 function calState(){ const t = todayStr(); ui.cal = ui.cal || { ym: t.slice(0, 7), sel: t }; return ui.cal; }
 function meetClean(m){
   if (!m || typeof m !== 'object') return null;
+  if (m.k === 'room'){   // a study session in a camera room
+    const ok = typeof m.id === 'string' && m.id.length <= 24 && /^\d{4}-\d\d-\d\d$/.test(m.d) && /^\d\d:\d\d$/.test(m.tm) && /^[A-Z2-9]{8}$/.test(m.rm || '') && typeof m.n === 'string';
+    return ok ? { id: m.id, k: 'room', d: m.d, tm: m.tm, rm: m.rm, n: m.n.slice(0, 40), dur: Math.max(15, Math.min(240, +m.dur || 60)) } : null;
+  }
   const ok = typeof m.id === 'string' && m.id.length <= 24 && typeof m.u === 'string' && UNIT[m.u] && typeof m.sr === 'string' && m.sr.length <= 40 && /^\d{4}-\d\d-\d\d$/.test(m.d) && /^\d\d:\d\d$/.test(m.tm);
   return ok ? { id: m.id, u: m.u, sr: m.sr, d: m.d, tm: m.tm } : null;
 }
@@ -3904,13 +3922,14 @@ function theirMeets(){
 }
 function allMeets(){ return myMeets().concat(theirMeets().filter(m => m.rsp !== 'no')).sort((a, b) => (a.d + a.tm).localeCompare(b.d + b.tm)); }
 function meetsOn(d){ return allMeets().filter(m => m.d === d); }
-function meetLabel(m){ return (UNIT[m.u] ? UNIT[m.u].l : m.u) + ' ' + m.sr; }
+function meetLabel(m){ return m.k === 'room' ? m.n : (UNIT[m.u] ? UNIT[m.u].l : m.u) + ' ' + m.sr; }
 function meetWho(m){
   if (m.host !== 'me') return 'Invited by ' + m.hostName;
   const w = (m.with || []).map(fid => { const p = FR.peers[fid]; if (!p) return null; const r = p.rsp && p.rsp[m.id]; return (p.n || 'Friend') + (r === 'yes' ? ' ✓' : r === 'no' ? ' ✗' : ' (waiting)'); }).filter(Boolean);
   return w.length ? 'With ' + w.join(', ') : 'Just you';
 }
 function meetRow(m){
+  if (m.k === 'room') return sessRow(m);
   const key = paperKey(m.u, m.sr), past = m.d < todayStr(), row = paperRow(m.u, m.sr);
   const btns = m.host !== 'me' && !m.rsp
     ? '<button class="btn sm primary" data-act="meet-rsp" data-id="' + esc(m.id) + '" data-v="yes">Accept</button><button class="btn sm ghost" data-act="meet-rsp" data-id="' + esc(m.id) + '" data-v="no">Decline</button>'
@@ -3919,8 +3938,31 @@ function meetRow(m){
   return '<div class="meetrow"><div class="row" style="justify-content:space-between;gap:8px;flex-wrap:nowrap"><div style="min-width:0"><b>' + esc(m.tm) + ' · Mock: ' + esc(meetLabel(m)) + '</b><div class="small muted">' + esc(meetWho(m)) + (m.host !== 'me' && m.rsp === 'yes' ? ' · you’re in' : '') + '</div></div>' +
     (m.host !== 'me' && !m.rsp ? '<span class="pill warn">Invitation</span>' : '') + '</div><div class="row" style="margin-top:8px">' + btns + '</div></div>';
 }
+function sessRow(m){
+  const t = todayStr(), end = rmSessWhen(m) + (+m.dur || 60) * 60000, over = Date.now() > end, open = rmSessOpen(m), invite = m.host !== 'me' && !m.rsp;
+  const btns = invite
+    ? '<button class="btn sm primary" data-act="meet-rsp" data-id="' + esc(m.id) + '" data-v="yes">Accept</button><button class="btn sm ghost" data-act="meet-rsp" data-id="' + esc(m.id) + '" data-v="no">Decline</button>'
+    : (over ? '' : open ? '<button class="btn sm primary" data-act="rm-join" data-v="' + esc(m.rm) + '">Join the room</button>' : '<span class="small muted">The room opens 15 minutes before</span>') +
+      (m.host === 'me' ? '<button class="btn sm ghost" data-act="meet-del" data-id="' + esc(m.id) + '">Cancel</button>' : '<button class="btn sm ghost" data-act="meet-rsp" data-id="' + esc(m.id) + '" data-v="no">Leave</button>');
+  return '<div class="meetrow sessrow"><div class="row" style="justify-content:space-between;gap:8px;flex-wrap:nowrap"><div style="min-width:0"><b>' + esc(m.tm) + ' · Study session: ' + esc(m.n) + '</b><div class="small muted">' + fmtMin(+m.dur || 60) + ' · ' + esc(meetWho(m)) + (m.host !== 'me' && m.rsp === 'yes' ? ' · you’re in' : '') + '</div></div>' +
+    (invite ? '<span class="pill warn">Invitation</span>' : open && !over ? '<span class="pill good">Open now</span>' : '') + '</div><div class="row" style="margin-top:8px">' + btns + '</div></div>';
+}
+function sessForm(){
+  const F = ui.meetForm, friends = frOn() ? frLists().friends : [];
+  if (typeof rmAvailable !== 'function' || !rmAvailable()) return '<div class="card stack" id="meetform"><p class="small muted" style="margin:0">Sign in to plan a study session. Study sessions happen in camera rooms on the main site.</p><div class="row"><button class="btn" data-act="meet-form">Close</button></div></div>';
+  return '<form class="card stack" data-form="meet-room" id="meetform"><div class="card-h"><h2>Plan a study session</h2></div>' +
+    '<label class="f">Name<input id="ms-n" maxlength="40" autocomplete="off" placeholder="e.g. Sunday maths session" value="' + esc(F.n || '') + '"></label>' +
+    '<div class="row"><label class="f">Date<input type="date" id="ms-d" required min="' + todayStr() + '" value="' + esc(F.d || todayStr()) + '"></label><label class="f">Start time<input type="time" id="ms-t" required value="19:00"></label>' +
+    '<label class="f">Length<select id="ms-dur">' + [30, 45, 60, 90, 120, 180].map(x => '<option value="' + x + '"' + (x === 90 ? ' selected' : '') + '>' + fmtMin(x) + '</option>').join('') + '</select></label></div>' +
+    (friends.length ? '<div><div class="small muted" style="margin-bottom:4px">Invite friends</div><div class="chips">' + friends.map(x => '<label class="chip pick"><input type="checkbox" data-mtf="' + esc(x.id) + '"><span>' + esc(x.p.n || 'Friend') + '</span></label>').join('') + '</div></div>'
+      : '<p class="small muted" style="margin:0">Add friends in Settings to invite them. You can also share the room code once it’s made.</p>') +
+    '<p class="small muted" style="margin:0">A camera room is made for it now. It shows in your calendar and your friends’ calendars, with a reminder, and opens 15 minutes before the start.</p>' +
+    '<div class="row"><button class="btn primary" type="submit">Plan session</button><button class="btn" type="button" data-act="meet-form">Cancel</button></div></form>';
+}
 function meetForm(){
-  const F = ui.meetForm, units = mySubjects().flatMap(s => s.units.filter(u => takes(u.c) && papersFor(u.c).length));
+  const F = ui.meetForm;
+  if (F && F.k === 'room') return sessForm();
+  const units = mySubjects().flatMap(s => s.units.filter(u => takes(u.c) && papersFor(u.c).length));
   if (!units.length) return '<div class="card"><p class="small muted" style="margin:0">Choose your units in Settings first, then you can plan a mock.</p><div class="row"><button class="btn" data-act="meet-form">Close</button></div></div>';
   const u = units.some(x => x.c === F.u) ? F.u : units[0].c, rows = papersFor(u).slice().sort((a, b) => (seriesSortKey(b[0]) > seriesSortKey(a[0]) ? 1 : -1)).sort((a, b) => !!state.papers[paperKey(u, a[0])] - !!state.papers[paperKey(u, b[0])]), friends = frOn() ? frLists().friends : [];
   return '<form class="card stack" data-form="meet" id="meetform"><div class="card-h"><h2>Plan a mock</h2></div>' +
@@ -3950,7 +3992,7 @@ function calGrid(){
     const dt = new Date(y, m - 1, 1 - lead + i), d = ymd(dt.getFullYear(), dt.getMonth(), dt.getDate()), out = dt.getMonth() !== m - 1, I = calDayInfo(d);
     const mk = [];
     I.exams.forEach(e => mk.push('<span class="cmk ex">' + esc(UNIT[e.u] ? UNIT[e.u].l : e.u) + ' exam</span>'));
-    I.meets.forEach(x => mk.push('<span class="cmk mt' + (x.host !== 'me' && !x.rsp ? ' pend' : '') + '">' + esc(x.tm) + ' mock</span>'));
+    I.meets.forEach(x => mk.push('<span class="cmk mt' + (x.host !== 'me' && !x.rsp ? ' pend' : '') + '">' + esc(x.tm) + (x.k === 'room' ? ' session' : ' mock') + '</span>'));
     I.reg.forEach(() => mk.push('<span class="cmk rg">Entries close</span>'));
     if (I.sat) mk.push('<span class="cmk ex">SAT</span>');
     if (I.satReg) mk.push('<span class="cmk rg">SAT sign-up closes</span>');
@@ -3978,7 +4020,7 @@ function calDayPanel(){
     (empty ? '<div class="empty">Nothing planned.</div>' : '') +
     (I.mins ? '<p class="small" style="margin:0">Studied <b class="notr">' + fmtMin(I.mins) + '</b> this day.</p>' : '') +
     (d >= t ? '<form data-form="cal-task" class="row" style="align-items:flex-end"><label class="f" style="flex:1;min-width:160px">Add a task for this day<input id="ct-text" maxlength="140" placeholder="e.g. P1 June 2023 paper"></label><button class="btn primary" type="submit">Add</button></form>' +
-      '<div class="row"><button class="btn sm" data-act="meet-form" data-v="' + d + '">Plan a mock</button><button class="btn sm ghost" data-act="cal-busy" data-v="' + d + '">' + (I.busy ? 'Not busy after all' : 'Mark as busy day') + '</button></div>' : '') + '</div>';
+      '<div class="row"><button class="btn sm" data-act="meet-form" data-v="' + d + '">Plan a mock</button><button class="btn sm" data-act="meet-form" data-v="' + d + '" data-k="room">Plan a study session</button><button class="btn sm ghost" data-act="cal-busy" data-v="' + d + '">' + (I.busy ? 'Not busy after all' : 'Mark as busy day') + '</button></div>' : '') + '</div>';
 }
 function viewCalendar(){
   const C = calState(), [y, m] = C.ym.split('-').map(Number), t = todayStr();
@@ -3999,7 +4041,8 @@ function viewCalendar(){
 function meetInviteCard(){
   const t = todayStr(), pend = theirMeets().filter(x => !x.rsp && x.d >= t), today = allMeets().filter(x => x.d === t && (x.host === 'me' || x.rsp === 'yes'));
   if (!pend.length && !today.length) return '';
-  return '<div class="card stack"><div class="card-h"><h2>' + (pend.length ? 'Mock invitation' + (pend.length > 1 ? 's' : '') : 'Mock today') + '</h2><a class="small muted" href="#calendar">Calendar</a></div>' +
+  const sess = pend.concat(today).every(x => x.k === 'room'), anyS = pend.concat(today).some(x => x.k === 'room');
+  return '<div class="card stack"><div class="card-h"><h2>' + (pend.length ? (sess ? 'Study session invitation' : anyS ? 'Invitation' : 'Mock invitation') + (pend.length > 1 ? 's' : '') : (sess ? 'Study session today' : anyS ? 'Today' : 'Mock today')) + '</h2><a class="small muted" href="#calendar">Calendar</a></div>' +
     pend.concat(today).map(x => '<div>' + (x.d !== t ? '<div class="small muted">' + fmtDate(x.d, {weekday:'short', day:'numeric', month:'short'}) + '</div>' : '') + meetRow(x) + '</div>').join('') + '</div>';
 }
 function viewGrades(){
@@ -4984,7 +5027,7 @@ async function frPublish(){
     const box = {};
     for (const c of known){
       const { key, tag } = await frPair(c), iv = crypto.getRandomValues(new Uint8Array(12));
-      const forThem = JSON.stringify(Object.assign({}, mineObj, { inv: hosted.filter(m => (m.with || []).includes(c.id)).map(m => ({ id: m.id, u: m.u, sr: m.sr, d: m.d, tm: m.tm })), rsp, rm: typeof rmForFriends === 'function' ? rmForFriends() : null }));
+      const forThem = JSON.stringify(Object.assign({}, mineObj, { inv: hosted.filter(m => (m.with || []).includes(c.id)).map(m => m.k === 'room' ? { id: m.id, k: 'room', d: m.d, tm: m.tm, rm: m.rm, n: m.n, dur: m.dur } : { id: m.id, u: m.u, sr: m.sr, d: m.d, tm: m.tm }), rsp, rm: typeof rmForFriends === 'function' ? rmForFriends() : null }));
       box[tag] = { iv: b64(iv), ct: b64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(forThem))) };
     }
     await cloud.db.doc('cards/' + cloud.id).set({ pub: f.pub, code: f.code, at: Date.now(), box });
@@ -6056,8 +6099,8 @@ document.addEventListener('click', e => {
     case 'cal-nav': { const C = calState(); let [y, m] = C.ym.split('-').map(Number); m += +v; if (m < 1){ m = 12; y--; } if (m > 12){ m = 1; y++; } C.ym = y + '-' + pad(m); render(); break; }
     case 'cal-today': { const C = calState(); C.ym = todayStr().slice(0, 7); C.sel = todayStr(); render(); break; }
     case 'cal-busy': { const p = prefs(); p.busy = p.busy || []; p.busy = p.busy.includes(v) ? p.busy.filter(x => x !== v) : p.busy.concat(v); commit(); break; }
-    case 'meet-form': ui.meetForm = ui.meetForm ? null : { d: v || calState().sel, u: '' }; render(); if (ui.meetForm) setTimeout(() => { const e = document.getElementById('meetform'); if (e) e.scrollIntoView({ block: 'nearest' }); }, 50); break;
-    case 'meet-del': if (confirm('Cancel this mock? Invited friends will see it disappear.')){ state.meets = (state.meets || []).filter(m => m.id !== id); commit(); frPublish(); } break;
+    case 'meet-form': ui.meetForm = ui.meetForm && !(el.dataset.k && ui.meetForm.k !== el.dataset.k) ? null : { d: v || calState().sel, u: '', k: el.dataset.k || '' }; render(); if (ui.meetForm) setTimeout(() => { const e = document.getElementById('meetform'); if (e) e.scrollIntoView({ block: 'nearest' }); }, 50); break;
+    case 'meet-del': { const mm = (state.meets || []).find(m => m.id === id); if (confirm(mm && mm.k === 'room' ? 'Cancel this study session? Invited friends will see it disappear.' : 'Cancel this mock? Invited friends will see it disappear.')){ state.meets = (state.meets || []).filter(m => m.id !== id); commit(); frPublish(); if (mm && mm.k === 'room' && mm.rm && RM.rid !== mm.rm) try { rmDb().remove(mm.rm).catch(() => {}); } catch(e){} } break; }
     case 'meet-rsp': state.meetRsp = state.meetRsp || {}; state.meetRsp[id] = v; commit(); frPublish(); toast(v === 'yes' ? 'You’re in. It’s on your calendar.' : 'Declined'); break;
     case 'nx-more': ui.nxMore = !ui.nxMore; render(); break;
     case 'ed-preview': ui.edPreview = true; render(); window.scrollTo(0, 0); break;
@@ -6307,6 +6350,7 @@ document.addEventListener('change', e => {
     commit(); toast('Saved'); }
   else if (el.dataset && el.dataset.prefMotion){ prefs().motion = el.checked; commit(); }
   else if (el.dataset && el.dataset.prefTime){ prefs().remind = el.value || '19:00'; commit(); }
+  else if (el.dataset.act && el.dataset.act.indexOf('rm-') === 0 && el.dataset.act !== 'rm-frinv' && typeof rmAct === 'function') rmAct(el);   // room checkboxes (clicks on inputs are left to this change event)
   else if (el.dataset.act === 'rm-frinv'){ state.rmInvite = !!el.checked; commit(); frSchedule(); toast(el.checked ? 'Your friends can see this room and join it.' : 'Friends invitation turned off.'); }
   else if (el.dataset.act === 'unit-toggle'){ const c = el.dataset.id; state.hidden = state.hidden.filter(x => x !== c); if (!el.checked) state.hidden.push(c); commit(); }
 });
@@ -6357,6 +6401,14 @@ document.addEventListener('submit', e => {
   else if (kind === 'rt-build'){ const n = rtBuild(+$('#rt-min').value, +$('#rt-rest').value); commit(); toast(n ? n + ' sessions planned. They’re in your tasks, by day.' : 'Nothing to plan: add exam dates first.'); }
   else if (kind === 'uni-own'){ const name = $('#un-name').value.trim(); const req = [...document.querySelectorAll('[data-unreq]')].filter(e => e.value).map(e => [e.dataset.unreq, e.value]); if (!name) return; if (!req.length){ toast('Choose a grade for at least one subject.'); return; } state.unis = (state.unis || []).concat({ id: uid(), name, req }); ui.uniForm = false; commit(); }
   else if (kind === 'cal-task'){ const tx = $('#ct-text').value.trim(); if (!tx) return; state.tasks.push({ id: uid(), t: tx, d: calState().sel, s: '', p: 2, done: false }); commit(); toast('Task added'); }
+  else if (kind === 'meet-room'){ const n = ($('#ms-n').value.trim() || 'Study session').slice(0, 40), d = $('#ms-d').value, tm = $('#ms-t').value, dur = +$('#ms-dur').value || 90; if (!d || !tm) return;
+    const wth = [...document.querySelectorAll('[data-mtf]')].filter(e => e.checked).map(e => e.dataset.mtf);
+    const btn = f.querySelector('button[type=submit]'); if (btn) btn.disabled = true;
+    rmMakeRoom(n).then(rm => {
+      state.meets = (state.meets || []).filter(m => m.d >= addDays(todayStr(), -30)).concat({ id: uid(), k: 'room', d, tm, rm, n, dur, with: wth }); ui.meetForm = null; const C = calState(); C.sel = d; C.ym = d.slice(0, 7); commit(); frPublish(); notifSchedule();
+      toast(wth.length ? 'Study session planned. Your friends will see the invitation.' : 'Study session added to your calendar.');
+    }, () => { if (btn) btn.disabled = false; toast('Couldn’t make the room. Check your connection and that you’re signed in.'); });
+  }
   else if (kind === 'meet'){ const u = $('#mt-u').value, sr = $('#mt-sr').value, d = $('#mt-d').value, tm = $('#mt-t').value; if (!u || !sr || !d || !tm) return;
     const wth = [...document.querySelectorAll('[data-mtf]')].filter(e => e.checked).map(e => e.dataset.mtf);
     state.meets = (state.meets || []).filter(m => m.d >= addDays(todayStr(), -30)).concat({ id: uid(), u, sr, d, tm, with: wth }); ui.meetForm = null; const C = calState(); C.sel = d; C.ym = d.slice(0, 7); commit(); frPublish();
