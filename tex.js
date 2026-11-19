@@ -37,7 +37,9 @@
           let f = FR[A + '/' + B] || ((simple(A) ? A : '(' + A + ')') + '/' + (simple(B) ? B : '(' + B + ')'));
           if (!FR[A + '/' + B] && /^[\s]*[A-Za-z0-9(\\]/.test(s.slice(i)) && !/^\s*\\(times|div|le|ge|to|cdot|pm|approx)/.test(s.slice(i))) f = '(' + f + ')';
           out += f;
-        } else if (name === 'sqrt'){ const [a, i2] = arg(s, i); i = i2; const A = plain(a); out += '√' + (simple(A) ? A : '(' + A + ')'); }
+        } else if (name === 'sqrt'){ let idx = ''; if (s[i] === '['){ const e = s.indexOf(']', i); idx = s.slice(i + 1, e); i = e + 1; } const [a, i2] = arg(s, i); i = i2; const A = plain(a); out += (idx ? [...plain(idx)].map(c => SUP[c] || c).join('') : '') + '√' + (simple(A) ? A : '(' + A + ')'); }
+        else if (name === 'begin'){ const [env, i2] = arg(s, i); const end = s.indexOf('\\end{' + env + '}', i2); const body = s.slice(i2, end < 0 ? s.length : end); i = end < 0 ? s.length : end + 6 + env.length;
+          const rows = body.split('\\\\').map(r => r.split('&').map(c => plain(c.trim())).join(' ')); const br = env === 'vmatrix' ? ['|', '|'] : env === 'bmatrix' ? ['[', ']'] : ['(', ')']; out += br[0] + rows.join('; ') + br[1]; }
         else if (name === 'ce'){ const [a, i2] = arg(s, i); i = i2; out += ce(a); }
         else if (name === 'mathrm' || name === 'text' || name === 'operatorname' || name === 'textrm' || name === 'mathit'){ const [a, i2] = arg(s, i); i = i2; out += plain(a); }
         else if (name === 'bar' || name === 'dot' || name === 'ddot' || name === 'hat'){ const [a, i2] = arg(s, i); i = i2; out += plain(a) + ({bar:'\u0304', dot:'\u0307', ddot:'\u0308', hat:'\u0302'})[name]; }
