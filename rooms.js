@@ -109,6 +109,7 @@ async function rmJoin(id, stay){
 async function rmLeave(quiet){
   const id = RM.rid, uid = rmUid(); if (!id) return;
   RM.leaving = true;
+  try { rmxStopAll(); } catch(e){} RM.panel = null;
   rmCamOff(true); Object.keys(RM.pcs).forEach(rmClosePc);
   if (RM.unsub){ try { RM.unsub(); } catch(e){} } if (RM.sigUnsub){ try { RM.sigUnsub(); } catch(e){} }
   clearInterval(RM.beat); clearTimeout(RM.sched);
@@ -309,28 +310,46 @@ function viewLobby(){
   '</div>';
 }
 function viewRoom(){
-  const r = RM.room, cam = r.kind === 'cam', me = rmUid(), mem = rmMembers(r);
+  const r = RM.room, cam = r.kind === 'cam', me = rmUid(), mem = rmMembers(r), P = rmvPrefs();
   if (!mem.find(m => m.id === me)) mem.unshift(Object.assign({ id: me }, rmMine()));
   mem.sort((a, b) => (a.id === me ? -1 : b.id === me ? 1 : (a.n || '').localeCompare(b.n || '')));
   const ms = remainMs(), link = location.origin + location.pathname + '#join-' + r.id;
   const frOk = cam && typeof frOn === 'function' && frOn() && frLists().friends.length;
-  return '<div class="stack">' +
-    '<div class="row" style="justify-content:space-between;align-items:flex-start"><div><h1 class="rmname">' + esc(r.name) + '</h1><p class="small muted"><span>' + (cam ? 'Camera room · invite only' : 'Public room · no video') + '</span> · ' + mem.length + '/' + (cam ? RM_CAM_MAX : RM_PUB_MAX) + '</p></div>' +
-      '<button class="btn" data-act="rm-leave">Leave</button></div>' +
+  const sc = RMV_SCENES.some(x => x[0] === P.scene) ? P.scene : 'library', lay = P.layout === 'grid' ? 'grid' : 'focus';
+  const focusing = mem.filter(m => m.st === 'focus').length, snd = rmxAny();
+  const panel = RM.panel === 'view' ? '<div class="card stack rmpanel"><div class="card-h"><h2>Your view</h2><span class="small muted">Only you see it</span></div><div class="rmswatches" role="group" aria-label="Your view">' +
+      RMV_SCENES.map(([id, n]) => '<button class="rmswatch" data-act="rm-scene" data-v="' + id + '" aria-pressed="' + (id === sc) + '">' + rmvSwatch(id) + '<span>' + n + '</span></button>').join('') + '</div>' +
+      '<div class="row" style="align-items:center;gap:10px"><span class="small muted">Layout</span><div class="chips" role="group" aria-label="Layout"><button class="chip" data-act="rm-layout" data-v="focus" aria-pressed="' + (lay === 'focus') + '">Focus</button><button class="chip" data-act="rm-layout" data-v="grid" aria-pressed="' + (lay === 'grid') + '">Grid</button></div></div></div>'
+    : RM.panel === 'sound' ? '<div class="card stack rmpanel"><div class="card-h"><h2>Sounds</h2><span class="small muted">Only you hear them</span></div><div class="rmsounds">' +
+      RMX_SOUNDS.map(([id, ic, n]) => { const on = rmxOn(id), v = Math.round((P.mix[id] == null ? .7 : P.mix[id]) * 100); return '<div class="rmsnd' + (on ? ' on' : '') + '"><button class="rmsndbtn" data-act="rm-snd" data-v="' + id + '" aria-pressed="' + on + '"><span class="ic" aria-hidden="true">' + ic + '</span><span>' + n + '</span></button>' + (on ? '<input type="range" min="0" max="100" value="' + v + '" data-rmvol="' + id + '" aria-label="' + n + ' volume">' : '') + '</div>'; }).join('') + '</div>' +
+      '<label class="row rmmaster"><span class="small muted">Volume</span><input type="range" min="0" max="100" value="' + Math.round(P.vol * 100) + '" data-rmvol="master" aria-label="Volume"></label>' +
+      (snd ? '<div class="row"><button class="btn sm ghost" data-act="rm-snd-off">Stop all sounds</button></div>' : '') +
+      '<p class="small muted" style="margin:0">Made by your device as you listen, so they work offline. They keep playing if you switch tabs, and stop when you leave the room.</p></div>' : '';
+  return '<div class="stack rmroom">' +
+    '<section class="rmstage lay-' + lay + (cam ? ' cam' : '') + '" aria-label="' + esc(r.name) + '"><div class="rmscene-slot" data-rmscene="' + sc + '"></div><div class="rmshade"></div>' +
+      '<div class="rmstage-in">' +
+        '<div class="rmtop"><div style="min-width:0"><h1 class="rmname">' + esc(r.name) + '</h1><div class="rmsub"><span>' + (cam ? 'Camera room · invite only' : 'Public room · no video') + '</span> · ' + mem.length + '/' + (cam ? RM_CAM_MAX : RM_PUB_MAX) + '</div></div>' +
+          '<button class="btn rmglass" data-act="rm-leave">Leave</button></div>' +
+        '<div class="rmcenter"><div class="rmphase' + (T.phase === 'break' ? ' brk' : '') + '">' + (T.phase === 'focus' ? 'Focus' : 'Break') + '</div>' +
+          '<div class="rmbig" id="rmclock">' + fmtClock(ms) + '</div>' +
+          '<div class="rmnow">' + (focusing ? '<span>' + focusing + ' focusing now</span>' : '<span>Start the timer to focus together</span>') + '</div>' +
+          '<div class="row rmctl">' + (T.running ? '<button class="btn primary big" data-act="t-pause">Pause</button>' : '<button class="btn primary big" data-act="t-start">' + (ms < phaseLen() ? 'Resume' : 'Start focus') + '</button>') +
+            (T.phase === 'focus' ? '<button class="btn big rmglass" data-act="t-stoplog"' + (ms < phaseLen() ? '' : ' disabled') + '>Stop &amp; log</button>' : '<button class="btn big rmglass" data-act="t-skip">Skip break</button>') + '</div></div>' +
+        '<div class="rmbottom"><div class="row rmreacts" role="group" aria-label="Reactions">' + RM_REACT.map(e => '<button class="rmglass rmre" data-act="rm-react" data-v="' + e + '" aria-label="React ' + e + '">' + e + '</button>').join('') + '</div>' +
+          '<div class="row rmtools">' +
+            '<button class="rmglass rmtool" data-act="rm-panel" data-v="view" aria-pressed="' + (RM.panel === 'view') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg><span>View</span></button>' +
+            '<button class="rmglass rmtool' + (snd ? ' live' : '') + '" data-act="rm-panel" data-v="sound" aria-pressed="' + (RM.panel === 'sound') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span>Sounds</span></button>' +
+            (cam ? '<button class="rmglass rmtool' + (RM.cam ? ' live' : '') + '" data-act="' + (RM.cam ? 'rm-cam-off' : 'rm-cam-on') + '" aria-pressed="' + !!RM.cam + '" aria-label="' + (RM.cam ? 'Turn camera off' : 'Turn camera on') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/>' + (RM.cam ? '' : '<path d="M3 3l18 18"/>') + '</svg><span>Camera</span></button>' : '') +
+          '</div></div>' +
+      '</div></section>' +
+    (RM.camErr ? '<p class="small warnline" role="alert">' + esc(RM.camErr) + '</p>' : '') +
+    panel +
     (cam ? '<div class="card stack rminvite"><div class="row" style="justify-content:space-between;align-items:center"><div><div class="small muted">Room code</div><div class="rmcode notr">' + esc(r.id.slice(0, 4) + ' ' + r.id.slice(4)) + '</div></div>' +
       '<div class="row"><button class="btn sm" data-act="rm-copy" data-v="' + esc(link) + '">Copy invite link</button></div></div>' +
       (frOk ? '<label class="row small" style="gap:8px;align-items:center;min-height:44px"><input type="checkbox" data-act="rm-frinv"' + (state.rmInvite ? ' checked' : '') + '> <span>Invite my friends to this room</span></label>' : '') +
       '<p class="small muted">Share the code only with people you know.</p></div>' : '') +
-    '<div class="card rmme"><div class="row" style="justify-content:space-between;align-items:center;gap:12px">' +
-      '<div><span class="phase' + (T.phase === 'break' ? ' brk' : '') + '">' + (T.phase === 'focus' ? 'Focus' : 'Break') + '</span> <span class="rmbig" id="rmclock">' + fmtClock(ms) + '</span></div>' +
-      '<div class="row">' + (T.running ? '<button class="btn primary" data-act="t-pause">Pause</button>' : '<button class="btn primary" data-act="t-start">' + (ms < phaseLen() ? 'Resume' : 'Start focus') + '</button>') +
-        (T.phase === 'focus' ? '<button class="btn" data-act="t-stoplog"' + (ms < phaseLen() ? '' : ' disabled') + '>Stop &amp; log</button>' : '<button class="btn" data-act="t-skip">Skip break</button>') + '</div></div>' +
-      '<div class="row" style="margin-top:10px;align-items:center;justify-content:space-between">' +
-        '<div class="row rmreacts" role="group" aria-label="Reactions">' + RM_REACT.map(e => '<button class="chip" data-act="rm-react" data-v="' + e + '" aria-label="React ' + e + '">' + e + '</button>').join('') + '</div>' +
-        (cam ? (RM.cam ? '<button class="btn" data-act="rm-cam-off">Turn camera off</button>' : '<button class="btn" data-act="rm-cam-on">Turn camera on</button>') : '') + '</div>' +
-      (RM.camErr ? '<p class="small warnline" role="alert">' + esc(RM.camErr) + '</p>' : '') +
-      (cam && !RM.cam ? '<p class="small muted" style="margin:8px 0 0">Your camera is off. Only people in this room would see it.</p>' : '') + '</div>' +
-    '<div class="rmgrid">' + mem.map(m => rmTile(m, m.id === me)).join('') + '</div>' +
+    '<div class="card-h rmpeopleh"><h2>In this room</h2><span class="small muted">' + mem.length + '</span></div>' +
+    '<div class="rmgrid lay-' + lay + (cam ? ' cam' : '') + '">' + mem.map(m => rmTile(m, m.id === me)).join('') + '</div>' +
     (r.owner === me ? '<div class="row"><button class="btn ghost sm" data-act="rm-close">Close this room for everyone</button></div>' : '') +
     '<p class="small muted">' + (cam ? 'No microphone and no chat. Your camera turns off when you leave this page.' : 'Others see your first name and last initial, your timer, your subject and your minutes today.') + '</p>' +
   '</div>';
@@ -355,7 +374,16 @@ function rmBar(){
   const html = '<a href="#rooms" data-act="rm-back"><b>' + esc(RM.room.name) + '</b> <span>· ' + n + ' studying</span></a><button class="linkbtn" data-act="rm-leave">Leave</button>';
   if (b.dataset.h !== html){ b.dataset.h = html; b.innerHTML = html; if (typeof isTH === 'function' && isTH()) try { thApply(b); } catch(e){} }
 }
+const RMV_NODE = {};
+function rmvMount(){
+  const slot = document.querySelector('[data-rmscene]'); if (!slot) return;
+  const id = slot.dataset.rmscene;
+  let el = RMV_NODE[id];
+  if (!el){ el = RMV_NODE[id] = document.createElement('div'); el.className = 'rmscene sc-' + id; el.innerHTML = rmvScene(id); }
+  if (el.parentNode !== slot){ slot.textContent = ''; slot.appendChild(el); }
+}
 function rmAfterRender(){
+  try { rmvMount(); } catch(e){}
   if (route() !== 'rooms'){ if (RM.cam){ rmCamOff(true); rmBeat(); } rmListStop(); }
   rmPlace(); rmBar();
 }
@@ -372,6 +400,11 @@ function rmAct(el){
     case 'rm-hide': RM.hidden[id] = !RM.hidden[id]; render(); break;
     case 'rm-kick': rmRemove(id); break;
     case 'rm-close': rmDelete(); break;
+    case 'rm-panel': RM.panel = RM.panel === v ? null : v; render(); break;
+    case 'rm-scene': rmvPrefs().scene = v; commit(); break;
+    case 'rm-layout': rmvPrefs().layout = v; commit(); break;
+    case 'rm-snd': if (rmxOn(v)) rmxStop(v); else rmxStart(v); render(); break;
+    case 'rm-snd-off': rmxStopAll(); render(); break;
     case 'rm-copy': try { navigator.clipboard.writeText(v).then(() => toast('Invite link copied'), () => prompt('Copy this link', v)); } catch(e){ prompt('Copy this link', v); } break;
     default: return false;
   }
