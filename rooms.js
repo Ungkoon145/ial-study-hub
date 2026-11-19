@@ -284,7 +284,16 @@ function rmPlace(){
 }
 
 /* ---------- views ---------- */
-function rmRefresh(){ const a = document.activeElement; if (route() === 'rooms' && !(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName))) render(); else rmBar(); }
+/* Room updates arrive often (heartbeats, timers). Redrawing the page moves every video into a new tile, which makes
+   phones (iPhone especially) skip frames, so only redraw when something you can see has changed. Clocks tick on their own. */
+function rmSig(html){ return String(html).replace(/(<span class="rmclk"[^>]*>)[^<]*/g, '$1').replace(/(id="rmclock">)[^<]*/g, '$1').replace(/(id="rmfclock">)[^<]*/g, '$1'); }
+function rmRefresh(){
+  const a = document.activeElement;
+  if (route() === 'rooms' && !(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName))){
+    if (RM.rid && RM.room && !RM.full){ let sig = ''; try { sig = rmSig(viewRoom()); } catch(e){} if (sig && sig === RM.lastSig){ rmBar(); return; } RM.lastSig = sig; }
+    render();
+  } else rmBar();
+}
 function rmClock(m){
   if (m.st === 'focus' || m.st === 'break') return '<span class="rmclk" data-end="' + (+m.end || 0) + '">' + fmtClock(Math.max(0, (+m.end || 0) - Date.now())) + '</span>';
   if (m.st === 'paused') return '<span class="rmclk">' + fmtClock(+m.left || 0) + '</span>';
@@ -597,7 +606,9 @@ function rmFullRender(){
     document.body.appendChild(el); document.body.classList.add('rmfulling');
     el.addEventListener('pointerdown', rmFullDown); el.addEventListener('pointermove', rmFullIdle); el.addEventListener('click', rmFullIdle);
   }
-  el.innerHTML = html;
+  const fsig = rmSig(html);
+  if (el.dataset.sig === fsig && el.firstChild){ try { rmFullTick(); } catch(e){} rmPlace(); return; }   // nothing visible changed: keep the videos where they are
+  el.dataset.sig = fsig; el.innerHTML = html;
   if (typeof isTH === 'function' && isTH()) try { thApply(el); } catch(e){}
   try { rmvMount(); } catch(e){}
   rmPlace();
@@ -1269,9 +1280,21 @@ async function rmsTick(){
   RMS.timer = null;
   if (!RM.rid || !RM.room || RM.room.kind !== 'cam' || document.hidden){ rmsSchedule(); return; }
   const list = rmsTargets(); if (!list.length){ rmsSchedule(); return; }
+  const [uid, v] = list[RMS.i++ % list.length];
+  // preferred: a worker, so the check never holds up the page (and your own preview)
+  if (RMS.useWorker !== false && window.Worker && window.createImageBitmap){
+    try {
+      const w = v.videoWidth, h = v.videoHeight, s = Math.min(w, h);
+      const bmp = await createImageBitmap(v, (w - s) / 2, (h - s) / 2, s, s, { resizeWidth: 224, resizeHeight: 224 });
+      const r = await rmsAsk(bmp);
+      RMS.useWorker = true;
+      RMS.gap = r.took > 600 ? 3000 : r.took > 300 ? 2000 : 1500;
+      rmsResult(uid, rmsFlag(r.p));
+      rmsSchedule(); return;
+    } catch(e){ if (RMS.useWorker !== true) RMS.useWorker = false; else { RMS.gap = 5000; rmsSchedule(); return; } }
+  }
   try {
     const model = await rmsLoad();
-    const [uid, v] = list[RMS.i++ % list.length];
     if (!RMS.cv){ RMS.cv = document.createElement('canvas'); RMS.cv.width = RMS.cv.height = 224; RMS.cx = RMS.cv.getContext('2d', { willReadFrequently: true }); }
     const w = v.videoWidth, h = v.videoHeight, s = Math.min(w, h);   // centre square, where a person usually is
     RMS.cx.drawImage(v, (w - s) / 2, (h - s) / 2, s, s, 0, 0, 224, 224);
@@ -1280,6 +1303,18 @@ async function rmsTick(){
     rmsResult(uid, rmsFlag(p));
   } catch(e){ RMS.gap = 5000; }
   rmsSchedule();
+}
+function rmsAsk(bmp){
+  if (!RMS.worker){
+    RMS.worker = new Worker('rooms-safety-worker.js'); RMS.wq = {}; RMS.wn = 0;
+    RMS.worker.onmessage = e => { const d = e.data, f = RMS.wq[d.id]; if (!f) return; delete RMS.wq[d.id]; if (d.err) f[1](new Error(d.err)); else f[0](d); };
+    RMS.worker.onerror = () => { Object.values(RMS.wq).forEach(f => f[1](new Error('worker'))); RMS.wq = {}; };
+  }
+  return new Promise((res, rej) => {
+    const id = ++RMS.wn; RMS.wq[id] = [res, rej];
+    setTimeout(() => { if (RMS.wq[id]){ delete RMS.wq[id]; rej(new Error('timeout')); } }, 60000);
+    RMS.worker.postMessage({ id, bmp }, [bmp]);
+  });
 }
 function rmsSchedule(){ if (RMS.timer || !RM.rid) return; RMS.timer = setTimeout(rmsTick, RMS.gap); }
 function rmsResult(uid, flagged){
