@@ -46,6 +46,8 @@ function rmDb(){
     setRoom: (id, patch) => { const o = {}; Object.keys(patch).forEach(k => o[k] = patch[k] === null ? F.deleteField() : patch[k]); return F.updateDoc(ref(id), o); },
     setTally: (id, uid, t) => F.updateDoc(ref(id), new F.FieldPath('tl', uid), t),
     dropTally: (id, uids) => { const args = []; uids.forEach(u => args.push(new F.FieldPath('tl', u), F.deleteField())); return args.length ? F.updateDoc(ref(id), ...args) : null; },
+    report: d => F.addDoc(F.collection(fs, 'reports'), d),
+    watchReports: (owner, room, cb, err) => F.onSnapshot(F.query(F.collection(fs, 'reports'), F.where('owner', '==', owner), F.where('room', '==', room)), s => cb(s.docs.map(d => d.data())), err),
     remove: id => F.deleteDoc(ref(id)),
     sigSend: (id, d) => F.setDoc(F.doc(fs, 'rooms', id, 'sig', d.from + '_' + d.to), d),
     sigWatch: (id, uid, cb, err) => F.onSnapshot(F.query(F.collection(fs, 'rooms', id, 'sig'), F.where('to', '==', uid)), s => cb(s.docs.map(d => d.data())), err)
@@ -108,6 +110,7 @@ async function rmJoin(id, stay){
     clearInterval(RM.beat); RM.beat = setInterval(rmBeat, RM_BEAT); RM.joinedAt = Date.now();
     if (room.kind === 'cam') setTimeout(() => { if (RM.rid === id && RM.room) rmSyncPeers(); }, 6500);
     RM.busy = false; try { localStorage.setItem('ial-room', id); } catch(e){}
+    RMS.hide = {}; RMS.hits = {}; RMS.ok = {}; RMS.recent = []; try { rmsOwnerWatch(); } catch(e){}
     if (room.kind === 'cam') frSchedule();
     if (stay) render(); else go('rooms');
   } catch(e){ RM.busy = false; RM.rid = null; RM.room = null; RM.joinErr = rmErrMsg(e); render(); }
@@ -121,6 +124,7 @@ async function rmLeave(quiet){
   if (RM.unsub){ try { RM.unsub(); } catch(e){} } if (RM.sigUnsub){ try { RM.sigUnsub(); } catch(e){} }
   clearInterval(RM.beat); clearTimeout(RM.sched);
   const wasCam = RM.room && RM.room.kind === 'cam';
+  if (RMS.ownWatch){ try { RMS.ownWatch(); } catch(e){} RMS.ownWatch = null; } RM.rulesAsk = false; RM.reportFor = null; RM.safeMsg = '';
   RM.unsub = RM.sigUnsub = null; RM.rid = null; RM.room = null; RM.react = null; RM.vids = {}; RM.nv = []; RM.vis = {}; RM.lowIn = {}; RM.cpuQ = null;
   try { localStorage.removeItem('ial-room'); } catch(e){}
   try { await rmDb().dropMember(id, uid); } catch(e){}
@@ -165,6 +169,8 @@ function rmReact(e){ if (!RM_REACT.includes(e)) return; RM.react = { e, at: Date
 async function rmCamOn(){
   if (!RM.room || RM.room.kind !== 'cam' || RM.cam) return;
   if (RM.camBlocked){ toast('The room owner has turned your camera off for now.'); return; }
+  if (!rmvPrefs().camRules){ RM.rulesAsk = true; RM.safeMsg = ''; if (RM.full) rmFullClose(); render(); return; }
+  RM.safeMsg = '';
   RM.camErr = '';
   try {
     RM.cam = await navigator.mediaDevices.getUserMedia(rmCamOpts('user', false)); RM.facing = 'user';
@@ -274,7 +280,7 @@ function rmPlace(){
     }
     else slot.classList.remove('on');
   });
-  try { rmWatchSlots(); rmNvUpdate(); rmStaleApply(); } catch(e){}
+  try { rmWatchSlots(); rmNvUpdate(); rmStaleApply(); rmsApply(); } catch(e){}
 }
 
 /* ---------- views ---------- */
@@ -297,7 +303,7 @@ function rmTile(m, me){
       '<div class="small muted">' + (m.sub ? esc(m.sub) + ' · ' : '') + '<span>' + fmtMin(+m.min || 0) + ' today</span></div>' +
       (!me && cam && m.cam && RM.pcs[m.id] && RM.pcs[m.id].state === 'failed' ? '<div class="small muted">Video couldn’t connect on this network.</div>' : '') +
       (me && cam && RM.cam ? '<div class="row rmown"><button class="linkbtn small" data-act="rm-adjust" data-id="me">Adjust my camera</button></div>' : '') +
-      (!me && (cam || owner) ? '<div class="row rmown">' + (cam && m.cam && !RM.hidden[m.id] ? '<button class="linkbtn small" data-act="rm-adjust" data-id="' + esc(m.id) + '">Adjust view</button>' : '') + (cam && m.cam ? '<button class="linkbtn small" data-act="rm-hide" data-id="' + esc(m.id) + '">' + (RM.hidden[m.id] ? 'Show video' : 'Hide video') + '</button>' : '') + (owner ? '<button class="linkbtn small" data-act="rm-kick" data-id="' + esc(m.id) + '">Remove</button>' : '') + '</div>' : '') +
+      (!me && (cam || owner) ? '<div class="row rmown">' + (cam && m.cam && !RM.hidden[m.id] ? '<button class="linkbtn small" data-act="rm-adjust" data-id="' + esc(m.id) + '">Adjust view</button>' : '') + (cam && m.cam ? '<button class="linkbtn small" data-act="rm-hide" data-id="' + esc(m.id) + '">' + (RM.hidden[m.id] ? 'Show video' : 'Hide video') + '</button>' : '') + (owner ? '<button class="linkbtn small" data-act="rm-kick" data-id="' + esc(m.id) + '">Remove</button>' : '') + (cam ? '<button class="linkbtn small" data-act="rm-report" data-id="' + esc(m.id) + '">Report</button>' : '') + '</div>' : '') +
     '</div></div>';
 }
 function viewRooms(){
@@ -349,6 +355,7 @@ function viewLobby(){
       '<li>Public rooms never show video. Other students there see your first name and last initial, your timer, your subject and your minutes today.</li>' +
       '<li>Cameras only work in camera rooms, which can only be joined with the room’s code. Share the code only with people you know.</li>' +
       '<li>Your camera is off until you turn it on, and it turns off when you leave the room page. Pointing it at your desk works just as well.</li>' +
+      '<li>In camera rooms a safety check runs on each person’s own device. It hides a video that might show nudity or underwear, turns your own camera off if yours does, and reports it (who, which room, when; never a picture). Nothing is recorded or saved. It can make mistakes, so anyone can also report a camera.</li>' +
       '<li>There’s no microphone and no chat. Anyone can still take a screenshot, so don’t show anything you wouldn’t want shared.</li>' +
       '<li>The person who made a room can remove anyone from it. You can hide anyone’s video on your screen.</li></ul></details>' +
   '</div>';
@@ -394,6 +401,8 @@ function viewRoom(){
     (RM.camErr ? '<p class="small warnline" role="alert">' + esc(RM.camErr) + '</p>' : '') +
     (r.tm && r.owner !== me ? '<label class="row small rmfollow" style="gap:8px;align-items:center;min-height:44px"><input type="checkbox" data-act="rm-follow"' + (rmFollowOn() ? ' checked' : '') + '> <span>Follow the room timer (the person who made this room can start and pause it for everyone)</span></label>' : '') +
     (RM.camBlocked ? '<p class="small muted" role="status">The person who made this room has turned your camera off for now.</p>' : '') +
+    (RM.safeMsg && !RM.cam ? '<p class="small warnline" role="status">' + esc(RM.safeMsg) + '</p>' : '') +
+    (RM.rulesAsk ? rmRulesCard() : '') + (RM.reportFor ? rmReportCard() : '') +
     panel +
     (cam ? '<div class="card stack rminvite"><div class="row" style="justify-content:space-between;align-items:center"><div><div class="small muted">Room code</div><div class="rmcode notr">' + esc(r.id.slice(0, 4) + ' ' + r.id.slice(4)) + '</div></div>' +
       '<div class="row"><button class="btn sm" data-act="rm-copy" data-v="' + esc(link) + '">Copy invite link</button></div></div>' +
@@ -459,6 +468,12 @@ function rmAct(el){
   const a = el.dataset.act, v = el.dataset.v, id = el.dataset.id;
   if (/^rm-a(for|rot|flip|fit|mirror|reset|djust)$/.test(a)) return rmAdjAct(el);
   if (a === 'rm-flip'){ rmCamFlip(); return true; }
+  if (a === 'rm-rules-ok'){ rmvPrefs().camRules = 1; try { saveLocal(); } catch(e){} RM.rulesAsk = false; rmCamOn(); return true; }
+  if (a === 'rm-rules-no'){ RM.rulesAsk = false; render(); return true; }
+  if (a === 'rm-sshow'){ RMS.ok[id] = Date.now(); delete RMS.hide[id]; rmsApply(); return true; }
+  if (a === 'rm-report'){ RM.reportFor = id; RM.hidden[id] = true; if (RM.full) rmFullClose(); render(); try { rmNvUpdate(); } catch(e){} setTimeout(() => { const c = document.querySelector('.rmpanel h2'); if (c) c.scrollIntoView({ block: 'center' }); }, 60); return true; }
+  if (a === 'rm-rsend'){ rmsReport(id, v, 'user'); RM.reportFor = null; toast('Report sent. Thank you. Their video stays hidden on your screen.'); render(); return true; }
+  if (a === 'rm-rcancel'){ RM.reportFor = null; render(); return true; }
   if (a === 'rm-blur'){ rmvPrefs().blur = el.checked ? 1 : 0; try { saveLocal(); } catch(e){} if (el.checked) rmBlurStart().then(() => {}, () => {}); else rmBlurStop(); rmRefreshAdj(); return true; }
   if (a === 'rm-lock'){ rmOwnerSet({ lock: el.checked }); toast(el.checked ? 'Room locked. No one new can join.' : 'Room unlocked.'); return true; }
   if (a === 'rm-lead'){ rmLead(v); return true; }
@@ -776,8 +791,9 @@ async function rmCamPipe(){
           else { const t = rmBlurFallback(src, w, h); ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(rot * Math.PI / 180); ctx.imageSmoothingEnabled = true; ctx.drawImage(t, 0, 0, t.width, t.height, -w / 2, -h / 2, w, h); ctx.restore(); img = null; }
           if (RM.blur.ss && !pipe.busy){ pipe.busy = true; RM.blur.ss.send({ image: src }).catch(() => {}).then(() => { pipe.busy = false; }); }
         }
-        if (img){ ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(rot * Math.PI / 180);
-          ctx.drawImage(img, sx * (img.width / w), sy * (img.height / h), cw * (img.width / w), ch * (img.height / h), -w / 2, -h / 2, w, h); ctx.restore(); }
+        if (img){ const kx = (img.videoWidth || img.width) / w, ky = (img.videoHeight || img.height) / h;   // a video's .width is its attribute, not its size
+          ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(rot * Math.PI / 180);
+          ctx.drawImage(img, sx * kx, sy * ky, cw * kx, ch * ky, -w / 2, -h / 2, w, h); ctx.restore(); }
       }
       if (src.requestVideoFrameCallback && !document.hidden) src.requestVideoFrameCallback(draw); else pipe.t = setTimeout(draw, 83);
     };
@@ -1067,6 +1083,7 @@ function rmOwnerPanel(){
     '</div><p class="small muted" style="margin:6px 0 0">Uses your focus and break lengths. People can still run their own timer if they turn off “Follow the room timer”.</p></div>' +
     '<div><div class="small muted" style="margin-bottom:6px">Room goal</div><div class="row" style="align-items:flex-end"><label class="f" style="max-width:220px">Focus sessions together<select id="rm-goal-n">' + [2, 3, 4, 5, 6, 8, 10, 12, 16, 20].map(n => '<option value="' + n + '"' + (n === (RM.goalN || (g ? g.t : 4)) ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label>' +
       '<button class="btn sm" data-act="rm-goalset">' + (g ? 'Start a new goal' : 'Set goal') + '</button>' + (g ? '<button class="btn sm ghost" data-act="rm-goalclear">Remove goal</button>' : '') + '</div></div>' +
+    rmsReportsHtml() +
     (cam ? '<div><div class="small muted" style="margin-bottom:6px">Cameras</div>' + (mem.length ? '<div class="list">' + mem.map(m => { const blocked = (r.coff || []).includes(m.id); return '<div class="li"><div class="grow">' + esc(m.n || 'A student') + '<div class="small muted">' + (blocked ? 'Camera turned off by you' : m.cam ? 'Camera on' : 'Camera off') + '</div></div>' + (blocked ? '<button class="btn sm" data-act="rm-coff" data-id="' + esc(m.id) + '" data-v="0">Allow camera</button>' : m.cam ? '<button class="btn sm ghost" data-act="rm-coff" data-id="' + esc(m.id) + '" data-v="1">Turn camera off</button>' : '') + '</div>'; }).join('') + '</div>' : '<p class="small muted" style="margin:0">No one else is here yet.</p>') + '</div>' : '') +
   '</div>';
 }
@@ -1211,3 +1228,132 @@ function rmBlurFallback(src, w, h){
   p.tc.width = Math.max(8, Math.round(w / 14)); p.tc.height = Math.max(6, Math.round(h / 14));
   p.tx.drawImage(src, 0, 0, p.tc.width, p.tc.height); return p.tc;
 }
+
+/* ============================================================
+   Camera safety check (camera rooms only).
+   NSFWJS (MIT, with TensorFlow.js, Apache-2.0; files in vendor/nsfwjs) runs on this device and looks at a
+   small copy of each video about every 1.5 s. Nothing is recorded, saved or sent: no picture ever leaves the device.
+   - Someone else's video flagged twice in a row: hidden on this screen ("Hidden for safety"), with Show again and Report,
+     and an automatic report (who, room, when, why; no picture) for the site owner and the room owner.
+   - Your own video flagged twice in a row: your camera turns off.
+   Strict on purpose (underwear and swimwear count). It can make mistakes both ways.
+   ============================================================ */
+const RMS = { model: null, loading: null, cv: null, i: 0, hits: {}, hide: {}, ok: {}, gap: 1500, timer: null, reported: {}, ownWatch: null, recent: [] };
+const RMS_FILES = ['vendor/nsfwjs/nsfwjs.min.js', 'vendor/nsfwjs/model.min.js', 'vendor/nsfwjs/group1-shard1of1.min.js'];
+function rmsFlag(p){
+  const s = {}; (p || []).forEach(x => { s[x.className] = x.probability; });
+  return (s.Porn || 0) + (s.Hentai || 0) >= 0.6 || (s.Sexy || 0) >= 0.7;
+}
+async function rmsLoad(){
+  if (RMS.model) return RMS.model;
+  if (!RMS.loading) RMS.loading = (async () => {
+    for (const f of RMS_FILES) if (!(f.indexOf('nsfwjs.min') > 0 && window.nsfwjs)) await rmLoadScript(f);
+    RMS.model = await window.nsfwjs.load();
+    return RMS.model;
+  })().catch(e => { RMS.loading = null; throw e; });
+  return RMS.loading;
+}
+/* which videos to look at: my own camera, and everyone else's camera that is playing on my screen */
+function rmsTargets(){
+  const out = [];
+  if (!RM.room || RM.room.kind !== 'cam') return out;
+  if (RM.cam){ const v = RM.pipe ? RM.pipe.src : rmVideo('me'); if (v && v.videoWidth) out.push(['me', v]); }
+  Object.keys(RM.vids).forEach(uid => {
+    if (uid === 'me' || RM.hidden[uid]) return;
+    const m = RM.room.m[uid], v = RM.vids[uid];
+    if (m && m.cam && v && v.videoWidth && !v.paused) out.push([uid, v]);
+  });
+  return out;
+}
+async function rmsTick(){
+  RMS.timer = null;
+  if (!RM.rid || !RM.room || RM.room.kind !== 'cam' || document.hidden){ rmsSchedule(); return; }
+  const list = rmsTargets(); if (!list.length){ rmsSchedule(); return; }
+  try {
+    const model = await rmsLoad();
+    const [uid, v] = list[RMS.i++ % list.length];
+    if (!RMS.cv){ RMS.cv = document.createElement('canvas'); RMS.cv.width = RMS.cv.height = 224; RMS.cx = RMS.cv.getContext('2d', { willReadFrequently: true }); }
+    const w = v.videoWidth, h = v.videoHeight, s = Math.min(w, h);   // centre square, where a person usually is
+    RMS.cx.drawImage(v, (w - s) / 2, (h - s) / 2, s, s, 0, 0, 224, 224);
+    const t0 = performance.now(), p = await model.classify(RMS.cv, 5), took = performance.now() - t0;
+    RMS.gap = took > 400 ? 3000 : took > 200 ? 2000 : 1500;            // slow device: check less often
+    rmsResult(uid, rmsFlag(p));
+  } catch(e){ RMS.gap = 5000; }
+  rmsSchedule();
+}
+function rmsSchedule(){ if (RMS.timer || !RM.rid) return; RMS.timer = setTimeout(rmsTick, RMS.gap); }
+function rmsResult(uid, flagged){
+  if (!flagged){ RMS.hits[uid] = 0; return; }
+  RMS.hits[uid] = (RMS.hits[uid] || 0) + 1;
+  if (RMS.hits[uid] < 2) return;
+  RMS.hits[uid] = 0;
+  if (uid === 'me'){
+    if (RM.cam){ rmCamOff(); rmsNotice('Your camera was turned off. The safety check thought it might show nudity or underwear. If that was a mistake, you can turn it back on.'); }
+    return;
+  }
+  if (RMS.ok[uid] && Date.now() - RMS.ok[uid] < 5 * 60000) return;   // the viewer said it was a mistake: leave it for 5 minutes
+  if (!RMS.hide[uid]){ RMS.hide[uid] = Date.now(); rmsApply(); rmsReport(uid, 'auto-nudity', 'auto'); }
+}
+function rmsNotice(msg){ RM.safeMsg = msg; if (RM.full) rmFullRender(); else render(); toast(msg); }
+/* hide a flagged video on this screen */
+function rmsApply(){
+  (document.getElementById('rmfull') || document).querySelectorAll('[data-rmvid]').forEach(slot => {
+    const uid = slot.dataset.rmvid, on = uid !== 'me' && !!RMS.hide[uid];
+    slot.classList.toggle('safehide', on);
+    let box = slot.querySelector('.rmsafe');
+    if (on && !box){
+      box = document.createElement('div'); box.className = 'rmsafe'; box.setAttribute('role', 'status');
+      const th = typeof isTH === 'function' && isTH();
+      box.innerHTML = '<b>' + (th ? 'ซ่อนไว้เพื่อความปลอดภัย' : 'Hidden for safety') + '</b>' +
+        '<span class="row"><button class="btn sm" data-act="rm-sshow" data-id="' + esc(uid) + '">' + (th ? 'แสดงอีกครั้ง' : 'Show again') + '</button><button class="btn sm ghost" data-act="rm-report" data-id="' + esc(uid) + '">' + (th ? 'รายงาน' : 'Report') + '</button></span>';
+      slot.appendChild(box);
+    } else if (!on && box) box.remove();
+  });
+}
+/* reports: who, which room, when and why. Never a picture. */
+async function rmsReport(uid, why, kind){
+  const key = uid + '|' + why; if (RMS.reported[key] && Date.now() - RMS.reported[key] < 10 * 60000) return;
+  RMS.reported[key] = Date.now();
+  const r = RM.room; if (!r) return;
+  try { await rmDb().report({ room: RM.rid, owner: r.owner, who: uid, by: rmUid(), why, kind, at: Date.now(), name: String((r.m[uid] || {}).n || '').slice(0, 40) }); } catch(e){}
+}
+const RM_REPORT_WHY = [['nudity', 'Nudity or sexual content'], ['bully', 'Bullying or harassment'], ['danger', 'Something dangerous or illegal'], ['other', 'Something else']];
+function rmReportCard(){
+  const id = RM.reportFor, m = RM.room && RM.room.m[id]; if (!m) return '';
+  return '<div class="card stack rmpanel"><div class="card-h"><h2>Report ' + esc(m.n || 'this person') + '</h2><button class="linkbtn small" data-act="rm-rcancel">Cancel</button></div>' +
+    '<p class="small muted" style="margin:0">The report says who, which room, when and why. No picture is sent. The site owner and the person who made this room can see it. Their video is hidden on your screen now.</p>' +
+    '<div class="chips" role="group" aria-label="Why">' + RM_REPORT_WHY.map(([k, n]) => '<button class="chip" data-act="rm-rsend" data-id="' + esc(id) + '" data-v="' + k + '">' + n + '</button>').join('') + '</div>' +
+    '<p class="small muted" style="margin:0">If someone is in danger, tell a parent or teacher straight away, or call the police (191 in Thailand).</p></div>';
+}
+/* the room owner hears about reports in their room; two people's devices flagging someone turns that camera off */
+function rmsOwnerWatch(){
+  if (RMS.ownWatch){ try { RMS.ownWatch(); } catch(e){} RMS.ownWatch = null; }
+  if (!RM.rid || !rmIsOwner() || !rmDb().watchReports) return;
+  const rid = RM.rid;
+  RMS.ownWatch = rmDb().watchReports(rmUid(), rid, list => {
+    if (RM.rid !== rid) return;
+    const since = Date.now() - 15 * 60000, recent = list.filter(x => x.at > since);
+    const seen = RMS.recent.map(x => x.by + x.who + x.at);
+    recent.filter(x => !seen.includes(x.by + x.who + x.at) && x.by !== rmUid()).forEach(x => toast((x.name || 'Someone') + ' was reported' + (x.kind === 'auto' ? ' by a safety check' : '') + '. See Owner controls.'));
+    RMS.recent = recent;
+    const by = {}; recent.filter(x => x.why === 'auto-nudity' || x.why === 'nudity').forEach(x => { (by[x.who] = by[x.who] || new Set()).add(x.by); });
+    const off = (RM.room.coff || []).slice(), add = Object.keys(by).filter(u => by[u].size >= 2 && !off.includes(u));
+    if (add.length){ rmOwnerSet({ coff: off.concat(add).slice(0, 12) }); toast('A camera was turned off after two safety flags.'); }
+    if (RM.panel === 'owner') render();
+  }, () => {});
+}
+function rmsReportsHtml(){
+  const list = RMS.recent || []; if (!list.length) return '';
+  const lab = w => w === 'auto-nudity' ? 'Safety check: possible nudity' : (RM_REPORT_WHY.find(x => x[0] === w) || ['', 'Report'])[1];
+  return '<div><div class="small muted" style="margin-bottom:6px">Reports in the last 15 minutes</div><div class="list">' + list.slice(-6).reverse().map(x => '<div class="li"><div class="grow">' + esc(x.name || 'Someone') + '<div class="small muted">' + esc(lab(x.why)) + ' · ' + fmtTimeHM(x.at) + '</div></div>' + (RM.room.m[x.who] ? '<button class="btn sm ghost" data-act="rm-kick" data-id="' + esc(x.who) + '">Remove</button>' : '') + '</div>').join('') + '</div></div>';
+}
+/* camera rules, agreed once before the first camera use */
+function rmRulesCard(){
+  return '<div class="card stack rmpanel rmrules"><div class="card-h"><h2>Camera rules</h2></div><ul class="small" style="margin:0;padding-left:18px">' +
+    '<li>Keep fully dressed and keep the camera on you or your desk.</li>' +
+    '<li>No nudity, nothing sexual, nothing dangerous or illegal, and no bullying.</li>' +
+    '<li>A safety check runs on your device and on everyone else’s. It can hide a video or turn a camera off. It looks at a small copy of the video and records nothing; no picture leaves anyone’s device.</li>' +
+    '<li>It can make mistakes. Anyone can report a camera, and the person who made the room can turn it off or remove people.</li></ul>' +
+    '<div class="row"><button class="btn primary" data-act="rm-rules-ok">I agree, turn my camera on</button><button class="btn ghost" data-act="rm-rules-no">Not now</button></div></div>';
+}
+setInterval(() => { if (RM.rid && RM.room && RM.room.kind === 'cam') rmsSchedule(); }, 3000);

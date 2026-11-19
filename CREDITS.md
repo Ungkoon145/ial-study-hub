@@ -23,3 +23,5 @@ Pearson and Edexcel are trademarks of Pearson Education Ltd. Names are used only
 The PMT content is used for free, non-commercial study only. While it is included, the site must stay free with no ads, sponsorship or paid features.
 
 **Rights holders:** to ask for a change or removal, [open an issue](https://github.com/Ungkoon145/ial-study-hub/issues).
+
+**Camera safety check (study rooms):** uses NSFWJS by Infinite Red (MIT licence), which includes TensorFlow.js (Apache License 2.0), unmodified, in `vendor/nsfwjs` with their licences. It runs only on each student's own device in camera rooms; no picture is recorded, saved or sent.

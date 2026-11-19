@@ -850,6 +850,11 @@ input[type=search]{border:1px solid var(--line);background:var(--bg);border-radi
 .rmcam.stale video{filter:grayscale(.6) brightness(.7)}
 .rmpanel label.row,.rmfollow,.rmboard label.row,.rmgoal label.row{flex-wrap:nowrap;align-items:flex-start!important}
 .rmpanel label.row input,.rmfollow input,.rmboard label.row input{flex:none;margin-top:2px}
+.rmcam.safehide video{visibility:hidden}
+.rmsafe{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px;text-align:center;background:#1b2335;color:#fff;font-size:13px}
+.rmsafe b{font-size:14px}
+.rmsafe .row{gap:6px;justify-content:center}
+.rmsafe .btn{color:#fff;border-color:rgba(255,255,255,.5);background:transparent;min-height:36px;padding:4px 10px;font-size:12px}
 .rmgbar{height:10px;border-radius:6px;background:var(--edge);overflow:hidden}
 .rmgbar i{display:block;height:100%;background:var(--hl-y);border-radius:6px;transition:width .5s cubic-bezier(.23,1,.32,1)}
 .rmrgoal.hit .rmgbar i{background:var(--good)}

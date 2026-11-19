@@ -1,0 +1,4 @@
+NSFWJS 4.4.0 (MIT licence, see LICENSE-nsfwjs.txt), browser bundle and its MobileNetV2 model, unmodified.
+The bundle includes TensorFlow.js (Apache License 2.0, see LICENSE-tensorflowjs.txt).
+Used by IAL Revise only in camera study rooms, on the student's own device: video is checked for nudity
+and nothing is recorded, saved or sent anywhere.

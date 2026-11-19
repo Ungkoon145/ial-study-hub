@@ -66,3 +66,20 @@
         allow delete: if signedIn() && (resource.data.from == me() || resource.data.to == me());
       }
     }
+
+    // ---------- Study room reports (no pictures: who, which room, when, why) ----------
+    // Anyone signed in can file one in their own name. The room's owner can read the reports for their room;
+    // the site owner reads them in the Firebase console. Nobody can change or delete them from the site.
+    match /reports/{id} {
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['room', 'owner', 'who', 'by', 'why', 'kind', 'at', 'name'])
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.room is string && request.resource.data.room.size() <= 12
+        && request.resource.data.owner is string && request.resource.data.owner.size() <= 128
+        && request.resource.data.who is string && request.resource.data.who.size() <= 128
+        && request.resource.data.why in ['auto-nudity', 'nudity', 'bully', 'danger', 'other']
+        && request.resource.data.kind in ['auto', 'user']
+        && request.resource.data.at is number
+        && request.resource.data.name is string && request.resource.data.name.size() <= 40;
+      allow read: if request.auth != null && resource.data.owner == request.auth.uid;
+    }
