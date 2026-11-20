@@ -1881,7 +1881,7 @@ function dueLabel(x){
 }
 // Lower score = do it sooner. One priority step is worth about 4 days of deadline.
 function urgency(x){ const days = x.d ? daysBetween(todayStr(), x.d) : 14; return (days < 0 ? days - 20 : Math.min(days, 21)) + (prio(x) - 1) * 4; } // overdue always first
-function byUrgency(a, b){ return urgency(a) - urgency(b) || prio(a) - prio(b) || (a.d || '9999').localeCompare(b.d || '9999'); }
+function byUrgency(a, b){ return urgency(a) - urgency(b) || prio(a) - prio(b) || (a.d || '9999').localeCompare(b.d || '9999') || (a.tm || '').localeCompare(b.tm || ''); }
 
 /* Direct PDF links for Today and tasks */
 function topicPdf(c, i){ const N = (typeof PMT_NOTES !== 'undefined' && PMT_NOTES[c]) || null; const pick = a => (a || []).find(x => x.k !== 'cards'); return N ? (pick(N.t && N.t[i]) || pick(N.unit)) : null; }
@@ -2593,7 +2593,7 @@ function viewPlanner(){
       '<button class="btn primary" type="submit">Add task</button></form>' +
       '<div class="chips" role="group" aria-label="Filter tasks">' + [['all','All'],['high','High priority']].concat(mySubjects().map(s => [s.id, s.short])).map(([v, l]) => '<button class="chip" data-act="plan-filter" data-v="' + v + '" aria-pressed="' + (f === v) + '">' + esc(l) + '</button>').join('') + '</div>' +
       '<div class="taskcols"><div><div class="colh"><span>To do</span><span>' + open.length + '</span></div>' +
-      (open.length ? groups.map(([label, test, cls]) => { const g = open.filter(test).sort((a, b) => prio(a) - prio(b) || (a.d || '').localeCompare(b.d || '')); return g.length ? '<div class="grouph ' + cls + '"><span>' + label + '</span><span>' + g.length + '</span></div><div class="list">' + g.map(taskRow).join('') + '</div>' : ''; }).join('')
+      (open.length ? groups.map(([label, test, cls]) => { const g = open.filter(test).sort((a, b) => prio(a) - prio(b) || (a.d || '').localeCompare(b.d || '') || (a.tm || '').localeCompare(b.tm || '')); return g.length ? '<div class="grouph ' + cls + '"><span>' + label + '</span><span>' + g.length + '</span></div><div class="list">' + g.map(taskRow).join('') + '</div>' : ''; }).join('')
         : '<div class="empty" style="margin-top:10px">' + (allOpen.length ? 'No tasks match this filter.' : 'No open tasks. Try one past paper per unit, each with a deadline a week before the exam.') + '</div>') +
       '<p class="small muted" style="margin-top:10px">Tick a task when you finish it. Tap a task to edit it, or its priority to change High → Medium → Low.</p>' +
       '<div class="row" style="align-items:center"><button class="btn sm" data-act="cal-all">📅 All tasks and exams to my calendar</button><span class="small muted">Tap 📅 on a task to add just that one to Google Calendar.</span></div></div>' +
@@ -5777,7 +5777,10 @@ const RT_LEN = 40; // minutes per topic block
 function rtTasks(){ return state.tasks.filter(x => x.gen === 'rt'); }
 function rtBehind(){ const t = todayStr(); return rtTasks().filter(x => !x.done && x.d && x.d < t).length; }
 function rtExams(){ const seen = new Set(); return upcomingExams().filter(e => UNIT[e.u] && !isHidden(e.u) && !seen.has(e.u) && seen.add(e.u)); }
-function rtBuild(min, rest){
+function rtUseWt(){ return typeof wtSaved === 'function' && !!wtSaved() && (!state.rt || state.rt.wt !== false); }
+function rtBuild(min, rest, useWt){
+  if (useWt === undefined) useWt = rtUseWt();
+  const W = useWt && typeof wtSaved === 'function' ? wtSaved() : null;
   const t = todayStr(), ex = rtExams();
   const sat = satNext(), satWk = sat ? (+satPrefs().wk || 0) : 0;
   if (!ex.length && !sat) return 0;
@@ -5794,16 +5797,54 @@ function rtBuild(min, rest){
   const studyDays = Math.max(1, 7 - prefs().offDays.length - (rest >= 0 && !prefs().offDays.includes(rest) ? 1 : 0));
   let satCredit = 0, satK = 0, satFull = 0;
   for (let d = t; d < last && out.length < 600; d = addDays(d, 1)){
-    if (rest >= 0 && new Date(d + 'T12:00:00').getDay() === rest) continue;
+    if (!W && rest >= 0 && new Date(d + 'T12:00:00').getDay() === rest) continue;
     if (prefs().offDays.includes(new Date(d + 'T12:00:00').getDay()) || prefs().busy.includes(d)) continue;
     if (d === sat) continue;
     let left = min; const used = new Set();
+    let blocks = null;
+    if (W){   // follow the weekly timetable: this weekday's periods, back-to-back periods of one subject joined into one block
+      const wd = (new Date(d + 'T12:00:00').getDay() + 6) % 7;
+      blocks = [];
+      const nowHM = d === t ? wtHM(new Date().getHours() * 60 + new Date().getMinutes()) : '';
+      W.grid.filter(g => g.day === wd && g.sid && (!nowHM || g.s >= nowHM)).sort((a, b) => wtMin(a.s) - wtMin(b.s)).forEach(g => {
+        const b = blocks[blocks.length - 1];
+        if (b && b.sid === g.sid && wtMin(g.s) - (wtMin(b.s) + b.m) <= (+W.gap || 0) + 1) b.m += (+W.gap || 0) + W.len; else blocks.push({ sid: g.sid, s: g.s, m: W.len });
+      });
+      left = blocks.reduce((a, b) => a + b.m, 0);
+      if (!blocks.length && !(sat && d < sat)) continue;
+    }
     if (sat && d < sat){
       const dl = daysBetween(d, sat); let task = null;
       if (dl === 1) task = { m: 20, t: 'SAT tomorrow: check your admission ticket, photo ID, charged device and that Bluebook is updated' };
       else if (satWk && dl <= 10 && satFull < 2 && left >= 60){ task = satFull === 0 ? { m: 64, t: 'SAT practice test in Bluebook, part 1: Reading and Writing, timed' } : { m: 70, t: 'SAT practice test in Bluebook, part 2: Math, timed, then go through every wrong answer' }; satFull++; }
       else if (satWk){ satCredit += satWk / studyDays; if (satCredit >= 40 && left >= 40){ satCredit -= 40; task = { m: 40, t: 'SAT practice: ' + SAT_TOPICS[satK++ % SAT_TOPICS.length] }; } }
       if (task){ out.push({ id: uid(), t: task.t + ' · ' + task.m + ' min', d, s: '', p: dl <= 14 ? 1 : 2, done: false, gen: 'rt', k: 'sat', u: null, ti: null, sr: null, min: task.m }); left -= task.m; }
+    }
+    if (W){
+      blocks.forEach(b => {
+        let bl = b.m, at = wtMin(b.s), g2 = 0;
+        while (bl >= 20 && g2++ < 6){
+          const mine = U.filter(x => UNIT_SUBJ[x.c] === b.sid && x.exam > d && !(x.reviewDone && daysBetween(d, x.exam) <= 1));
+          const tm = wtHM(at);
+          if (!mine.length){
+            const un = SUBJ[b.sid] ? SUBJ[b.sid].units.find(u => takes(u.c)) : null;
+            out.push({ id: uid(), t: tm + ' · ' + (SUBJ[b.sid] ? SUBJ[b.sid].short : 'Study') + ': topic questions or notes on your weakest topic · ' + bl + ' min', d, s: b.sid, p: 2, done: false, gen: 'rt', k: 'review', u: un ? un.c : null, ti: null, sr: null, min: bl, tm });
+            break;
+          }
+          const need = x => (x.topics.length * RT_LEN + x.practice.length * 20 + (x.mockDone ? 0 : x.pmin) + 30) / Math.max(1, daysBetween(d, x.exam));
+          const pick = mine.slice().sort((a, c) => need(c) - need(a))[0];
+          const dl = daysBetween(d, pick.exam), lab = pick.u.l + (UNIT_SUBJ[pick.c] === 'math' || UNIT_SUBJ[pick.c] === 'fm' ? '' : ' ' + SUBJ[UNIT_SUBJ[pick.c]].short);
+          let task = null;
+          if (dl === 1 && !pick.reviewDone){ pick.reviewDone = true; task = { k: 'review', m: Math.min(bl, 30), t: 'Final review for ' + lab + ': mistake log, phrase cards and formulae' }; }
+          else if (dl <= 8 && !pick.mockDone && pick.mocks.length && bl >= pick.pmin * 0.75){ pick.mockDone = true; task = { k: 'mock', m: bl, sr: pick.mocks[0], t: 'Timed mock: ' + lab + ' ' + pick.mocks[0] + ' (saved for this), then mark it' }; }
+          else if (dl <= 35 && pick.practice.length && (!pick.lastPaper || daysBetween(pick.lastPaper, d) >= 5) && bl >= pick.pmin * 0.75){ pick.lastPaper = d; const sr = pick.practice.shift(); task = { k: 'paper', m: bl, sr, t: 'Past paper: ' + lab + ' ' + sr + ', timed, then mark it' }; }
+          else if (pick.topics.length){ const tp = pick.topics.shift(); task = { k: 'topic', m: Math.min(bl, Math.max(RT_LEN, W.len)), t: 'Revise ' + tp.n + ' (' + lab + ')', ti: tp.i }; }
+          else task = { k: 'review', m: bl, t: 'Mixed review for ' + lab + ': topic questions on your weakest topic' };
+          out.push({ id: uid(), t: tm + ' · ' + task.t + ' · ' + task.m + ' min', d, s: UNIT_SUBJ[pick.c], p: (task.k === 'mock' || dl <= 14) ? 1 : 2, done: false, gen: 'rt', k: task.k, u: pick.c, ti: task.ti === undefined ? null : task.ti, sr: task.sr || null, min: task.m, tm });
+          bl -= task.m; at += task.m;
+        }
+      });
+      continue;
     }
     let guard = 0;
     while (left >= 25 && guard++ < 12){
@@ -5825,7 +5866,7 @@ function rtBuild(min, rest){
     }
   }
   state.tasks = state.tasks.concat(out);
-  state.rt = { min, rest, at: t, n: out.length, until: last };
+  state.rt = { min, rest, at: t, n: out.length, until: last, wt: W ? true : (wtSaved && typeof wtSaved === 'function' && wtSaved() ? false : undefined) };
   return out.length;
 }
 /* Overload check: the planned day, rest days, SAT on top, and what the last two weeks actually looked like */
@@ -5849,9 +5890,10 @@ function rtCard(){
   return '<div class="card stack rtcard"><div class="card-h"><h2>Revision timetable</h2>' + (gen.length ? '<span class="small muted">' + (gen.length - open.length) + '/' + gen.length + ' done</span>' : '') + '</div>' +
     (gen.length ? '<p class="small" style="margin:0">' + open.length + ' sessions planned up to ' + fmtDate(rt.until || (ex.length ? ex[ex.length - 1].d : satNext()), {day:'numeric', month:'short'}) + '. They’re in your tasks below, by day.' + (behind ? ' <b class="overdue">You’re ' + behind + ' session' + (behind === 1 ? '' : 's') + ' behind.</b> Rebuild to spread them over the days left.' : '') + '</p>'
       : '<p class="small muted" style="margin:0">A day-by-day plan up to ' + (ex.length === 1 ? 'your exam' : 'your ' + ex.length + ' exams') + ': weakest topics first, past papers every few days in the last five weeks, your saved paper as a timed mock in the last week, and a final review the day before. The unit with the nearest exam and most left to do gets the most time.</p>') +
-    rtLoadWarn(min, rest) +
-    '<form data-form="rt-build" class="row" style="align-items:flex-end"><label class="f" style="max-width:170px">Study per day<select id="rt-min">' + [30,45,60,90,120,150,180,240].map(m => '<option value="' + m + '"' + (m === min ? ' selected' : '') + '>' + fmtMin(m) + '</option>').join('') + '</select></label>' +
-      '<label class="f" style="max-width:170px">Day off<select id="rt-rest"><option value="-1">None</option>' + days.map((d, i) => '<option value="' + i + '"' + (i === rest ? ' selected' : '') + '>' + d + '</option>').join('') + '</select></label>' +
+    (rtUseWt() ? '' : rtLoadWarn(min, rest)) +
+    (wtSaved() ? '<label class="row small" style="gap:8px;align-items:flex-start;flex-wrap:nowrap;min-height:44px"><input type="checkbox" id="rt-wt"' + (rtUseWt() ? ' checked' : '') + ' style="flex:none;margin-top:3px"> <span><b>Follow my weekly timetable.</b> Each period becomes a session for that subject: its weakest topics first, past papers and a timed mock as its exam gets close. Changing the weekly timetable updates this.</span></label>' : '') +
+    '<form data-form="rt-build" class="row" style="align-items:flex-end">' + (rtUseWt() ? '' : '<label class="f" style="max-width:170px">Study per day<select id="rt-min">' + [30,45,60,90,120,150,180,240].map(m => '<option value="' + m + '"' + (m === min ? ' selected' : '') + '>' + fmtMin(m) + '</option>').join('') + '</select></label>' +
+      '<label class="f" style="max-width:170px">Day off<select id="rt-rest"><option value="-1">None</option>' + days.map((d, i) => '<option value="' + i + '"' + (i === rest ? ' selected' : '') + '>' + d + '</option>').join('') + '</select></label>') +
       '<button class="btn' + (gen.length && !behind ? '' : ' primary') + '" type="submit">' + (gen.length ? 'Rebuild timetable' : 'Build my timetable') + '</button>' + (open.length ? '<button class="btn ghost" type="button" data-act="rt-clear">Remove</button>' : '') + '</form>' +
     (gen.length ? '<p class="small muted" style="margin:0">Rebuilding keeps sessions you’ve ticked off and re-plans the rest from today, using your latest topic progress, papers and mistakes.</p>' : '') +
   '</div>';
@@ -6386,6 +6428,7 @@ document.addEventListener('change', e => {
   else if (el.id === 'tq-unit'){ ui.quiz.unit = el.value; render(); }
   else if (el.id === 'pp-unit'){ ui.papers.unit = el.value; ui.papers.log = null; render(); }
   else if (el.dataset && el.dataset.wi){ const c = el.dataset.wi; if (el.value === '') delete ui.grades.whatif[c]; else ui.grades.whatif[c] = Math.max(0, Math.min(umsMax(c), Math.round(+el.value))); render(); }
+  else if (el.id === 'rt-wt'){ state.rt = Object.assign({}, state.rt || {}, { wt: el.checked }); commit(); }
   else if (el.id === 'rt-min' || el.id === 'rt-rest'){ state.rt = Object.assign({}, state.rt || {}, el.id === 'rt-min' ? { min: +el.value } : { rest: +el.value }); commit(); }
   else if (el.id === 'sat-d'){ const sp = satPrefs(); if (sp.d !== el.value) sp.reg = false; sp.d = el.value; commit(); }
   else if (el.id === 'sat-wk'){ satPrefs().wk = +el.value || 0; commit(); }
@@ -6473,7 +6516,7 @@ document.addEventListener('submit', e => {
   }
   else if (kind === 'edit-task'){ const x = state.tasks.find(k => k.id === f.dataset.id); const t = $('#et-text').value.trim(); if (!x || !t) return; x.t = t; x.d = $('#et-date').value || ''; x.p = +$('#et-prio').value; x.s = $('#et-subj').value; ui.editTask = null; commit(); }
   else if (kind === 'add-exam'){ const u = $('#ex-unit').value, d = $('#ex-date').value; if (!u || !d) return; state.exams.push({ id: uid(), u, d }); commit(); toast('Exam added'); }
-  else if (kind === 'rt-build'){ const n = rtBuild(+$('#rt-min').value, +$('#rt-rest').value); commit(); toast(n ? n + ' sessions planned. They’re in your tasks, by day.' : 'Nothing to plan: add exam dates first.'); }
+  else if (kind === 'rt-build'){ const wtc = $('#rt-wt'), n = rtBuild(+(($('#rt-min') || {}).value || goalMin()), +(($('#rt-rest') || {}).value || -1), wtc ? wtc.checked : false); commit(); toast(n ? n + ' sessions planned. They’re in your tasks, by day.' : 'Nothing to plan: add exam dates first.'); }
   else if (kind === 'uni-own'){ const name = $('#un-name').value.trim(); const req = [...document.querySelectorAll('[data-unreq]')].filter(e => e.value).map(e => [e.dataset.unreq, e.value]); if (!name) return; if (!req.length){ toast('Choose a grade for at least one subject.'); return; } state.unis = (state.unis || []).concat({ id: uid(), name, req }); ui.uniForm = false; commit(); }
   else if (kind === 'cal-task'){ const tx = $('#ct-text').value.trim(); if (!tx) return; state.tasks.push({ id: uid(), t: tx, d: calState().sel, s: '', p: 2, done: false }); commit(); toast('Task added'); }
   else if (kind === 'meet-room'){ const n = ($('#ms-n').value.trim() || 'Study session').slice(0, 40), d = $('#ms-d').value, tm = $('#ms-t').value, dur = +$('#ms-dur').value || 90; if (!d || !tm) return;

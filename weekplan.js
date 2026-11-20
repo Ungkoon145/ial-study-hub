@@ -241,7 +241,10 @@ function wtAct(el){
     }
     case 'wt-theme': d.theme = v; break;
     case 'wt-save': { const nm = document.getElementById('wt-name'); if (nm) d.name = nm.value.trim().slice(0, 40) || 'My study week';
-      state.wt = Object.assign(JSON.parse(JSON.stringify(d)), { saved: Date.now() }); commit(); toast('Timetable saved. You can edit, re-theme or print it from Plan any time.'); ui.wt = null; go('planner'); return true; }
+      state.wt = Object.assign(JSON.parse(JSON.stringify(d)), { saved: Date.now() });
+      // the daily plan follows the weekly timetable unless the student turned that off
+      let n = 0; if (typeof rtUseWt === 'function' && rtUseWt() && rtExams().length){ const r = state.rt || {}; n = rtBuild(r.min || goalMin(), r.rest === undefined ? -1 : r.rest, true); }
+      commit(); toast(n ? 'Timetable saved. Your daily plan now follows it: ' + n + ' sessions up to your exams.' : 'Timetable saved. You can edit, re-theme or print it from Plan any time.'); ui.wt = null; go('planner'); return true; }
     case 'wt-print': wtPrint(); return true;
     default: return false;
   }
