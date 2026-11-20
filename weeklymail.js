@@ -6,7 +6,7 @@
    copy, and on Sunday at 18:00 (Bangkok) sends it to that verified address and nowhere else.
    It's off until the student turns it on.
    ============================================================ */
-const WM_URL = window.__WM_URL__ || '';   // the Apps Script web app address, filled in once it's deployed
+const WM_URL = window.__WM_URL__ || 'https://script.google.com/macros/s/AKfycbzHJs_o3DeB6XZ9YgSsMuswOvj6Scf36M7UTwteV2hc-nfjbHGu2Iv3pe2M7nhqnpWiMQ/exec';   // the Apps Script web app address, filled in once it's deployed
 const WM_EVERY = 6 * 3600000;
 
 function wmPrefs(){ state.wm = Object.assign({ on: false, at: 0, err: '' }, state.wm || {}); return state.wm; }
