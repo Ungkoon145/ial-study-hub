@@ -271,6 +271,7 @@ div.f.schoolpick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;col
 .pcmulti{flex-direction:column;gap:2px;align-items:stretch;padding:0}
 .pced{border:1px solid var(--edge);border-radius:12px;padding:12px}
 @media (max-width:700px){.pcs .pctop{display:none}.pcs{align-items:center;padding:2px;min-height:36px}.pcs .pcsub{font-size:.66rem}}
+.plsrc{flex-basis:100%;line-height:1.35}
 .loadwarn{border-left:3px solid var(--warn);background:color-mix(in srgb,var(--warn) 10%,transparent);padding:8px 12px;border-radius:6px}
 .cday.busy{background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 6px,var(--soft) 6px,var(--soft) 12px)}
 .cday.s1{background-color:color-mix(in srgb,var(--good) 8%,var(--surface))}.cday.s2{background-color:color-mix(in srgb,var(--good) 16%,var(--surface))}.cday.s3{background-color:color-mix(in srgb,var(--good) 26%,var(--surface))}
@@ -1293,7 +1294,7 @@ label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-
 </header>
 <main class="wrap" id="view"><p class="muted" style="padding:48px 0;text-align:center">Loading IAL Revise…</p></main>
 <button class="mini" id="mini" type="button" aria-label="Open focus timer"></button>
-<footer class="foot wrap" id="foot" hidden><p class="small muted">IAL Revise is a free, independent study tool, not affiliated with or endorsed by Pearson Edexcel or Physics &amp; Maths Tutor. Papers, mark schemes, examiner reports and notes open on their own sites; PMT flashcards are shown with credit under CC BY-NC-ND 4.0. Pearson and Edexcel are trademarks of Pearson Education Ltd.</p></footer>
+<footer class="foot wrap" id="foot" hidden><p class="small muted">IAL Revise is a free, independent study tool, not affiliated with or endorsed by Pearson Edexcel, Physics &amp; Maths Tutor or PaperLords. Papers, mark schemes, examiner reports and notes open on their own sites; PMT flashcards are shown with credit under CC BY-NC-ND 4.0. Pearson and Edexcel are trademarks of Pearson Education Ltd.</p></footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="papers.js"></script>
@@ -1483,7 +1484,7 @@ function resLinks(code, compact){
   return '<div class="row res">' +
     (typeof PAPERS !== 'undefined' && PAPERS[code] ? '<button class="btn' + (compact ? ' sm' : '') + '" data-act="goto-papers" data-u="' + code + '">Past papers (' + PAPERS[code].length + ')</button>' : '') +
     '<a class="btn' + (compact ? ' sm' : '') + '" href="#syllabus" data-act="goto-rev" data-u="' + code + '">Notes &amp; questions</a>' + bookletBtn(code, compact) +
-    (compact ? '' : '<span class="small muted">' + (/^WCP/.test(code) ? 'New course: first exams 2027. Sample papers from Pearson' : x.pearson ? 'PDFs from Pearson' : 'PDFs from Physics &amp; Maths Tutor') + '</span>') + '</div>';
+    (compact ? '' : '<span class="small muted">' + (/^WCP/.test(code) ? 'New course: first exams 2027. Sample papers from Pearson' : (x.pearson ? 'PDFs from Pearson' : 'PDFs from Physics &amp; Maths Tutor and Pearson') + (typeof PAPERS !== 'undefined' && PAPERS[code] && PAPERS[code].some(r => /paperlords/.test(r[1] || '')) ? '; 2026 papers via PaperLords' : '')) + '</span>') + '</div>';
 }
 
 const CARDS = typeof KEY_CARDS !== 'undefined' ? KEY_CARDS : []; // mark-scheme phrase cards (keyphrases.js); decks come from PMT
@@ -2464,7 +2465,7 @@ function viewPapers(){
   const rows = shown.map(r => {
     const [sr, qp, ms] = r; const key = paperKey(u.c, sr); const rec = state.papers[key];
     const older = /^\w+ (\d{4})$/.test(sr) && +sr.slice(-4) < 2019 && !(RES[u.c] && RES[u.c].pearson);
-    const links = (qp ? '<a class="btn sm" href="' + qp + '" target="_blank" rel="noopener">Paper</a>' : '<span class="small muted">' + (/^W(FR|GN|SP)0[13]$/.test(u.c) ? 'Speaking test: no question paper' : 'Paper not published') + '</span>') + (ms ? '<a class="btn sm" href="' + ms + '" target="_blank" rel="noopener">Mark scheme</a>' : '<span class="small muted">No mark scheme</span>') + (erUrl(u.c, sr) ? '<a class="btn sm er" href="' + esc(erUrl(u.c, sr)) + '" target="_blank" rel="noopener" title="Pearson examiners’ report: common mistakes on each question">Report</a>' : '<span class="small muted noer">' + esc(noErReason(sr, u.c)) + '</span>') + flagBtn('IAL ' + u.l + ' ' + (UNIT_SUBJ[u.c] === 'math' || UNIT_SUBJ[u.c] === 'fm' ? '' : SUBJ[UNIT_SUBJ[u.c]].short + ' ') + sr);
+    const links = (qp ? '<a class="btn sm" href="' + qp + '" target="_blank" rel="noopener">Paper</a>' : '<span class="small muted">' + (/^W(FR|GN|SP)0[13]$/.test(u.c) ? 'Speaking test: no question paper' : 'Paper not published') + '</span>') + (ms ? '<a class="btn sm" href="' + ms + '" target="_blank" rel="noopener">Mark scheme</a>' : '<span class="small muted">No mark scheme</span>') + (erUrl(u.c, sr) ? '<a class="btn sm er" href="' + esc(erUrl(u.c, sr)) + '" target="_blank" rel="noopener" title="Pearson examiners’ report: common mistakes on each question">Report</a>' : '<span class="small muted noer">' + esc(noErReason(sr, u.c)) + '</span>') + flagBtn('IAL ' + u.l + ' ' + (UNIT_SUBJ[u.c] === 'math' || UNIT_SUBJ[u.c] === 'fm' ? '' : SUBJ[UNIT_SUBJ[u.c]].short + ' ') + sr) + plHint(qp || ms);
     let status;
     if (p.log === key){
       status = '<form class="editbox" data-form="paper-log" data-key="' + esc(key) + '">' +
@@ -3564,7 +3565,8 @@ function weeklySend(how){
 function creditsCard(){
   const a = (u, t) => '<a href="' + u + '" target="_blank" rel="noopener">' + t + '</a>';
   return '<div class="card stack" id="credits"><div class="card-h"><h2>Credits and licences</h2></div>' +
-    '<p class="small muted" style="margin:0">IAL Revise is free, has no ads and is not affiliated with or endorsed by Pearson or Physics &amp; Maths Tutor.</p>' +
+    '<p class="small muted" style="margin:0">IAL Revise is free, has no ads and is not affiliated with or endorsed by Pearson, Physics &amp; Maths Tutor or PaperLords.</p>' +
+    '<p class="small muted" style="margin:0">Past papers open on Pearson’s own site where Pearson publishes them, otherwise on Physics &amp; Maths Tutor. Pearson keeps the January and June 2026 papers for teachers only, so those open on ' + '<a href="https://www.paperlords.org/ial" target="_blank" rel="noopener">PaperLords</a>' + '. Papers and mark schemes are © Pearson Education Ltd.</p>' +
     '<ul class="small notr" lang="en" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">' +
     '<li><b>PMT flashcards</b> (flashcard quizzes and picture cards): this work by ' + a('https://www.physicsandmathstutor.com/', 'PMT Education') + ' is licensed under ' + a('https://creativecommons.org/licenses/by-nc-nd/4.0/', 'CC BY-NC-ND 4.0') + '. Wording unchanged; laid out for screens. Each quiz links to the original set. Notes marked “IAL Revise note” are ours and kept separate.</li>' +
     '<li><b>PMT notes, topic questions and solution banks</b>: links only; they open on ' + a('https://www.physicsandmathstutor.com/', 'physicsandmathstutor.com') + '.</li>' +
@@ -4195,15 +4197,23 @@ window.addEventListener('resize', setHdr);
 /* ============================================================
    Mistake log: every lost mark, why it was lost, and spaced review until it's fixed
    ============================================================ */
+/* Pearson keeps the newest series for teachers only, so those come from PaperLords. Where their site only lets
+   us link to the archive page, say where the paper is on it. */
+function plHint(url){
+  const m = String(url || '').match(/paperlords\.org\/ial#(.+)$/); if (!m) return /archive\.paperlords\.org/.test(url || '') ? '<span class="small muted plsrc">via PaperLords</span>' : '';
+  const [sub, ses, lab] = decodeURIComponent(m[1]).split('|');
+  return '<span class="small muted plsrc">On PaperLords: open <b>' + esc(sub) + '</b> → <b>' + esc(ses) + '</b>, then <b>' + esc(lab) + ' QP</b> or <b>' + esc(lab) + ' MS</b></span>';
+}
 function noErReason(sr, c){
   if (c && typeof PAPER_ER_NONE !== 'undefined' && (PAPER_ER_NONE[c] || []).includes(sr)) return 'No examiner report: too few candidates sat this paper';
   if (/Specimen/.test(sr)) return 'No examiner report: sample paper, never sat';
   if (srBase(sr) === 'June 2021') return 'No examiner report: exams cancelled, grades were teacher-assessed';
   if (sr === 'June 2020') return 'No examiner report: exams cancelled (pandemic)';
+  if (/2026/.test(sr)) return 'No examiner report online yet: Pearson shares the newest reports with teachers only';
   return 'No examiner report published online for this paper';
 }
 function erUrl(c, sr){ return (typeof PAPER_ER !== 'undefined' && PAPER_ER[c] && PAPER_ER[c][sr]) || ''; }
-function paperLinks(c, sr){ const row = (typeof PAPERS !== 'undefined' && PAPERS[c]) ? PAPERS[c].find(x => x[0] === sr) : null; if (!row) return ''; const er = erUrl(c, sr); return '<div class="row" style="gap:6px">' + (row[1] ? '<a class="btn sm" href="' + row[1] + '" target="_blank" rel="noopener">Question paper ↗</a>' : '') + (row[2] ? '<a class="btn sm" href="' + row[2] + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + (er ? '<a class="btn sm er" href="' + esc(er) + '" target="_blank" rel="noopener">Examiner report ↗</a>' : '') + '</div>'; }
+function paperLinks(c, sr){ const row = (typeof PAPERS !== 'undefined' && PAPERS[c]) ? PAPERS[c].find(x => x[0] === sr) : null; if (!row) return ''; const er = erUrl(c, sr); return '<div class="row" style="gap:6px">' + (row[1] ? '<a class="btn sm" href="' + row[1] + '" target="_blank" rel="noopener">Question paper ↗</a>' : '') + (row[2] ? '<a class="btn sm" href="' + row[2] + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + (er ? '<a class="btn sm er" href="' + esc(er) + '" target="_blank" rel="noopener">Examiner report ↗</a>' : '') + plHint(row[1] || row[2]) + '</div>'; }
 const WHY = {
   know:    { l:'Didn’t know it',        c:'bad',  fix:'Revise the topic: read the notes, make or review flashcards, then do the topic pack.' },
   misread: { l:'Misread the question',  c:'warn', fix:'Underline the command word and every number before you write, and re-read the question once you’ve answered.' },

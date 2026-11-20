@@ -105,7 +105,7 @@ def main():
         row = have.get((code, ser))
         for kind in ('qp', 'ms'):
             idx = 1 if kind == 'qp' else 2
-            if row is None or not row[idx]:
+            if row is None or not row[idx] or 'paperlords' in (row[idx] or ''):   # Pearson first: replace PaperLords stand-ins
                 for u in (v.get(kind), v.get(kind + 'R')):
                     if u: todo.append((code, ser, kind, u))
         if (v.get('er') or v.get('erR')) and ser not in ER.get(code, {}) and ser not in NONE.get(code, []):
@@ -130,7 +130,7 @@ def main():
         if row is None:
             row = [ser, None, None]; rows.append(row)   # the site sorts series itself
         idx = 1 if kind == 'qp' else 2
-        if not row[idx]:
+        if not row[idx] or 'paperlords' in row[idx]:
             row[idx] = u; added.append(f'{code} {ser} {"question paper" if kind == "qp" else "mark scheme"}')
     print(f'{len(added)} new links added; {locked} still locked or unavailable')
     for a in sorted(added): print('  +', a)
