@@ -10,7 +10,16 @@
    ============================================================ */
 const RM_ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const RM_CAM_MAX = 6, RM_PUB_MAX = 30, RM_STALE = 150000, RM_BEAT = 60000;
-const RM_REACT = ['👍', '🔥', '☕', '📚', '👋'];
+/* quick reactions: fixed buttons only, no typed chat. [id sent to the room, emoji, label, seconds it stays up] */
+const RM_REACT = [['ok', '👍', '', 10], ['brk', '☕', 'Break?', 90], ['back', '👋', 'Back', 30], ['stuck', '✋', 'Stuck on a question', 600]];
+const RM_REACT_OLD = ['👍', '🔥', '☕', '📚', '👋'];
+function rmReactDef(id){ return RM_REACT.find(x => x[0] === id) || null; }
+function rmReactHtml(m){
+  if (!m || !m.r) return '';
+  const d = rmReactDef(m.r), age = Date.now() - (+m.ra || 0);
+  if (d) return age < d[3] * 1000 ? '<span class="rmreact' + (d[2] ? ' txt' : '') + '" aria-label="Reaction">' + d[1] + (d[2] ? ' <span>' + d[2] + '</span>' : '') + '</span>' : '';
+  return RM_REACT_OLD.includes(m.r) && age < 8000 ? '<span class="rmreact" aria-label="Reaction">' + esc(m.r) + '</span>' : '';
+}
 const RM_PUB_NAMES = ['Quiet library', 'Exam season focus', 'Past paper practice', 'Morning focus', 'Night owls', 'Weekend revision', 'Maths', 'Further Maths', 'Physics', 'Chemistry', 'Biology', 'Economics', 'Psychology', 'Computer Science', 'Geography', 'History', 'English'];
 const RM_ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
 const RM = { db: null, room: null, rid: null, unsub: null, sigUnsub: null, list: [], listUnsub: null, listStatus: 'idle', err: '', beat: null, cam: null, camErr: '', pcs: {}, vids: {}, hidden: {}, hello: {}, react: null, busy: false, joinErr: '', create: null, sched: null, noRules: false, leaving: false };
@@ -64,7 +73,7 @@ function rmMine(){
     sub: sj ? sj.short : '', min: rmTodayMin(), cam: !pub && !!RM.cam && !RM.camBlocked, r: RM.react ? RM.react.e : '', ra: RM.react ? RM.react.at : 0, at: Date.now() };
 }
 const _rmMine0 = rmMine;
-rmMine = function(){ const m = _rmMine0(); if (RM.room && RM.room.kind === 'cam') m.nv = (RM.nv || []).slice(0, 12); if (RM.rid){ const G = rmGoal(); m.g = G.g || ''; m.gd = !!(G.g && G.gd); } return m; };
+rmMine = function(){ const m = _rmMine0(); if (RM.awayAt && Date.now() - RM.awayAt >= RM_AWAY) m.st = 'away'; if (RM.room && RM.room.kind === 'cam') m.nv = (RM.nv || []).slice(0, 12); if (RM.rid){ const G = rmGoal(); m.g = G.g || ''; m.gd = !!(G.g && G.gd); } return m; };
 async function rmBeat(){
   if (!RM.rid || !rmUid()) return;
   try { await rmDb().setMe(RM.rid, rmUid(), rmMine()); }
@@ -107,7 +116,7 @@ async function rmJoin(id, stay){
     await rmDb().setMe(id, rmUid(), rmMine());
     RM.unsub = rmDb().watch(id, d => rmOnRoom(d), e => { RM.err = rmErrMsg(e); rmRefresh(); });
     if (room.kind === 'cam') RM.sigUnsub = rmDb().sigWatch(id, rmUid(), rmOnSig, () => {});
-    clearInterval(RM.beat); RM.beat = setInterval(rmBeat, RM_BEAT); RM.joinedAt = Date.now();
+    clearInterval(RM.beat); RM.beat = setInterval(rmBeat, RM_BEAT); RM.joinedAt = Date.now(); RM.sess = { rid: id, n: String(room.name || ''), kind: room.kind, at: Date.now(), min: 0, blocks: 0 }; RM.recap = null; RM.ppSeen = undefined;
     if (room.kind === 'cam') setTimeout(() => { if (RM.rid === id && RM.room) rmSyncPeers(); }, 6500);
     RM.busy = false; try { localStorage.setItem('ial-room', id); } catch(e){}
     RMS.hide = {}; RMS.hits = {}; RMS.ok = {}; RMS.recent = []; try { rmsOwnerWatch(); } catch(e){}
@@ -118,6 +127,7 @@ async function rmJoin(id, stay){
 async function rmLeave(quiet){
   const id = RM.rid, uid = rmUid(); if (!id) return;
   RM.leaving = true;
+  try { rmRecapMake(); } catch(e){}
   try { rmxStopAll(); } catch(e){} RM.panel = null;
   if (RM.full){ RM.full = false; try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e){} const fe = document.getElementById('rmfull'); if (fe) fe.remove(); document.body.classList.remove('rmfulling'); }
   rmCamOff(true); Object.keys(RM.pcs).forEach(rmClosePc);
@@ -141,6 +151,7 @@ function rmOnRoom(d){
   RM.room = Object.assign({ id: RM.rid }, d);
   try { rmGoalWatch(prevM, d.m); } catch(e){}
   try { rmOwnerWatch(prevM, d); rmTallyTidy(); } catch(e){}
+  try { rmPaperWatch(d); } catch(e){}
   if (!d.m || !d.m[rmUid()]) rmBeat();
   if (RM.room.kind === 'cam'){ rmSyncPeers(); rmTuneAll(); rmNvUpdate(); }
   if (RM.room.owner === rmUid()) rmTidy();
@@ -163,7 +174,12 @@ async function rmDelete(){
   try { await rmDb().remove(id); } catch(e){}
   render();
 }
-function rmReact(e){ if (!RM_REACT.includes(e)) return; RM.react = { e, at: Date.now() }; rmBeat(); render(); setTimeout(() => { if (RM.react && Date.now() - RM.react.at >= 8000){ RM.react = null; rmBeat(); } }, 8200); }
+function rmReact(e){
+  const d = rmReactDef(e); if (!d) return;
+  if (RM.react && RM.react.e === e && Date.now() - RM.react.at < d[3] * 1000){ RM.react = null; rmBeat(); render(); return; }   // tap again to take it down
+  const at = Date.now(); RM.react = { e, at }; rmBeat(); render();
+  setTimeout(() => { if (RM.react && RM.react.at === at){ RM.react = null; rmBeat(); if (route() === 'rooms') render(); } }, d[3] * 1000 + 200);
+}
 
 /* ---------- camera ---------- */
 async function rmCamOn(){
@@ -299,13 +315,13 @@ function rmClock(m){
   if (m.st === 'paused') return '<span class="rmclk">' + fmtClock(+m.left || 0) + '</span>';
   return '';
 }
-function rmStatus(m){ return m.st === 'focus' ? 'Focusing' : m.st === 'break' ? 'On a break' : m.st === 'paused' ? 'Paused' : 'Here'; }
+function rmStatus(m){ return m.st === 'away' ? 'Away' : m.st === 'focus' ? 'Focusing' : m.st === 'break' ? 'On a break' : m.st === 'paused' ? 'Paused' : 'Here'; }
 function rmTile(m, me){
-  const cam = RM.room.kind === 'cam', owner = RM.room.owner === rmUid(), react = m.r && Date.now() - (m.ra || 0) < 8000 ? m.r : '';
+  const cam = RM.room.kind === 'cam', owner = RM.room.owner === rmUid(), react = rmReactHtml(me ? rmMine() : m);
   const av = '<span class="avatar" aria-hidden="true" style="width:56px;height:56px;background:' + esc(/^#[0-9a-fA-F]{6}$/.test(m.c) ? m.c : '#4b5a70') + ';font-size:22px">' + esc(initials(m.n) || '?') + '</span>';
   return '<div class="rmtile st-' + esc(m.st || 'idle') + (me ? ' me' : '') + '">' +
     (cam ? '<div class="rmcam" data-rmvid="' + (me ? 'me' : esc(m.id)) + '">' + av + '</div>' : '<div class="rmcam nocam">' + av + '</div>') +
-    (react ? '<span class="rmreact" aria-label="Reaction">' + esc(react) + '</span>' : '') +
+    react +
     rmLowDot(m, me) +
     '<div class="rmmeta"><div class="t"><b>' + esc(m.n || 'A student') + '</b>' + (me ? ' <span class="small muted">(you)</span>' : '') + '</div>' +
       '<div class="small rmst"><span>' + rmStatus(m) + '</span> ' + rmClock(m) + '</div>' + rmGoalLine(m) +
@@ -333,8 +349,8 @@ function rmTools(){
 function rmLobbyStage(){
   const P = rmvPrefs(), sc = RMV_SCENES.some(x => x[0] === P.scene) ? P.scene : 'library', lay = P.layout === 'grid' ? 'grid' : 'focus';
   return '<section class="rmstage lay-lobby" aria-label="Study rooms"><div class="rmscene-slot" data-rmscene="' + sc + '"></div><div class="rmshade"></div><div class="rmstage-in">' +
-    '<div><h1 class="rmname">Study rooms</h1><p class="rmsub"><span>Study alongside other students with a shared focus timer.</span> <span>Public rooms show names and timers only. Camera rooms are for people you invite.</span></p></div>' +
-    '<div class="rmbottom"><div class="row rmlobbyctl"><button class="btn primary" data-act="rm-new" data-v="public">New public room</button><button class="btn rmglass" data-act="rm-new" data-v="cam">New camera room</button></div>' + rmTools() + '</div></div>' +
+    '<div><h1 class="rmname">Study rooms</h1><p class="rmsub"><span>Study alongside other students with a shared focus timer.</span> <span>Public rooms show names and timers only. Invite-only rooms are for people you choose, with cameras if you want them.</span></p></div>' +
+    '<div class="rmbottom"><div class="row rmlobbyctl"><button class="btn primary" data-act="rm-new" data-v="public">New public room</button><button class="btn rmglass" data-act="rm-new" data-v="cam">New invite-only room</button></div>' + rmTools() + '</div></div>' +
   '</section>' + rmPanel(sc, lay);
 }
 function viewLobby(){
@@ -342,14 +358,15 @@ function viewLobby(){
   const live = RM.list.map(r => Object.assign({}, r, { n: rmMembers(r).length })).filter(r => r.n > 0 || r.owner === rmUid()).sort((a, b) => b.n - a.n || (b.at || 0) - (a.at || 0)).slice(0, 30);
   const inv = rmInvites();
   const c = RM.create;
-  const createCard = !c ? '<div class="row"><button class="btn primary" data-act="rm-new" data-v="public">New public room</button><button class="btn" data-act="rm-new" data-v="cam">New camera room</button></div>' :
-    '<form class="card stack rmform" data-form="rm-create"><input type="hidden" name="kind" value="' + c.kind + '"><h2>' + (c.kind === 'cam' ? 'New camera room' : 'New public room') + '</h2>' +
+  const createCard = !c ? '<div class="row"><button class="btn primary" data-act="rm-new" data-v="public">New public room</button><button class="btn" data-act="rm-new" data-v="cam">New invite-only room</button></div>' :
+    '<form class="card stack rmform" data-form="rm-create"><input type="hidden" name="kind" value="' + c.kind + '"><h2>' + (c.kind === 'cam' ? 'New invite-only room' : 'New public room') + '</h2>' +
       (c.kind === 'cam'
-        ? '<label class="f">Room name<input name="name" maxlength="30" autocomplete="off" placeholder="e.g. Koon’s maths room"></label><p class="small muted">Only people you give the code to, or friends you invite, can join. Up to 6 people. Cameras start off, and there’s no microphone or chat.</p>'
+        ? '<label class="f">Room name<input name="name" maxlength="30" autocomplete="off" placeholder="e.g. Koon’s maths room"></label><p class="small muted">Not listed anywhere: only people you give the code or link to, or friends you invite, can join. Up to 6 people. Cameras are optional and start off. No microphone and no chat, just quick reactions.</p>'
         : '<label class="f">Room name<select name="name">' + RM_PUB_NAMES.map(n => '<option>' + esc(n) + '</option>').join('') + '</select></label><p class="small muted">Anyone signed in can join. People see your first name, your focus timer and subject. No video, no chat.</p>') +
       '<div class="row"><button class="btn primary" type="submit"' + (RM.busy ? ' disabled' : '') + '>Create and join</button><button class="btn ghost" type="button" data-act="rm-new" data-v="">Cancel</button></div></form>';
   return '<div class="stack">' +
     rmLobbyStage() +
+    rmRecapCard() +
     (RM.noRules ? '<div class="card warnline" role="alert"><p>Study rooms aren’t switched on for this site yet.</p></div>' : '') +
     (inv.length ? '<div class="card stack"><h2>Invitations from friends</h2>' + inv.map(x => '<div class="li"><div class="grow"><div class="t"><b>' + esc(x.from) + '</b></div><div class="small muted">' + esc(x.name) + ' · <span>camera room</span></div></div><button class="btn sm primary" data-act="rm-join" data-v="' + esc(x.id) + '">Join</button></div>').join('') + '</div>' : '') +
     '<div class="card stack"><h2>Join with a code</h2><form class="row" data-form="rm-join" style="align-items:flex-end"><label class="f" style="flex:1;min-width:160px">Room code<input name="code" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. K7QM 2XPA"></label><button class="btn primary" type="submit"' + (RM.busy ? ' disabled' : '') + '>Join</button></form>' +
@@ -395,16 +412,17 @@ function viewRoom(){
   return '<div class="stack rmroom">' +
     '<section class="rmstage lay-' + lay + (cam ? ' cam' : '') + '" aria-label="' + esc(r.name) + '"><div class="rmscene-slot" data-rmscene="' + sc + '"></div><div class="rmshade"></div>' +
       '<div class="rmstage-in">' +
-        '<div class="rmtop"><div style="min-width:0"><h1 class="rmname">' + esc(r.name) + '</h1><div class="rmsub"><span>' + (cam ? 'Camera room · invite only' : 'Public room · no video') + '</span> · ' + mem.length + '/' + (cam ? RM_CAM_MAX : RM_PUB_MAX) + (r.lock ? ' · <span>🔒 Locked</span>' : '') + '</div></div>' +
+        '<div class="rmtop"><div style="min-width:0"><h1 class="rmname">' + esc(r.name) + '</h1><div class="rmsub"><span>' + (cam ? 'Invite only · cameras optional' : 'Public room · no video') + '</span> · ' + mem.length + '/' + (cam ? RM_CAM_MAX : RM_PUB_MAX) + (r.lock ? ' · <span>🔒 Locked</span>' : '') + '</div></div>' +
           '<button class="btn rmglass" data-act="rm-leave">Leave</button></div>' +
         '<div class="rmcenter"><div class="rmphase' + (T.phase === 'break' ? ' brk' : '') + '">' + (T.phase === 'focus' ? 'Focus' : 'Break') + '</div>' +
           '<div class="rmbig" id="rmclock">' + fmtClock(ms) + '</div>' +
           '<div class="rmnow">' + (focusing ? '<span>' + focusing + ' focusing now</span>' : '<span>Start the timer to focus together</span>') + '</div>' +
           '<div class="row rmctl">' + (T.running ? '<button class="btn primary big" data-act="t-pause">Pause</button>' : '<button class="btn primary big" data-act="t-start">' + (ms < phaseLen() ? 'Resume' : 'Start focus') + '</button>') +
             (T.phase === 'focus' ? '<button class="btn big rmglass" data-act="t-stoplog"' + (ms < phaseLen() ? '' : ' disabled') + '>Stop &amp; log</button>' : '<button class="btn big rmglass" data-act="t-skip">Skip break</button>') + '</div></div>' +
-        '<div class="rmbottom"><div class="row rmreacts" role="group" aria-label="Reactions">' + RM_REACT.map(e => '<button class="rmglass rmre" data-act="rm-react" data-v="' + e + '" aria-label="React ' + e + '">' + e + '</button>').join('') + '</div>' +
+        '<div class="rmbottom"><div class="row rmreacts" role="group" aria-label="Reactions">' + RM_REACT.map(([id, e, lab]) => { const on = !!(RM.react && RM.react.e === id); return '<button class="rmglass rmre' + (lab ? ' txt' : '') + '" data-act="rm-react" data-v="' + id + '" aria-pressed="' + on + '" aria-label="' + (lab || 'Thumbs up') + '">' + e + (lab ? '<span>' + (id === 'stuck' ? 'Stuck' : lab) + '</span>' : '') + '</button>'; }).join('') + '</div>' +
           rmTools() + rmFlipBtn() + '<button class="rmglass rmtool" data-act="rm-full" aria-label="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg><span>Full screen</span></button>' +
-            (cam ? '<button class="rmglass rmtool' + (RM.cam ? ' live' : '') + '" data-act="' + (RM.cam ? 'rm-cam-off' : 'rm-cam-on') + '" aria-pressed="' + !!RM.cam + '"' + (RM.camBlocked && !RM.cam ? ' disabled title="The room owner turned your camera off"' : '') + ' aria-label="' + (RM.cam ? 'Turn camera off' : 'Turn camera on') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/>' + (RM.cam ? '' : '<path d="M3 3l18 18"/>') + '</svg><span>Camera</span></button>' : '') +
+            (cam ? '<button class="rmglass rmtool' + (RM.cam ? ' live' : '') + '" data-act="' + (RM.cam ? 'rm-cam-off' : 'rm-cam-on') + '" aria-pressed="' + !!RM.cam + '"' + (RM.camBlocked && !RM.cam ? ' disabled title="The room owner turned your camera off"' : '') + ' aria-label="' + (RM.cam ? 'Turn camera off' : 'Turn camera on') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/>' + (RM.cam ? '' : '<path d="M3 3l18 18"/>') + '</svg><span>Camera</span></button>' +
+              '<button class="rmglass rmtool' + (rmAdjMe().desk ? ' live' : '') + '" data-act="rm-desk" aria-pressed="' + !!rmAdjMe().desk + '" aria-label="Desk only: hide my face"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 14h18M5 14v6M19 14v6"/><rect x="8" y="9" width="8" height="5" rx="1"/></svg><span>Desk only</span></button>' : '') +
           '</div></div>' +
       '</div></section>' +
     (RM.camErr ? '<p class="small warnline" role="alert">' + esc(RM.camErr) + '</p>' : '') +
@@ -414,12 +432,12 @@ function viewRoom(){
     (RM.rulesAsk ? rmRulesCard() : '') + (RM.reportFor ? rmReportCard() : '') +
     panel +
     (cam ? '<div class="card stack rminvite"><div class="row" style="justify-content:space-between;align-items:center"><div><div class="small muted">Room code</div><div class="rmcode notr">' + esc(r.id.slice(0, 4) + ' ' + r.id.slice(4)) + '</div></div>' +
-      '<div class="row"><button class="btn sm" data-act="rm-copy" data-v="' + esc(link) + '">Copy invite link</button></div></div>' +
+      '<div class="row">' + (navigator.share ? '<button class="btn sm primary" data-act="rm-share" data-v="' + esc(link) + '">Share invite</button>' : '') + '<button class="btn sm" data-act="rm-copy" data-v="' + esc(link) + '">Copy invite link</button></div></div>' +
       (frOk ? '<label class="row small" style="gap:8px;align-items:center;min-height:44px"><input type="checkbox" data-act="rm-frinv"' + (state.rmInvite ? ' checked' : '') + '> <span>Invite my friends to this room</span></label>' : '') +
-      '<p class="small muted">Share the code only with people you know.</p></div>' : '') +
+      '<p class="small muted">This room isn’t listed anywhere. People can only join with the code or this link, so share it only with people you know. Lock the room (Owner) once everyone’s in.</p></div>' : '') +
     '<div class="card-h rmpeopleh"><h2>In this room</h2><span class="small muted">' + mem.length + '</span></div>' +
     '<div class="rmgrid lay-' + lay + (cam ? ' cam' : '') + '">' + mem.map(m => rmTile(m, m.id === me)).join('') + '</div>' +
-    rmGoalRoomCard() + rmGoalCard() + rmBoardCard() +
+    rmPaperCard() + rmGoalRoomCard() + rmGoalCard() + rmBoardCard() +
     (r.owner === me ? '<div class="row"><button class="btn ghost sm" data-act="rm-close">Close this room for everyone</button></div>' : '') +
     '<p class="small muted">' + (cam ? 'No microphone and no chat. Your camera turns off when you leave this page.' : 'Others see your first name and last initial, your timer, your subject and your minutes today.') + '</p>' +
   '</div>';
@@ -475,7 +493,8 @@ function rmAfterRender(){
 }
 function rmAct(el){
   const a = el.dataset.act, v = el.dataset.v, id = el.dataset.id;
-  if (/^rm-a(for|rot|flip|fit|mirror|reset|djust)$/.test(a)) return rmAdjAct(el);
+  if (/^rm-(a(for|rot|flip|fit|mirror|reset|djust)|desk)$/.test(a)) return rmAdjAct(el);
+  if (/^rm-(pp|recap|share)/.test(a) && rmAct2(el)) return true;
   if (a === 'rm-flip'){ rmCamFlip(); return true; }
   if (a === 'rm-rules-ok'){ rmvPrefs().camRules = 1; try { saveLocal(); } catch(e){} RM.rulesAsk = false; rmCamOn(); return true; }
   if (a === 'rm-rules-no'){ RM.rulesAsk = false; render(); return true; }
@@ -580,7 +599,7 @@ function rmFullRender(){
   const focusing = mem.filter(m => m.st === 'focus').length;
   const card = (m, isMe) => {
     const av = '<span class="avatar" aria-hidden="true" style="background:' + esc(/^#[0-9a-fA-F]{6}$/.test(m.c) ? m.c : '#4b5a70') + '">' + esc(initials(m.n) || '?') + '</span>';
-    const react = m.r && Date.now() - (m.ra || 0) < 8000 ? '<span class="rmreact">' + esc(m.r) + '</span>' : '';
+    const react = rmReactHtml(m);
     return (cam ? '<div class="rmcam" data-rmvid="' + (isMe ? 'me' : esc(m.id)) + '">' + av + '</div>' : '<div class="rmcam nocam">' + av + '</div>') + react + rmLowDot(m, isMe) +
       '<div class="rmfname"><b>' + esc(m.n || 'A student') + '</b>' + (isMe ? ' <span>(you)</span>' : '') + ' <span class="rmfst">' + rmStatus(m) + ' ' + rmClock(m) + '</span>' + rmGoalLine(m) + '</div>';
   };
@@ -772,12 +791,20 @@ function rmLowDot(m, me){
    (about 12 a second) and that is what others receive; with no change the camera is sent untouched.
    Others' cameras: rotate, zoom, flip and fit/fill, applied on your screen only and saved per person.
    ============================================================ */
-const RMA_DEF = { r: 0, z: 1, x: 0, y: 0, mi: 1 };
+const RMA_DEF = { r: 0, z: 1, x: 0, y: 0, mi: 1, desk: 0 };
 const RMV_DEF = { r: 0, z: 1, mi: 0, fit: 'cover' };
 function rmAdjMe(){ const P = rmvPrefs(); if (!P.cam || typeof P.cam !== 'object') P.cam = Object.assign({}, RMA_DEF); for (const k in RMA_DEF) if (typeof P.cam[k] !== 'number') P.cam[k] = RMA_DEF[k]; return P.cam; }
 function rmAdjOf(uid){ const P = rmvPrefs(); P.see = P.see || {}; return Object.assign({}, RMV_DEF, P.see[uid] || {}); }
 function rmAdjSet(uid, k, v){ const P = rmvPrefs(); P.see = P.see || {}; P.see[uid] = Object.assign({}, RMV_DEF, P.see[uid] || {}, { [k]: v }); }
-function rmAdjPiped(){ const a = rmAdjMe(); return a.r % 360 !== 0 || a.z > 1.001; }
+function rmAdjPiped(){ const a = rmAdjEff(); return a.r % 360 !== 0 || a.z > 1.001; }
+/* Desk only: send just the lower middle of the picture (desk and hands), never the top where a face is.
+   "Down" follows the rotation, so it still means the bottom of what others see. */
+const RM_DESK_Z = 1.8;
+function rmAdjEff(){
+  const a = rmAdjMe(); if (!a.desk) return a;
+  const rot = ((a.r % 360) + 360) % 360, dir = { 0: [0, 1], 90: [1, 0], 180: [0, -1], 270: [-1, 0] }[rot] || [0, 1];
+  return Object.assign({}, a, { z: RM_DESK_Z, x: dir[0], y: dir[1] });
+}
 function rmSendTrack(){ if (!RM.cam) return null; const s = RM.camOut || RM.cam; return s.getVideoTracks()[0] || null; }
 
 /* start or stop the canvas pipeline to match the settings, then hand the right track to every connection */
@@ -791,7 +818,7 @@ async function rmCamPipe(){
       if (!pipe.on) return;
       const w = src.videoWidth, h = src.videoHeight, t = performance.now();
       if (w && h && t - (pipe.last || 0) >= 80){ pipe.last = t;
-        const a = rmAdjMe(), rot = ((a.r % 360) + 360) % 360, side = rot % 180 !== 0;
+        const a = rmAdjEff(), rot = ((a.r % 360) + 360) % 360, side = rot % 180 !== 0;
         const W = side ? h : w, H = side ? w : h;
         if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
         const z = Math.min(3, Math.max(1, +a.z || 1)), cw = w / z, ch = h / z;
@@ -799,7 +826,7 @@ async function rmCamPipe(){
         let img = src;
         if (rmBlurMP()){
           if (pipe.bcReady && pipe.bc) img = pipe.bc;
-          else { const t = rmBlurFallback(src, w, h); ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(rot * Math.PI / 180); ctx.imageSmoothingEnabled = true; ctx.drawImage(t, 0, 0, t.width, t.height, -w / 2, -h / 2, w, h); ctx.restore(); img = null; }
+          else { const t = rmBlurFallback(src, w, h), fx = t.width / w, fy = t.height / h; ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(rot * Math.PI / 180); ctx.imageSmoothingEnabled = true; ctx.drawImage(t, sx * fx, sy * fy, cw * fx, ch * fy, -w / 2, -h / 2, w, h); ctx.restore(); img = null; }
           if (RM.blur.ss && !pipe.busy){ pipe.busy = true; RM.blur.ss.send({ image: src }).catch(() => {}).then(() => { pipe.busy = false; }); }
         }
         if (img){ const kx = (img.videoWidth || img.width) / w, ky = (img.videoHeight || img.height) / h;   // a video's .width is its attribute, not its size
@@ -828,7 +855,7 @@ function rmApplyView(v, uid, slot){
   if (uid === 'me'){
     if (rmBlurMP() && RM.camOut && v.srcObject === RM.camOut){ const a0 = rmAdjMe(); v.style.objectFit = 'cover'; v.classList.remove('mirror'); v.style.transform = a0.mi && RM.facing !== 'environment' ? 'scaleX(-1)' : ''; return; }
     /* your own preview stays the live camera (full frame rate) and copies the canvas framing with CSS */
-    const a = rmAdjMe(), rot = ((a.r % 360) + 360) % 360, z = Math.min(3, Math.max(1, +a.z || 1));
+    const a = rmAdjEff(), rot = ((a.r % 360) + 360) % 360, z = Math.min(3, Math.max(1, +a.z || 1));
     let k = 1; if (rot % 180 && slot){ const q = (slot.clientWidth || 4) / (slot.clientHeight || 3); k = Math.max(q, 1 / q); }
     const tx = -(+a.x || 0) * (1 - 1 / z) / 2 * 100, ty = -(+a.y || 0) * (1 - 1 / z) / 2 * 100;
     v.style.objectFit = 'cover'; v.classList.remove('mirror');
@@ -851,9 +878,10 @@ function rmAdjPanel(){
   let body;
   if (who === 'me'){
     body = (RM.cam ? '' : '<p class="small muted" style="margin:0">Turn your camera on to see these changes.</p>') +
+      '<label class="row small rmdeskrow" style="gap:8px;align-items:flex-start;min-height:44px"><input type="checkbox" data-act="rm-desk"' + (a.desk ? ' checked' : '') + ' style="margin-top:3px"> <span><b>Desk only.</b> Others see just your desk and hands; the top of the picture, where your face would be, is never sent.</span></label>' +
       '<div class="row">' + rotBtns('me') + '</div>' +
-      slider('me', 'z', a.z, 1, 3, 0.05, 'Zoom') +
-      (a.z > 1.001 ? slider('me', 'x', a.x, -1, 1, 0.05, 'Left / right') + slider('me', 'y', a.y, -1, 1, 0.05, 'Up / down') : '') +
+      (a.desk ? '<p class="small muted" style="margin:0">Rotate until your desk is at the bottom of your preview.</p>' : slider('me', 'z', a.z, 1, 3, 0.05, 'Zoom')) +
+      (!a.desk && a.z > 1.001 ? slider('me', 'x', a.x, -1, 1, 0.05, 'Left / right') + slider('me', 'y', a.y, -1, 1, 0.05, 'Up / down') : '') +
       '<label class="row small" style="gap:8px;align-items:center;min-height:44px"><input type="checkbox" data-act="rm-amirror"' + (a.mi ? ' checked' : '') + '> <span>Mirror my preview (others always see you the right way round)</span></label>' +
       '<label class="row small" style="gap:8px;align-items:center;min-height:44px"><input type="checkbox" data-act="rm-blur"' + (rmBlurOn() ? ' checked' : '') + '> <span><b>Blur my background</b>' +
         (rmBlurOn() ? ' <span class="muted">· ' + (RM.blur.state === 'loading' ? 'getting ready…' : RM.blur.state === 'error' ? 'couldn’t start on this device' : RM.blur.mode === 'native' ? 'on, using your device’s own blur' : RM.cam ? 'on' : 'starts when your camera is on') + '</span>' : '') + '</span></label>' +
@@ -883,7 +911,8 @@ function rmAdjAct(el){
     case 'rm-aflip': rmAdjSet(id, 'mi', rmAdjOf(id).mi ? 0 : 1); break;
     case 'rm-afit': rmAdjSet(id, 'fit', v); break;
     case 'rm-amirror': rmAdjMe().mi = el.checked ? 1 : 0; break;
-    case 'rm-areset': if (id === 'me'){ const mi = rmAdjMe().mi; rmvPrefs().cam = Object.assign({}, RMA_DEF, { mi }); rmCamPipe(); } else { const P = rmvPrefs(); if (P.see) delete P.see[id]; } break;
+    case 'rm-desk': rmAdjMe().desk = (el.type === 'checkbox' ? el.checked : !rmAdjMe().desk) ? 1 : 0; rmCamPipe(); toast(rmAdjMe().desk ? 'Desk only: others see just your desk and hands.' : 'Desk only is off. Others see your whole camera.'); break;
+    case 'rm-areset': if (id === 'me'){ const mi = rmAdjMe().mi, desk = rmAdjMe().desk; rmvPrefs().cam = Object.assign({}, RMA_DEF, { mi, desk }); rmCamPipe(); } else { const P = rmvPrefs(); if (P.see) delete P.see[id]; } break;
     case 'rm-adjust': RM.panel = 'cam'; RM.adjFor = id || 'me'; break;
     default: return false;
   }
@@ -1054,7 +1083,7 @@ async function rmOwnerSet(patch){
 }
 function rmLead(what){
   if (!rmIsOwner()) return;
-  if (what === 'focus' || what === 'break'){ T.phase = what; T.running = false; T.remain = phaseLen(); timerStart(); }
+  if (what === 'focus' || what === 'break'){ T.phase = what; T.plen = 0; T.running = false; T.remain = phaseLen(); timerStart(); }
   else if (what === 'pause'){ if (T.running) timerPause(); }
   else if (what === 'resume'){ if (!T.running) timerStart(); }
   rmOwnerSet({ tm: rmOwnerTm() });
@@ -1066,7 +1095,7 @@ function rmFollowOn(){ return rmvPrefs().follow !== 0; }
 function rmApplyTm(tm, quiet){
   if (!tm || rmIsOwner() || !rmFollowOn()) return;
   if (tm.run && tm.end <= Date.now()) return;
-  T.phase = tm.ph === 'break' ? 'break' : 'focus';
+  T.phase = tm.ph === 'break' ? 'break' : 'focus'; T.plen = T.phase === 'focus' && +tm.len > 0 ? +tm.len : 0;
   if (tm.run){ T.running = true; T.endsAt = tm.end; T.remain = Math.max(0, tm.end - Date.now()); }
   else { T.running = false; T.remain = Math.max(0, +tm.left || 0); }
   saveT(); try { tick(true); } catch(e){}
@@ -1092,6 +1121,7 @@ function rmOwnerPanel(){
       '<button class="btn sm" data-act="rm-lead" data-v="break">Start a break for everyone</button>' +
       (run ? '<button class="btn sm ghost" data-act="rm-lead" data-v="pause">Pause everyone</button>' : (T.remain !== null && T.remain < phaseLen() ? '<button class="btn sm ghost" data-act="rm-lead" data-v="resume">Resume everyone</button>' : '')) +
     '</div><p class="small muted" style="margin:6px 0 0">Uses your focus and break lengths. People can still run their own timer if they turn off “Follow the room timer”.</p></div>' +
+    rmPaperOwner() +
     '<div><div class="small muted" style="margin-bottom:6px">Room goal</div><div class="row" style="align-items:flex-end"><label class="f" style="max-width:220px">Focus sessions together<select id="rm-goal-n">' + [2, 3, 4, 5, 6, 8, 10, 12, 16, 20].map(n => '<option value="' + n + '"' + (n === (RM.goalN || (g ? g.t : 4)) ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label>' +
       '<button class="btn sm" data-act="rm-goalset">' + (g ? 'Start a new goal' : 'Set goal') + '</button>' + (g ? '<button class="btn sm ghost" data-act="rm-goalclear">Remove goal</button>' : '') + '</div></div>' +
     rmsReportsHtml() +
@@ -1115,10 +1145,10 @@ function rmTallyAdd(minutes){
   if (!RM.rid || !RM.room || minutes < 1) return;
   const t = rmTallyBase(); t.min = Math.min(10080, t.min + Math.round(minutes));
   if (RM.room.goal && minutes >= 10) t.gc = Math.min(100, t.gc + 1);
-  rmTallyWrite(t); render();
+  rmTallyWrite(t); setTimeout(() => { if (route() === 'rooms') render(); }, 0);
 }
 /* the main script loads after this file, so wrap logFocus once everything has run */
-window.addEventListener('DOMContentLoaded', () => { if (typeof logFocus === 'function' && !logFocus._rm){ const _logFocus0 = logFocus; logFocus = function(minutes){ _logFocus0(minutes); try { rmTallyAdd(minutes); } catch(e){} }; logFocus._rm = 1; } });
+window.addEventListener('DOMContentLoaded', () => { if (typeof logFocus === 'function' && !logFocus._rm){ const _logFocus0 = logFocus; logFocus = function(minutes){ _logFocus0(minutes); try { rmTallyAdd(minutes); } catch(e){} try { if (RM.rid && RM.sess && minutes >= 1){ RM.sess.min += Math.round(minutes); RM.sess.blocks++; const x = state.sessions[state.sessions.length - 1]; if (x) x.rm = 1; } } catch(e){} }; logFocus._rm = 1; } });
 function rmGoalProgress(){
   const r = RM.room, g = r && r.goal; if (!g) return null;
   const tl = r.tl || {}; let done = 0, who = 0;
@@ -1392,3 +1422,111 @@ function rmRulesCard(){
     '<div class="row"><button class="btn primary" data-act="rm-rules-ok">I agree, turn my camera on</button><button class="btn ghost" data-act="rm-rules-no">Not now</button></div></div>';
 }
 setInterval(() => { if (RM.rid && RM.room && RM.room.kind === 'cam') rmsSchedule(); }, 3000);
+
+
+/* ============================================================
+   Away status, session recap and "same paper together"
+   ============================================================ */
+const RM_AWAY = 90000;   // hidden for a minute and a half (another app or tab) shows as Away to the others
+RM.awayAt = document.hidden ? Date.now() : null;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){ RM.awayAt = Date.now(); clearTimeout(RM.awayT); RM.awayT = setTimeout(() => { if (document.hidden && RM.rid) rmBeat(); }, RM_AWAY + 2000); }
+  else { const was = RM.awayAt && Date.now() - RM.awayAt >= RM_AWAY; RM.awayAt = null; clearTimeout(RM.awayT); if (was && RM.rid) rmBeat(); }
+});
+
+/* recap: made when you leave a room, shown only to you, and kept in your own history (synced with your account like the rest of your data) */
+function rmRecapMake(){
+  const S = RM.sess; RM.sess = null;
+  if (!S || !RM.rid || S.rid !== RM.rid) return;
+  const stay = Math.round((Date.now() - S.at) / 60000);
+  if (stay < 3 && !S.min) return;
+  const G = rmGoal(), pp = RM.room && RM.room.pp;
+  const r = { d: todayStr(), n: S.n.slice(0, 40), stay, min: S.min, blocks: S.blocks, g: G.g ? rmGoalLabel(G.g, S.kind) : '', gd: !!(G.g && G.gd), st: typeof streak === 'function' ? streak() : 0,
+    pp: pp && pp.u ? (UNIT[pp.u] ? UNIT[pp.u].l : pp.u) + ' ' + pp.sr : '' };
+  state.roomLog = (state.roomLog || []).concat([r]).slice(-60);
+  try { commit(); } catch(e){}
+  RM.recap = r;
+}
+function rmRecapCard(){
+  const r = RM.recap; if (!r) return '';
+  const wk = (state.roomLog || []).filter(x => x.d >= rmWeek()), wkMin = wk.reduce((a, x) => a + (+x.min || 0), 0);
+  return '<div class="card stack rmrecap" role="status"><div class="card-h"><h2>Your session in ' + esc(r.n || 'the room') + '</h2><span class="small muted">Only you see this</span></div>' +
+    '<div class="rmrcap-stats">' +
+      '<div><b>' + fmtMin(r.min) + '</b><span>focused' + (r.blocks ? ' in ' + r.blocks + ' ' + (r.blocks === 1 ? 'block' : 'blocks') : '') + '</span></div>' +
+      '<div><b>' + fmtMin(r.stay) + '</b><span>in the room</span></div>' +
+      '<div><b>' + r.st + '</b><span>' + (r.st === 1 ? 'day' : 'days') + ' in a row</span></div>' +
+    '</div>' +
+    (r.g ? '<p class="small" style="margin:0">' + (r.gd ? '✓ You finished your check-in: ' : 'Your check-in was ') + '<b>' + esc(r.g) + '</b>' + (r.gd ? '.' : '. Not ticked off this time.') + '</p>' : '') +
+    (r.pp ? '<p class="small" style="margin:0">Paper together: <b>' + esc(r.pp) + '</b>. If you haven’t marked it yet, log your score in Papers.</p>' : '') +
+    (!r.min ? '<p class="small muted" style="margin:0">No focus time was logged. Start the timer in the room and your minutes count here and in Progress.</p>' : '<p class="small muted" style="margin:0">Saved to your focus log. ' + fmtMin(wkMin) + ' in study rooms this week.</p>') +
+    '<div class="row"><button class="btn sm" data-act="rm-recap-x">Done</button></div></div>';
+}
+
+/* same paper together: the owner picks a past paper; everyone following the room timer gets a focus block of the paper's real length.
+   Each person marks their own paper privately. The room only sees "finished" (their check-in ticked) or not. */
+function rmPaperUnits(){ return Object.keys(UNIT).filter(c => takes(c) && typeof PAPERS !== 'undefined' && PAPERS[c] && PAPERS[c].length); }
+function rmPaperOwner(){
+  const r = RM.room, pp = r.pp, units = rmPaperUnits();
+  if (!units.length) return '';
+  const u = RM.ppU && units.includes(RM.ppU) ? RM.ppU : units[0], list = papersFor(u).slice().sort((a, b) => seriesSortKey(b[0]) - seriesSortKey(a[0]));
+  const sr = RM.ppS && list.some(x => x[0] === RM.ppS) ? RM.ppS : (list.find(x => !state.papers[paperKey(u, x[0])]) || list[0] || [''])[0];
+  const live = pp && pp.end > Date.now();
+  return '<div><div class="small muted" style="margin-bottom:6px">Same paper together</div>' +
+    (live ? '<p class="small" style="margin:0 0 6px"><b>' + esc((UNIT[pp.u] || {}).l || pp.u) + ' ' + esc(pp.sr) + '</b> until ' + fmtTimeHM(pp.end) + '.</p><div class="row"><button class="btn sm ghost" data-act="rm-pp-end">End the paper for everyone</button></div>' :
+    '<div class="row" style="align-items:flex-end"><label class="f" style="max-width:240px">Unit<select id="rm-pp-u">' + units.map(c => '<option value="' + c + '"' + (c === u ? ' selected' : '') + '>' + esc(UNIT[c].l + (UNIT_SUBJ[c] === 'math' || UNIT_SUBJ[c] === 'fm' ? '' : ' ' + SUBJ[UNIT_SUBJ[c]].short)) + '</option>').join('') + '</select></label>' +
+      '<label class="f" style="max-width:220px">Paper<select id="rm-pp-s">' + list.map(x => '<option' + (x[0] === sr ? ' selected' : '') + '>' + esc(x[0]) + '</option>').join('') + '</select></label>' +
+      '<button class="btn sm primary" data-act="rm-pp-start">Start · ' + fmtMin(PAPER_MIN[u] || 90) + '</button></div>' +
+    '<p class="small muted" style="margin:6px 0 0">Everyone following the room timer gets the same timed block. They mark their own paper; the room only sees who has finished.</p>') + '</div>';
+}
+function rmPaperCard(){
+  const r = RM.room, pp = r && r.pp; if (!pp || !pp.u) return '';
+  const u = UNIT[pp.u], now = Date.now(), over = now >= pp.end, me = rmUid();
+  if (over && now - pp.end > 6 * 3600000) return '';
+  const G = rmGoal(), done = G.g === 'pp' && G.gd, mem = rmMembers(r);
+  const who = mem.map(m => { const fin = m.id === me ? done : (m.g === 'pp' && m.gd); return '<li><span>' + esc(m.n || 'A student') + (m.id === me ? ' (you)' : '') + '</span><b class="' + (fin ? 'ok' : '') + '">' + (fin ? 'Finished' : over ? 'Not finished' : 'Working') + '</b></li>'; }).join('');
+  const key = typeof paperKey === 'function' ? paperKey(pp.u, pp.sr) : '', marked = key && state.papers[key];
+  return '<div class="card stack rmpaper"><div class="card-h"><h2>Paper together</h2><span class="small muted">' + (over ? 'Time’s up' : 'Ends ' + fmtTimeHM(pp.end)) + '</span></div>' +
+    '<p style="margin:0"><b>' + esc(u ? u.l + ' · ' + SUBJ[UNIT_SUBJ[pp.u]].name : pp.u) + '</b> · ' + esc(pp.sr) + ' · ' + fmtMin(pp.len) + '</p>' +
+    (typeof paperLinks === 'function' ? paperLinks(pp.u, pp.sr) : '') +
+    (!over && !rmIsOwner() && !rmFollowOn() ? '<p class="small muted" style="margin:0">You’re not following the room timer, so your own timer won’t change.</p>' : '') +
+    '<div class="row">' + (done ? '<button class="btn sm ghost" data-act="rm-pp-done">Not finished yet</button>' : '<button class="btn sm primary" data-act="rm-pp-done">I’ve finished</button>') +
+      (key ? '<button class="btn sm" data-act="ret-paper" data-key="' + esc(key) + '">' + (marked ? 'See my mark' : 'Mark it privately') + '</button>' : '') + '</div>' +
+    '<ul class="rmpwho" aria-label="Who has finished">' + who + '</ul>' +
+    '<p class="small muted" style="margin:0">Your mark stays on your own account. The room only sees whether you’ve finished.</p></div>';
+}
+function rmPaperWatch(d){
+  const pp = d && d.pp, at = pp ? pp.at : 0;
+  if (RM.ppSeen === at) return;
+  const first = RM.ppSeen === undefined; RM.ppSeen = at;
+  if (!pp || !pp.u) return;
+  if (pp.end <= Date.now()) return;
+  const G = rmGoal();
+  if (G.ppAt !== at){ G.ppAt = at; G.g = 'pp'; G.gd = false; try { localStorage.setItem(rmGoalKey(), JSON.stringify({ g: 'pp', gd: false, ppAt: at })); } catch(e){} rmSchedule(); }
+  if (!first && !rmIsOwner()) toast('Paper together: ' + ((UNIT[pp.u] || {}).l || '') + ' ' + pp.sr + ' started');
+}
+function rmAct2(el){
+  const a = el.dataset.act, v = el.dataset.v;
+  switch (a){
+    case 'rm-pp-start': {
+      if (!rmIsOwner()) return true;
+      const u = (document.getElementById('rm-pp-u') || {}).value, sr = (document.getElementById('rm-pp-s') || {}).value;
+      if (!u || !sr || !UNIT[u]) return true;
+      const len = PAPER_MIN[u] || 90;
+      T.phase = 'focus'; T.plen = len * 60000; T.running = false; T.remain = T.plen; timerStart();
+      const at = Date.now(), pp = { u, sr: String(sr).slice(0, 40), len, at, end: T.endsAt };
+      rmPaperWatch(Object.assign({}, RM.room, { pp }));
+      rmOwnerSet({ tm: rmOwnerTm(), pp });
+      toast('Paper started for everyone: ' + fmtMin(len)); RM.panel = null; render(); return true;
+    }
+    case 'rm-pp-end': if (rmIsOwner()){ rmOwnerSet({ pp: null }); if (T.running) timerPause(); rmOwnerSet({ tm: rmOwnerTm() }); render(); } return true;
+    case 'rm-pp-done': { const G = rmGoal(), fin = !(G.g === 'pp' && G.gd); rmGoalSet('pp', fin); try { localStorage.setItem(rmGoalKey(), JSON.stringify({ g: 'pp', gd: fin, ppAt: G.ppAt })); } catch(e){} if (fin) toast('Marked as finished. Now mark it privately in Papers.'); return true; }
+    case 'rm-recap-x': RM.recap = null; render(); return true;
+    case 'rm-share': try { navigator.share({ title: 'Join my study room on IAL Revise', url: v }).catch(() => {}); } catch(e){} return true;
+  }
+  return false;
+}
+document.addEventListener('change', e => {
+  const el = e.target; if (!el) return;
+  if (el.id === 'rm-pp-u'){ RM.ppU = el.value; RM.ppS = ''; render(); }
+  else if (el.id === 'rm-pp-s'){ RM.ppS = el.value; }
+});

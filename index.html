@@ -982,6 +982,13 @@ button.rmglass{cursor:pointer;font:inherit}
 .rmbottom{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .rmreacts{gap:6px}
 .rmre{width:44px;height:44px;border-radius:999px;font-size:1.15rem;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.rmre.txt{width:auto;padding:0 12px 0 10px;gap:6px;font-size:1rem}.rmre.txt span{font-size:.82rem;font-weight:600}
+.rmre[aria-pressed=true]{box-shadow:inset 0 0 0 2px currentColor}
+.rmreact.txt{font-size:1rem;display:inline-flex;align-items:center;gap:5px;max-width:calc(100% - 16px)}.rmreact.txt span{font-size:.78rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rmtile.st-away .rmcam{opacity:.55}.rmtile.st-away .rmst span:first-child{font-weight:700}
+.rmrcap-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.rmrcap-stats div{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--edge);border-radius:12px}.rmrcap-stats b{font-size:1.35rem;line-height:1.1}.rmrcap-stats span{font-size:.8rem;color:var(--muted)}
+.rmpwho{list-style:none;margin:0;padding:0;display:grid;gap:4px}.rmpwho li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--edge);font-size:.9rem}.rmpwho b{font-weight:600;color:var(--muted)}.rmpwho b.ok{color:var(--ok,#2f8a63)}
+@media (max-width:560px){.rmre.txt{padding:0 9px 0 7px;gap:4px}.rmreacts{flex-wrap:wrap}}
 .rmtools{gap:6px}
 .rmtool{min-height:44px;border-radius:999px;padding:0 14px;display:inline-flex;align-items:center;gap:7px;font-size:.88rem}
 .rmtool svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -2529,7 +2536,7 @@ function viewSyllabus(){
 const TKEY = 'ial-study-hub-timer';
 let T = (() => { try { const t = JSON.parse(localStorage.getItem(TKEY)); if (t && t.phase) return t; } catch(e){} return null; })() || { phase:'focus', running:false, endsAt:0, remain:null };
 let audioCtx = null;
-function phaseLen(){ return (T.phase === 'focus' ? state.timerPrefs.focus : state.timerPrefs.brk) * 60000; }
+function phaseLen(){ if (T.phase === 'focus' && T.plen > 0) return T.plen; return (T.phase === 'focus' ? state.timerPrefs.focus : state.timerPrefs.brk) * 60000; }
 function remainMs(){ if (T.remain === null) T.remain = phaseLen(); return T.running ? Math.max(0, T.endsAt - Date.now()) : T.remain; }
 function saveT(){ try { localStorage.setItem(TKEY, JSON.stringify(T)); } catch(e){} try { frSchedule(); } catch(e){} try { rmSchedule(); } catch(e){} }
 function fmtClock(ms){ const s = Math.ceil(ms / 1000); return pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
@@ -2544,7 +2551,7 @@ function timerStart(){
   T.endsAt = Date.now() + remainMs(); T.running = true; saveT(); tick(true);
 }
 function timerPause(){ T.remain = remainMs(); T.running = false; saveT(); tick(true); }
-function timerReset(){ T.running = false; T.remain = phaseLen(); saveT(); tick(true); }
+function timerReset(){ T.plen = 0; T.running = false; T.remain = phaseLen(); saveT(); tick(true); }
 function logFocus(minutes){
   if (minutes < 1) return;
   state.sessions.push({ d: todayStr(), m: Math.round(minutes), s: state.timerPrefs.subject });
@@ -2553,14 +2560,15 @@ function logFocus(minutes){
 }
 function timerStopLog(){
   if (T.phase === 'focus'){ const used = (phaseLen() - remainMs()) / 60000; if (used >= 1){ logFocus(used); toast('Logged ' + Math.round(used) + ' min of focus'); } }
-  T.phase = 'focus'; T.running = false; T.remain = phaseLen(); saveT(); render();
+  T.phase = 'focus'; T.plen = 0; T.running = false; T.remain = phaseLen(); saveT(); render();
 }
-function timerSkip(){ T.phase = T.phase === 'focus' ? 'break' : 'focus'; T.running = false; T.remain = phaseLen(); saveT(); render(); }
+function timerSkip(){ T.phase = T.phase === 'focus' ? 'break' : 'focus'; T.plen = 0; T.running = false; T.remain = phaseLen(); saveT(); render(); }
 function timerComplete(){
+  T.running = false;   // first, so anything that redraws while this runs can't finish the same block twice
   try { momentArm(); } catch(err){}
   beep();
   if (T.phase === 'focus'){
-    logFocus(state.timerPrefs.focus);
+    logFocus(phaseLen() / 60000); T.plen = 0;
     T.phase = 'break'; toast('Focus block done. Take a ' + state.timerPrefs.brk + '-minute break.');
   } else { T.phase = 'focus'; toast('Break over. Ready for the next block?'); }
   T.running = false; T.remain = phaseLen(); saveT(); render();
