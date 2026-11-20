@@ -52,7 +52,8 @@ function verify(token){
 
 function send(rec, html){
   if (!html) html = Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(rec.z), 'application/x-gzip')).getDataAsString();
-  MailApp.sendEmail({ to: rec.e, subject: rec.s, htmlBody: html, name: 'IAL Revise' });
+  // Replies go to an address on the reserved .invalid domain, which can never receive mail, so a reply never reaches this inbox.
+  MailApp.sendEmail({ to: rec.e, subject: rec.s, htmlBody: html, name: 'IAL Revise (do not reply)', replyTo: 'no-reply@ial-revise.invalid' });
 }
 
 /* Sunday 18:00: send each student the latest copy, if it was updated in the last 8 days */

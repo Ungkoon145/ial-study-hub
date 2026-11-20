@@ -83,7 +83,7 @@ function wmBuild(){
     (exams.length ? h2('Exams coming up') + '<ul style="margin:0;padding-left:20px">' + exams.map(e => { const u = UNIT[e.u], n = daysBetween(t, e.d); return '<li style="margin:3px 0"><b>' + esc(u ? u.l + ' ' + SUBJ[UNIT_SUBJ[e.u]].short : e.u) + '</b> · ' + esc(fd(e.d, { weekday: 'short', day: 'numeric', month: 'short' })) + ' <span style="color:' + C.soft + '">(' + esc(n + ' ' + wmL(n === 1 ? 'day' : 'days')) + ')</span></li>'; }).join('') + '</ul>' : '') +
 
     '<p style="margin:26px 0 0"><a href="' + MAIN_URL + '#planner" style="display:inline-block;background:' + C.ink + ';color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;font-weight:700">' + wmE('Open your plan') + '</a></p>' +
-    '<p style="margin:22px 0 0;font-size:12px;color:' + C.soft + '">' + wmE('You get this because you turned on the weekly email in IAL Revise. To stop it, turn it off in Settings on the site.') + ' ' + esc(wmL('Updated ') + fd(t, { day: 'numeric', month: 'short' })) + '.</p>' +
+    '<p style="margin:22px 0 0;font-size:12px;color:' + C.soft + '">' + wmE('Please don’t reply to this email: replies aren’t delivered.') + ' ' + wmE('You get this because you turned on the weekly email in IAL Revise. To stop it, turn it off in Settings on the site.') + ' ' + esc(wmL('Updated ') + fd(t, { day: 'numeric', month: 'short' })) + '.</p>' +
     '</div></div>';
   const subject = wmL('Your week on IAL Revise') + ' · ' + fd(nextMon, { day: 'numeric', month: 'short' });
   return { subject, html };
