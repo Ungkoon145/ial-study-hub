@@ -271,7 +271,7 @@ div.f.schoolpick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;col
 .pcmulti{flex-direction:column;gap:2px;align-items:stretch;padding:0}
 .pced{border:1px solid var(--edge);border-radius:12px;padding:12px}
 @media (max-width:700px){.pcs .pctop{display:none}.pcs{align-items:center;padding:2px;min-height:36px}.pcs .pcsub{font-size:.66rem}}
-.plsrc{flex-basis:100%;line-height:1.35}
+.plsrc,.srccredit{flex-basis:100%;line-height:1.35}.srccredit{font-size:.74rem}
 .loadwarn{border-left:3px solid var(--warn);background:color-mix(in srgb,var(--warn) 10%,transparent);padding:8px 12px;border-radius:6px}
 .cday.busy{background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 6px,var(--soft) 6px,var(--soft) 12px)}
 .cday.s1{background-color:color-mix(in srgb,var(--good) 8%,var(--surface))}.cday.s2{background-color:color-mix(in srgb,var(--good) 16%,var(--surface))}.cday.s3{background-color:color-mix(in srgb,var(--good) 26%,var(--surface))}
@@ -1914,7 +1914,7 @@ function taskLinks(x){
   if (!x.u || !UNIT[x.u] || x.done) return '';
   if (x.k === 'paper' || x.k === 'mock'){
     const row = paperRow(x.u, taskSeries(x));
-    return row ? pdfBtn(row[1], 'Paper') + pdfBtn(row[2], 'Mark scheme') : '<a class="btn sm" href="#papers" data-act="goto-papers" data-u="' + x.u + '">Open papers</a>';
+    return row ? pdfBtn(row[1], 'Paper') + pdfBtn(row[2], 'Mark scheme') + srcCredit([[row[1], 'Paper'], [row[2], 'Mark scheme']]) : '<a class="btn sm" href="#papers" data-act="goto-papers" data-u="' + x.u + '">Open papers</a>';
   }
   if (x.ti != null){ const n = topicPdf(x.u, x.ti), q = topicQPdf(x.u, x.ti); if (n || q) return pdfBtn(n && n.url, 'Notes') + pdfBtn(q, 'Questions'); }
   return '<a class="btn sm" href="#syllabus" data-act="goto-rev" data-u="' + x.u + '">Open notes</a>';
@@ -2332,7 +2332,7 @@ function pmtBlock(code, i){
   return '<details class="pmtq" data-k="' + k0 + '"' + (ui.quiz.openPmt === k0 ? ' open' : '') + '><summary>Real exam questions from PMT · ' + pq.length + ' pack' + (pq.length > 1 ? 's' : '') + (done ? ' · ' + done + ' done' : '') + '</summary>' +
     pq.map((x, k) => { const key = k0 + '-' + k; const d = !!state.pmtDone[key];
       return '<div class="pmtrow' + (d ? ' done' : '') + '"><button class="check" role="checkbox" aria-checked="' + d + '" aria-label="Mark this pack done" data-act="pmt-done" data-key="' + key + '">' + (d ? '✓' : '') + '</button><div class="grow"><div class="t">' + esc(x.n) + '</div>' +
-        '<div class="meta"><a class="btn sm" href="' + x.qp + '" target="_blank" rel="noopener">Questions ↗</a>' + (x.ms ? '<a class="btn sm" href="' + x.ms + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + flagBtn('Topic pack: ' + x.n + ' (' + key + ')') + '</div>' +
+        '<div class="meta"><a class="btn sm" href="' + x.qp + '" target="_blank" rel="noopener">Questions ↗</a>' + (x.ms ? '<a class="btn sm" href="' + x.ms + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + srcCredit([[x.qp, 'Questions'], [x.ms, 'Mark scheme']]) + flagBtn('Topic pack: ' + x.n + ' (' + key + ')') + '</div>' +
         (x.note ? '<div class="small muted" style="margin-top:4px">' + esc(x.note) + '</div>' : '') + '</div></div>'; }).join('') +
   '</details>';
 }
@@ -2369,7 +2369,7 @@ function viewQuiz(){
           (own.length ? '<div class="pracrow"><div class="grow"><div class="t">Practice questions</div><div class="small muted">' + own.length + ' questions, marked instantly' + (os.att ? ' · ' + os.att + ' tried, ' + Math.round(os.sc / Math.max(1, os.mx) * 100) + '%' : '') + '</div></div><button class="btn sm" data-act="tq-start" data-u="' + u.c + '" data-t="' + i + '">Practise</button></div>' : '') +
           (pq.length ? pq.map((x, k) => { const key = u.c + '-' + i + '-' + k; const d = !!state.pmtDone[key];
             return '<div class="pmtrow' + (d ? ' done' : '') + '"><button class="check" role="checkbox" aria-checked="' + d + '" aria-label="Mark this pack done" data-act="pmt-done" data-key="' + key + '">' + (d ? '✓' : '') + '</button><div class="grow"><div class="t">' + esc(x.n) + '</div>' +
-              '<div class="meta"><a class="btn sm" href="' + x.qp + '" target="_blank" rel="noopener">Questions ↗</a>' + (x.ms ? '<a class="btn sm" href="' + x.ms + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + flagBtn('Topic pack: ' + x.n + ' (' + key + ')') + '</div>' +
+              '<div class="meta"><a class="btn sm" href="' + x.qp + '" target="_blank" rel="noopener">Questions ↗</a>' + (x.ms ? '<a class="btn sm" href="' + x.ms + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + srcCredit([[x.qp, 'Questions'], [x.ms, 'Mark scheme']]) + flagBtn('Topic pack: ' + x.n + ' (' + key + ')') + '</div>' +
               (x.note ? '<div class="small muted" style="margin-top:4px">' + esc(x.note) + '</div>' : '') + '</div></div>'; }).join('')
           : '<p class="small muted" style="margin:6px 0 0">No PMT topic pack for this topic. Use the past papers for this unit.</p>') + '</div>';
       }).join('') + '</div></div>';
@@ -2465,7 +2465,7 @@ function viewPapers(){
   const rows = shown.map(r => {
     const [sr, qp, ms] = r; const key = paperKey(u.c, sr); const rec = state.papers[key];
     const older = /^\w+ (\d{4})$/.test(sr) && +sr.slice(-4) < 2019 && !(RES[u.c] && RES[u.c].pearson);
-    const links = (qp ? '<a class="btn sm" href="' + qp + '" target="_blank" rel="noopener">Paper</a>' : '<span class="small muted">' + (/^W(FR|GN|SP)0[13]$/.test(u.c) ? 'Speaking test: no question paper' : 'Paper not published') + '</span>') + (ms ? '<a class="btn sm" href="' + ms + '" target="_blank" rel="noopener">Mark scheme</a>' : '<span class="small muted">No mark scheme</span>') + (erUrl(u.c, sr) ? '<a class="btn sm er" href="' + esc(erUrl(u.c, sr)) + '" target="_blank" rel="noopener" title="Pearson examiners’ report: common mistakes on each question">Report</a>' : '<span class="small muted noer">' + esc(noErReason(sr, u.c)) + '</span>') + flagBtn('IAL ' + u.l + ' ' + (UNIT_SUBJ[u.c] === 'math' || UNIT_SUBJ[u.c] === 'fm' ? '' : SUBJ[UNIT_SUBJ[u.c]].short + ' ') + sr) + plHint(qp || ms);
+    const links = (qp ? '<a class="btn sm" href="' + qp + '" target="_blank" rel="noopener">Paper</a>' : '<span class="small muted">' + (/^W(FR|GN|SP)0[13]$/.test(u.c) ? 'Speaking test: no question paper' : 'Paper not published') + '</span>') + (ms ? '<a class="btn sm" href="' + ms + '" target="_blank" rel="noopener">Mark scheme</a>' : '<span class="small muted">No mark scheme</span>') + (erUrl(u.c, sr) ? '<a class="btn sm er" href="' + esc(erUrl(u.c, sr)) + '" target="_blank" rel="noopener" title="Pearson examiners’ report: common mistakes on each question">Report</a>' : '<span class="small muted noer">' + esc(noErReason(sr, u.c)) + '</span>') + flagBtn('IAL ' + u.l + ' ' + (UNIT_SUBJ[u.c] === 'math' || UNIT_SUBJ[u.c] === 'fm' ? '' : SUBJ[UNIT_SUBJ[u.c]].short + ' ') + sr) + srcCredit([[qp, 'Paper'], [ms, 'Mark scheme'], [erUrl(u.c, sr), 'Report']]) + plHint(qp || ms);
     let status;
     if (p.log === key){
       status = '<form class="editbox" data-form="paper-log" data-key="' + esc(key) + '">' +
@@ -4199,10 +4199,19 @@ window.addEventListener('resize', setHdr);
    ============================================================ */
 /* Pearson keeps the newest series for teachers only, so those come from PaperLords. Where their site only lets
    us link to the archive page, say where the paper is on it. */
+/* credit the site each link opens on, next to the links */
+const SRC_NAMES = [[/qualifications\.pearson\.com/, 'Pearson Edexcel'], [/physicsandmathstutor\.com/, 'Physics & Maths Tutor'], [/paperlords\.org/, 'PaperLords']];
+function srcName(u){ const m = SRC_NAMES.find(([re]) => re.test(u || '')); return m ? m[1] : ''; }
+function srcCredit(items){
+  const xs = items.filter(x => x && x[0]).map(([u, l]) => [srcName(u), l]).filter(x => x[0]); if (!xs.length) return '';
+  const names = [...new Set(xs.map(x => x[0]))];
+  const txt = names.length === 1 ? 'Source: ' + names[0] : names.map(n => { const ls = xs.filter(x => x[0] === n).map(x => x[1]); return (ls.length > 1 ? ls.slice(0, -1).join(', ') + ' and ' + ls[ls.length - 1].toLowerCase() : ls[0]) + ': ' + n; }).join(' · ');
+  return '<span class="small muted srccredit">' + esc(txt) + '</span>';
+}
 function plHint(url){
-  const m = String(url || '').match(/paperlords\.org\/ial#(.+)$/); if (!m) return /archive\.paperlords\.org/.test(url || '') ? '<span class="small muted plsrc">via PaperLords</span>' : '';
+  const m = String(url || '').match(/paperlords\.org\/ial#(.+)$/); if (!m) return '';
   const [sub, ses, lab] = decodeURIComponent(m[1]).split('|');
-  return '<span class="small muted plsrc">On PaperLords: open <b>' + esc(sub) + '</b> → <b>' + esc(ses) + '</b>, then <b>' + esc(lab) + ' QP</b> or <b>' + esc(lab) + ' MS</b></span>';
+  return '<span class="small muted plsrc">' + (isTH() ? 'บน PaperLords: เปิด' : 'On PaperLords: open') + ' <b class="notr">' + esc(sub) + ' → ' + esc(ses) + '</b>' + (isTH() ? ' แล้วเลือก ' : ', then ') + '<b class="notr">' + esc(lab) + ' QP</b>' + (isTH() ? ' หรือ ' : ' or ') + '<b class="notr">' + esc(lab) + ' MS</b></span>';
 }
 function noErReason(sr, c){
   if (c && typeof PAPER_ER_NONE !== 'undefined' && (PAPER_ER_NONE[c] || []).includes(sr)) return 'No examiner report: too few candidates sat this paper';
@@ -4213,7 +4222,7 @@ function noErReason(sr, c){
   return 'No examiner report published online for this paper';
 }
 function erUrl(c, sr){ return (typeof PAPER_ER !== 'undefined' && PAPER_ER[c] && PAPER_ER[c][sr]) || ''; }
-function paperLinks(c, sr){ const row = (typeof PAPERS !== 'undefined' && PAPERS[c]) ? PAPERS[c].find(x => x[0] === sr) : null; if (!row) return ''; const er = erUrl(c, sr); return '<div class="row" style="gap:6px">' + (row[1] ? '<a class="btn sm" href="' + row[1] + '" target="_blank" rel="noopener">Question paper ↗</a>' : '') + (row[2] ? '<a class="btn sm" href="' + row[2] + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + (er ? '<a class="btn sm er" href="' + esc(er) + '" target="_blank" rel="noopener">Examiner report ↗</a>' : '') + plHint(row[1] || row[2]) + '</div>'; }
+function paperLinks(c, sr){ const row = (typeof PAPERS !== 'undefined' && PAPERS[c]) ? PAPERS[c].find(x => x[0] === sr) : null; if (!row) return ''; const er = erUrl(c, sr); return '<div class="row" style="gap:6px">' + (row[1] ? '<a class="btn sm" href="' + row[1] + '" target="_blank" rel="noopener">Question paper ↗</a>' : '') + (row[2] ? '<a class="btn sm" href="' + row[2] + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + (er ? '<a class="btn sm er" href="' + esc(er) + '" target="_blank" rel="noopener">Examiner report ↗</a>' : '') + srcCredit([[row[1], 'Paper'], [row[2], 'Mark scheme'], [er, 'Report']]) + plHint(row[1] || row[2]) + '</div>'; }
 const WHY = {
   know:    { l:'Didn’t know it',        c:'bad',  fix:'Revise the topic: read the notes, make or review flashcards, then do the topic pack.' },
   misread: { l:'Misread the question',  c:'warn', fix:'Underline the command word and every number before you write, and re-read the question once you’ve answered.' },
@@ -4663,7 +4672,7 @@ function viewOldPapers(){
       (rows.some(r => +((r[0].match(/\d{4}/) || [9999])[0]) < 2009) ? '<label class="toggle small" style="min-height:0"><input type="checkbox" id="old-pre"' + (p.opre ? ' checked' : '') + '> Show pre-2009 papers</label>' : '') + '</div>' +
     '<div class="card"><div class="list">' + (shown.length ? shown.map(r => {
       const key = u.k + '|' + r[0], rec = oldRec(key), erU = OLD_ER[u.k] && OLD_ER[u.k][r[0]], nMk = state.mistakes.filter(m => m.old === key).length;
-      const links = '<a class="btn sm" href="' + r[1] + '" target="_blank" rel="noopener">Question paper ↗</a>' + (r[2] ? '<a class="btn sm" href="' + r[2] + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + (r[3] ? '<a class="btn sm" href="' + r[3] + '" target="_blank" rel="noopener" title="Worked solutions written by PMT">Model answers ↗</a>' : '') + (erU ? '<a class="btn sm er" href="' + esc(erU) + '" target="_blank" rel="noopener">Examiner report ↗</a>' : '') + flagBtn('Old spec ' + u.l + ' ' + u.n + ', ' + r[0]);
+      const links = '<a class="btn sm" href="' + r[1] + '" target="_blank" rel="noopener">Question paper ↗</a>' + (r[2] ? '<a class="btn sm" href="' + r[2] + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + (r[3] ? '<a class="btn sm" href="' + r[3] + '" target="_blank" rel="noopener" title="Worked solutions written by PMT">Model answers ↗</a>' : '') + (erU ? '<a class="btn sm er" href="' + esc(erU) + '" target="_blank" rel="noopener">Examiner report ↗</a>' : '') + srcCredit([[r[1], 'Paper'], [r[2], 'Mark scheme'], [r[3], 'Model answers'], [erU, 'Report']]) + flagBtn('Old spec ' + u.l + ' ' + u.n + ', ' + r[0]);
       let status;
       if (p.olog === key){
         status = '<form class="editbox" data-form="old-log" data-key="' + esc(key) + '"><div class="row">' +
@@ -4709,7 +4718,7 @@ function oldRow(k, sr){ return (typeof OLD_PAPERS !== 'undefined' && OLD_PAPERS[
 function oldLinks(key){
   const [k, sr] = key.split('|'); const r = oldRow(k, sr); if (!r) { ensureOld(); return ''; }
   const er = OLD_ER[k] && OLD_ER[k][sr];
-  return '<div class="row" style="gap:6px"><a class="btn sm" href="' + r[1] + '" target="_blank" rel="noopener">Question paper ↗</a>' + (r[2] ? '<a class="btn sm" href="' + r[2] + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + (r[3] ? '<a class="btn sm" href="' + r[3] + '" target="_blank" rel="noopener">Model answers ↗</a>' : '') + (er ? '<a class="btn sm er" href="' + esc(er) + '" target="_blank" rel="noopener">Examiner report ↗</a>' : '') + '</div>';
+  return '<div class="row" style="gap:6px"><a class="btn sm" href="' + r[1] + '" target="_blank" rel="noopener">Question paper ↗</a>' + (r[2] ? '<a class="btn sm" href="' + r[2] + '" target="_blank" rel="noopener">Mark scheme ↗</a>' : '') + (r[3] ? '<a class="btn sm" href="' + r[3] + '" target="_blank" rel="noopener">Model answers ↗</a>' : '') + (er ? '<a class="btn sm er" href="' + esc(er) + '" target="_blank" rel="noopener">Examiner report ↗</a>' : '') + srcCredit([[r[1], 'Paper'], [r[2], 'Mark scheme'], [r[3], 'Model answers'], [er, 'Report']]) + '</div>';
 }
 /* mock info for either an IAL key "WPH12|June 2024" or an old key "OLD:C1|June 2012" */
 function mockInfo(key){
