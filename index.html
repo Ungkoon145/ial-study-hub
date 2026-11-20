@@ -1119,6 +1119,13 @@ html .chip[data-subj][aria-pressed="true"] .dot{background:var(--sc) !important;
 .todayband{background:var(--navy);color:#fff;box-shadow:0 0 0 100vmax var(--navy);clip-path:inset(0 -100vmax);margin-top:-14px;padding:18px 0 26px;display:flex;flex-direction:column;gap:20px}
 @media (min-width:721px){.todayband{margin-top:-20px;padding-top:26px}}
 .todayband .muted{color:var(--navy-soft)}
+.todayband{position:relative}
+.todayband > :not(.tbdeco){position:relative;z-index:1}
+.tbdeco{position:absolute;right:0;top:12px;width:260px;height:130px;color:var(--brass);pointer-events:none}
+@media (min-width:721px){.tbdeco{top:20px}}
+@media (max-width:860px){.tbdeco{width:200px;height:100px}}
+@media (max-width:720px){.tbdeco{display:none}}
+@media (prefers-contrast:more){.tbdeco{display:none}}
 .todayband h1.hero{display:block;color:#fff;font-weight:300;font-size:2.5rem;line-height:1.08;letter-spacing:-.015em;margin:0}
 @media (max-width:720px){.todayband h1.hero{font-size:2rem}}
 .todayband .avlink .avatar{box-shadow:0 0 0 1.5px var(--brass)}
@@ -1723,6 +1730,14 @@ function dueStack(due){
   if (!due) return '';
   return '<a class="duestack" href="#cards"><span class="duecard"><span class="row" style="gap:14px;align-items:baseline;flex-wrap:nowrap"><b class="duen">' + due + '</b><span class="stack" style="gap:0"><span style="font-weight:600">Flashcards due</span><span class="small muted">decks and cards to review</span></span></span><span class="btn primary" aria-hidden="true">Start</span></span></a>';
 }
+/* Today header decoration: a brass desk lamp, two books and a few stars, kept in the empty area to the right
+   so it never sits behind any text (hidden on narrow screens, where the greeting needs the whole width). */
+const TB_DECO = '<svg class="tbdeco" viewBox="0 0 260 130" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M150 122h96"/><path d="M206 122v-7M190 115h32"/><path d="M206 115l-30-44 36-30"/><circle cx="176" cy="71" r="2.4"/>' +
+  '<path d="M212 41l-24-15 31-9z"/><path d="M196 34c-3 3-4 7-3 10" stroke-opacity=".6"/>' +
+  '<rect x="112" y="114" width="44" height="8" rx="1.5"/><rect x="117" y="106" width="36" height="8" rx="1.5"/><path d="M125 106v8M145 114v8" stroke-opacity=".5"/>' +
+  '</g><g fill="currentColor"><circle cx="30" cy="20" r="1.3" opacity=".7"/><circle cx="84" cy="44" r="1" opacity=".5"/><circle cx="118" cy="14" r="1.4" opacity=".8"/><circle cx="246" cy="16" r="1.1" opacity=".6"/><circle cx="58" cy="78" r="1" opacity=".4"/>' +
+  '<ellipse cx="190" cy="121" rx="34" ry="3" opacity=".18"/></g></svg>';
 function viewToday(){
   const t = todayStr();
   { const td = examsOn(t); if (td.length && ui.edOff !== t) return viewExamDay(t, td, true); if (ui.edPreview && !td.length){ const tm = examsOn(addDays(t, 1)); if (tm.length) return viewExamDay(addDays(t, 1), tm, false); ui.edPreview = false; } }
@@ -1777,7 +1792,7 @@ function viewToday(){
   }
 
   return '<div class="stack today">' +
-    '<div class="todayband"><div class="row" style="gap:10px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#profile" class="avlink" aria-label="Your profile">' + avatar(32) + '</a>' : '') + '<p class="muted small notr">' + todayLong(t) + '</p></div><h1 class="hero"><span>' + greet + '</span>' + (firstName() ? ', ' + esc(firstName()) : '') + '</h1>' + todayStats(t, ex) + '</div>' + dueStack(due) + profileNudge() +
+    '<div class="todayband">' + TB_DECO + '<div class="row" style="gap:10px;align-items:center;flex-wrap:nowrap">' + (hasProfile() ? '<a href="#profile" class="avlink" aria-label="Your profile">' + avatar(32) + '</a>' : '') + '<p class="muted small notr">' + todayLong(t) + '</p></div><h1 class="hero"><span>' + greet + '</span>' + (firstName() ? ', ' + esc(firstName()) : '') + '</h1>' + todayStats(t, ex) + '</div>' + dueStack(due) + profileNudge() +
     verifyBanner() + examTomorrowCard() + nextCard() + meetInviteCard() + friendReqCard() + studyBoard() + reviewCard(ui.showReview) + weeklyTodayCard() + backupNudge() + planCard() + examsTimeline() + buddyCard() +
     '<div class="grid2">' + (ex.length ? '' : exHtml) +
       '<div class="card"><div class="card-h"><h2>Tasks</h2><a class="small muted" href="#planner">' + (openTasks.length > 5 ? 'All ' + openTasks.length : 'Planner') + '</a></div>' +
