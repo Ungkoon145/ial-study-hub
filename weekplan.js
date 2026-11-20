@@ -272,3 +272,180 @@ document.addEventListener('change', e => {
   else if (el.dataset && el.dataset.wtav){ const [i, j, k] = el.dataset.wtav.split('|').map(Number); if (d.avail[i] && d.avail[i][j] && el.value){ d.avail[i][j][k] = el.value; if (wtMin(d.avail[i][j][1]) <= wtMin(d.avail[i][j][0])) d.avail[i][j][1] = wtHM(wtMin(d.avail[i][j][0]) + 60); ui.wt.opts = null; render(); } }
 });
 document.addEventListener('keydown', e => { const el = e.target; if ((e.key === 'Enter' || e.key === ' ') && el && el.dataset && el.dataset.act === 'wt-cell'){ e.preventDefault(); wtAct(el); } });
+
+/* ============================================================
+   Week-by-week plan from the weekly timetable.
+   The timetable gives the times. Each week every subject gets at least its minimum (wtSuggest), and the
+   extra periods go to the weakest subjects right now: topics not yet confident, marks lost in the mistake
+   log, and how far the latest past papers are below the target grade. A slot fixed "every week" keeps its
+   subject; otherwise the timetable's own subject is kept where that subject still has periods left.
+   ============================================================ */
+const WK_GRADE_PCT = { 'A*': 90, A: 80, B: 70, C: 60, D: 50, E: 40 };
+function wkActive(sid, d){
+  const units = SUBJ[sid] ? SUBJ[sid].units.filter(u => takes(u.c)) : [];
+  if (!units.length) return false;
+  const ex = (state.exams || []).filter(e => units.some(u => u.c === e.u));
+  return !ex.length || ex.some(e => e.d > d);
+}
+function wkWeakness(sid){
+  const units = SUBJ[sid].units.filter(u => takes(u.c)), why = [], parts = [];
+  let tot = 0, left = 0;
+  units.forEach(u => u.t.forEach((_, i) => { tot++; left += (3 - Math.min(3, state.topics[topicId(u.c, i)] || 0)) / 3; }));
+  if (tot){ parts.push(left / tot); if (left / tot >= 0.5) why.push(Math.round(left) + ' topics not confident'); }
+  const lost = (state.mistakes || []).filter(m => !m.fixed && UNIT_SUBJ[m.u] === sid).reduce((a, m) => a + (+m.lost || 0), 0);
+  parts.push(Math.min(1, lost / 30)); if (lost >= 10) why.push(lost + ' marks lost in mistakes');
+  const tg = WK_GRADE_PCT[targetFor(sid)] || 80;
+  const gaps = trendData(units).map(x => Math.max(0, tg - x.pts[x.pts.length - 1].v));
+  if (gaps.length){ const g = gaps.reduce((a, b) => a + b, 0) / gaps.length; parts.push(Math.min(1, g / 30)); if (g >= 5) why.push('past papers ' + Math.round(g) + '% below target'); }
+  return { w: Math.max(0.05, parts.reduce((a, b) => a + b, 0) / parts.length), why };
+}
+function wkMonday(d){ const x = parseD(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return ymd(x.getFullYear(), x.getMonth(), x.getDate()); }
+function wkPlan(W, from, to, kept, skip){
+  const out = {}, now = todayStr(), nowHM = wtHM(new Date().getHours() * 60 + new Date().getMinutes());
+  const subsAll = Object.keys(W.per).filter(k => SUBJ[k]);
+  const weak = {}; subsAll.forEach(k => { try { weak[k] = wkWeakness(k).w; } catch(e){ weak[k] = 0.3; } });
+  const mins = {}; subsAll.forEach(k => { mins[k] = Math.max(0, Math.min(+W.per[k] || 0, wtSuggest(k, W.len).min)); });
+  const p = prefs(), end = to < addDays(from, 400) ? to : addDays(from, 400);
+  for (let wk = wkMonday(from); wk < end; wk = addDays(wk, 7)){
+    const slots = [];
+    for (let day = 0; day < 7; day++){
+      const d = addDays(wk, day); if (d < from || d >= end) continue;
+      if ((p.offDays || []).includes(parseD(d).getDay()) || (p.busy || []).includes(d)) continue;
+      W.grid.filter(g => g.day === day).forEach(g => {
+        if (d === now && g.s < nowHM) return;
+        const k = d + '|' + g.s; if (kept.has(k) || skip[k]) return;
+        slots.push({ d, day, s: g.s, pref: g.sid, lock: !!g.lock });
+      });
+    }
+    if (!slots.length) continue;
+    const subs = subsAll.filter(k => wkActive(k, slots[0].d));
+    if (!subs.length) continue;
+    // how many periods each subject gets this week
+    const q = {}; let need = 0; subs.forEach(k => { q[k] = mins[k]; need += q[k]; });
+    while (need > slots.length){ const k = subs.filter(x => q[x] > 0).sort((a, b) => q[b] - q[a] || weak[a] - weak[b])[0]; if (!k) break; q[k]--; need--; }
+    let extra = slots.length - need;
+    const wsum = subs.reduce((a, k) => a + weak[k], 0) || 1;
+    const share = subs.map(k => ({ k, x: extra * weak[k] / wsum })), give = {};
+    share.forEach(o => { give[o.k] = Math.floor(o.x); extra -= give[o.k]; });
+    share.sort((a, b) => (b.x - Math.floor(b.x)) - (a.x - Math.floor(a.x)) || weak[b.k] - weak[a.k]).forEach(o => { if (extra > 0){ give[o.k]++; extra--; } });
+    subs.forEach(k => q[k] += give[k] || 0);
+    // put them in: fixed slots first, then the timetable's own subject, then spread the rest
+    const res = {}, onDay = {};
+    const take = (sl, k) => { res[sl.d + '|' + sl.s] = k; q[k]--; onDay[sl.d + k] = (onDay[sl.d + k] || 0) + 1; };
+    slots.filter(sl => sl.lock && subs.includes(sl.pref)).forEach(sl => { take(sl, sl.pref); if (q[sl.pref] < 0) q[sl.pref] = 0; });
+    slots.forEach(sl => { if (!res[sl.d + '|' + sl.s] && q[sl.pref] > 0) take(sl, sl.pref); });
+    slots.filter(sl => !res[sl.d + '|' + sl.s]).forEach(sl => {
+      const k = subs.filter(x => q[x] > 0).sort((a, b) => (onDay[sl.d + a] || 0) - (onDay[sl.d + b] || 0) || q[b] - q[a] || weak[b] - weak[a])[0];
+      if (k) take(sl, k);
+    });
+    slots.forEach(sl => { const k = res[sl.d + '|' + sl.s]; if (k) (out[sl.d] = out[sl.d] || []).push({ s: sl.s, sid: k }); });
+  }
+  Object.keys(out).forEach(d => out[d].sort((a, b) => wtMin(a.s) - wtMin(b.s)));
+  return out;
+}
+/* every Sunday (or the first visit after it) next week's plan is rebuilt; today's sessions, ticked-off ones and
+   ones changed by hand stay as they are */
+function rtAutoCheck(){
+  try {
+    if (!rtUseWt() || !rtExams().length || !state.rt) return;
+    const t = todayStr(), sun = addDays(wkMonday(t), -1), mark = parseD(t).getDay() === 0 ? t : sun;
+    if ((state.rt.auto || '') >= mark) return;
+    const r = state.rt; rtBuild(r.min || goalMin(), r.rest === undefined ? -1 : r.rest, true, addDays(t, 1));
+    state.rt.auto = mark; commit();
+  } catch(e){}
+}
+window.addEventListener('load', () => setTimeout(rtAutoCheck, 4000));
+setInterval(rtAutoCheck, 60 * 60000);
+
+/* ============================================================
+   Plan calendar: the planned sessions as a week timetable, in the saved timetable's theme.
+   Tap a session to change its subject or topic (that day, or that slot every week), tick it or remove it;
+   tap an empty period to add one.
+   ============================================================ */
+function pcState(){ ui.pcal = ui.pcal || { off: 0, ed: null }; return ui.pcal; }
+function pcSubs(){ const W = wtSaved(); const l = W ? Object.keys(W.per).filter(k => SUBJ[k] && (+W.per[k] || 0) > 0) : []; return l.length ? l : wtSubjects().map(s => s.id); }
+function pcCol(sid){ const W = wtSaved(), th = WT_THEMES[(W && W.theme) || 'brass'] || WT_THEMES.brass, subs = pcSubs(); const i = subs.indexOf(sid); return i < 0 ? th.soft : th.cols[i % th.cols.length]; }
+function pcTopicName(x){ const u = x.u && UNIT[x.u]; return u && x.ti !== null && x.ti !== undefined && u.t[x.ti] ? u.t[x.ti] : String(x.t || '').replace(/^\d\d:\d\d · /, '').replace(/ · \d+ min$/, ''); }
+function pcCard(){
+  const W = wtSaved(), P = pcState(), t = todayStr(), nowHM = wtHM(new Date().getHours() * 60 + new Date().getMinutes()), wk = addDays(wkMonday(t), 7 * P.off);
+  const days = [0, 1, 2, 3, 4, 5, 6].map(i => addDays(wk, i));
+  const tasks = state.tasks.filter(x => x.d && x.d >= wk && x.d <= days[6] && (x.gen === 'rt' || x.tm || x.s));
+  if (!W && !tasks.length) return '';
+  const th = WT_THEMES[(W && W.theme) || 'brass'] || WT_THEMES.brass;
+  const times = new Set(); tasks.forEach(x => { if (x.tm) times.add(x.tm); }); if (W) W.grid.forEach(g => times.add(g.s));
+  const rows = [...times].sort((a, b) => wtMin(a) - wtMin(b)), any = tasks.filter(x => !x.tm);
+  const slotOpen = {}; if (W) W.grid.forEach(g => slotOpen[g.day + '|' + g.s] = 1);
+  const cell = (x) => '<div class="wtc wtp pcs' + (x.done ? ' done' : '') + '" role="cell" data-act="pc-open" data-id="' + esc(x.id) + '" tabindex="0" style="--c:' + pcCol(x.s) + ';color:' + wtTextOn(pcCol(x.s)) + '" title="' + esc(x.t) + '"><span class="pcsub">' + (x.done ? '✓ ' : '') + esc(x.s && SUBJ[x.s] ? wtAbbr(x.s) : 'Task') + '</span><span class="pctop">' + esc(pcTopicName(x)) + '</span></div>';
+  const style = '--wt-bg:' + th.bg + ';--wt-ink:' + th.ink + ';--wt-soft:' + th.soft + ';--wt-line:' + th.line + ';--wt-cell:' + th.cell + ';--wt-deco:' + th.deco + (th.rule ? ';--wt-rule:' + th.rule : '');
+  const fmtR = fmtDate(days[0], {day:'numeric', month:'short'}) + ' – ' + fmtDate(days[6], {day:'numeric', month:'short'});
+  const doneN = tasks.filter(x => x.done).length;
+  const grid = '<div class="wtgrid pcgrid" role="table" aria-label="Planned sessions this week" style="grid-template-columns:52px repeat(7,minmax(0,1fr))">' +
+    '<div class="wtc wth" role="columnheader"></div>' + days.map((d, i) => '<div class="wtc wth' + (d === t ? ' today' : '') + '" role="columnheader">' + WT_DAYS[i] + '<small>' + parseD(d).getDate() + '</small></div>').join('') +
+    rows.map(tm => '<div class="wtc wtt" role="rowheader">' + tm + '</div>' + days.map((d, i) => {
+      const here = tasks.filter(x => x.d === d && x.tm === tm);
+      if (here.length) return here.length === 1 ? cell(here[0]) : '<div class="wtc pcmulti" role="cell">' + here.map(cell).join('') + '</div>';
+      if (W && slotOpen[i + '|' + tm] && (d > t || (d === t && tm >= nowHM))) return '<div class="wtc wte" role="cell" data-act="pc-add" data-v="' + d + '|' + tm + '" tabindex="0" aria-label="Add a session ' + WT_DAYS_LONG[i] + ' ' + tm + '"><span aria-hidden="true">+</span></div>';
+      return '<div class="wtc wtx" role="cell"></div>';
+    }).join('')).join('') +
+    (any.length ? '<div class="wtc wtt" role="rowheader">Any time</div>' + days.map(d => { const h = any.filter(x => x.d === d); return '<div class="wtc pcmulti" role="cell">' + h.slice(0, 3).map(cell).join('') + (h.length > 3 ? '<span class="small">+' + (h.length - 3) + '</span>' : '') + '</div>'; }).join('') : '') +
+    '</div>';
+  return '<div class="card stack pccard"><div class="card-h"><h2>Your week</h2><span class="small muted">' + tasks.length + ' sessions · ' + doneN + ' done</span></div>' +
+    '<div class="row pcnav"><button class="btn sm" data-act="pc-week" data-v="-1" aria-label="Previous week">‹</button><b class="pcrange">' + fmtR + '</b><button class="btn sm" data-act="pc-week" data-v="1" aria-label="Next week">›</button>' + (P.off ? '<button class="btn sm ghost" data-act="pc-week" data-v="0">This week</button>' : '') + '</div>' +
+    '<div class="wtsheet wt-' + ((W && W.theme) || 'brass') + '" style="' + style + '">' + (rows.length || any.length ? grid : '<p class="wtsub" style="margin:0;padding:8px">Nothing planned this week.</p>') + '</div>' +
+    (P.ed ? pcEditor() : '') +
+    (W && rtUseWt() ? '<p class="small muted" style="margin:0">Each week every subject gets at least its minimum, and the extra periods go to your weakest subjects. A new week is planned every Sunday; sessions you’ve ticked off or changed stay as they are.</p>' : '') +
+  '</div>';
+}
+function pcWeakTopics(sid){
+  return SUBJ[sid].units.filter(u => takes(u.c)).flatMap(u => u.t.map((n, i) => ({ c: u.c, i, n, l: u.l, st: state.topics[topicId(u.c, i)] || 0, lost: topicMistakes(u.c, i).reduce((a, m) => a + m.lost, 0) })))
+    .sort((a, b) => a.st - b.st || b.lost - a.lost);
+}
+function pcEditor(){
+  const P = pcState(), E = P.ed, W = wtSaved();
+  const sid = E.sid, tops = sid && SUBJ[sid] ? pcWeakTopics(sid) : [];
+  const cur = E.c && E.ti !== null && E.ti !== undefined ? E.c + '|' + E.ti : (tops[0] ? tops[0].c + '|' + tops[0].i : '');
+  const conf = ['not started', 'shaky', 'getting there', 'confident'];
+  return '<div class="pced stack" role="group" aria-label="Edit session"><div class="row" style="justify-content:space-between;align-items:baseline"><b>' + esc(fmtDate(E.d, {weekday:'long', day:'numeric', month:'short'})) + (E.tm ? ' · ' + E.tm : '') + '</b>' + (E.id ? '<span class="small muted">' + (E.done ? 'Done' : 'Planned') + '</span>' : '<span class="small muted">New session</span>') + '</div>' +
+    '<div class="chips" role="group" aria-label="Subject">' + pcSubs().map(k => '<button class="chip" data-act="pc-subj" data-v="' + k + '" aria-pressed="' + (k === sid) + '"><i class="wtdot" style="background:' + pcCol(k) + '"></i>' + esc(SUBJ[k].short) + '</button>').join('') + '</div>' +
+    (sid ? '<label class="f">Topic (weakest first)<select id="pc-topic">' + tops.map(x => '<option value="' + x.c + '|' + x.i + '"' + (x.c + '|' + x.i === cur ? ' selected' : '') + '>' + esc(x.l + ': ' + x.n) + ' · ' + conf[Math.min(3, x.st)] + '</option>').join('') + '</select></label>' : '') +
+    '<label class="f" style="max-width:160px">Length<select id="pc-min">' + [20, 30, 40, 45, 50, 60, 90, 120].map(m => '<option value="' + m + '"' + (m === (+E.min || (W ? W.len : 45)) ? ' selected' : '') + '>' + m + ' min</option>').join('') + '</select></label>' +
+    (W && E.tm ? '<label class="row small" style="gap:8px;align-items:flex-start;flex-wrap:nowrap"><input type="checkbox" id="pc-every" style="flex:none;margin-top:3px"> <span>Use this subject in this period every week (' + WT_DAYS_LONG[(parseD(E.d).getDay() + 6) % 7] + ' ' + E.tm + ')</span></label>' : '') +
+    '<div class="row"><button class="btn primary" data-act="pc-save">Save</button>' +
+      (E.id ? '<button class="btn" data-act="pc-done">' + (E.done ? 'Not done' : 'Mark done') + '</button><button class="btn ghost" data-act="pc-del">Remove</button>' : '') +
+      '<button class="btn ghost" data-act="pc-cancel">Cancel</button></div></div>';
+}
+function pcAct(el){
+  const a = el.dataset.act, v = el.dataset.v, id = el.dataset.id, P = pcState(), W = wtSaved();
+  switch (a){
+    case 'pc-week': P.off = v === '0' ? 0 : P.off + (+v); P.ed = null; break;
+    case 'pc-open': { const x = state.tasks.find(y => y.id === id); if (!x) return true; P.ed = { id, d: x.d, tm: x.tm || '', sid: x.s || '', c: x.u || '', ti: x.ti, min: x.min || (W ? W.len : 45), done: !!x.done }; break; }
+    case 'pc-add': { const [d, tm] = v.split('|'); P.ed = { id: null, d, tm, sid: '', c: '', ti: null, min: W ? W.len : 45 }; break; }
+    case 'pc-subj': P.ed.sid = v; P.ed.c = ''; P.ed.ti = null; break;
+    case 'pc-cancel': P.ed = null; break;
+    case 'pc-done': { const x = state.tasks.find(y => y.id === P.ed.id); if (x){ x.done = !x.done; if (x.done) x.doneAt = todayStr(); else delete x.doneAt; commit(); } P.ed = null; break; }
+    case 'pc-del': { const x = state.tasks.find(y => y.id === P.ed.id); if (x){ state.tasks = state.tasks.filter(y => y !== x); if (x.gen === 'rt' && x.tm){ state.rt = state.rt || {}; state.rt.skip = Object.assign({}, state.rt.skip || {}, { [x.d + '|' + x.tm]: 1 }); } commit(); toast('Session removed. That period stays free when the week is re-planned.'); } P.ed = null; break; }
+    case 'pc-save': {
+      const E = P.ed; if (!E.sid){ toast('Pick a subject first'); return true; }
+      const tsel = document.getElementById('pc-topic'), msel = document.getElementById('pc-min'), every = document.getElementById('pc-every');
+      const [c, ti] = tsel && tsel.value ? tsel.value.split('|') : ['', ''];
+      const u = UNIT[c], m = +(msel && msel.value) || 45;
+      const lab = u ? u.l + (E.sid === 'math' || E.sid === 'fm' ? '' : ' ' + SUBJ[E.sid].short) : SUBJ[E.sid].short;
+      const text = (E.tm ? E.tm + ' · ' : '') + (u ? 'Revise ' + u.t[+ti] + ' (' + lab + ')' : SUBJ[E.sid].short + ': topic questions or notes on your weakest topic') + ' · ' + m + ' min';
+      let x = E.id ? state.tasks.find(y => y.id === E.id) : null;
+      if (!x){ x = { id: uid(), d: E.d, tm: E.tm || undefined, p: 2, done: false, gen: 'rt', k: 'topic', sr: null }; state.tasks.push(x); }
+      Object.assign(x, { t: text, s: E.sid, u: c || null, ti: c ? +ti : null, min: m, man: true, k: c ? 'topic' : 'review' });
+      if (state.rt && state.rt.skip && E.tm) delete state.rt.skip[E.d + '|' + E.tm];
+      if (every && every.checked && W){
+        const day = (parseD(E.d).getDay() + 6) % 7, g = W.grid.find(y => y.day === day && y.s === E.tm);
+        if (g){ g.sid = E.sid; g.lock = true; } else W.grid.push({ day, s: E.tm, sid: E.sid, lock: true });
+        if (!(+W.per[E.sid] > 0)) W.per[E.sid] = 1;
+        if (rtUseWt() && rtExams().length){ const r = state.rt || {}; rtBuild(r.min || goalMin(), r.rest === undefined ? -1 : r.rest, true, addDays(E.d, 1)); }
+        toast('Saved. ' + SUBJ[E.sid].short + ' is now in this period every week.');
+      } else toast('Saved for ' + fmtDate(E.d, {weekday:'short', day:'numeric', month:'short'}) + '.');
+      commit(); P.ed = null; break;
+    }
+    default: return false;
+  }
+  render(); return true;
+}
+document.addEventListener('keydown', e => { const el = e.target; if ((e.key === 'Enter' || e.key === ' ') && el && el.dataset && (el.dataset.act === 'pc-open' || el.dataset.act === 'pc-add')){ e.preventDefault(); pcAct(el); } });
