@@ -261,6 +261,7 @@ div.f.schoolpick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;col
   #wtprint .wtsheet{border-radius:0;min-height:180mm}
   #wtprint .wtc{min-height:9mm;font-size:10pt}
 }
+.wmprev{border:1px solid var(--edge);border-radius:12px;overflow:hidden;background:#f6f4ef}.wmprev iframe{display:block;width:100%;height:560px;border:0}
 .pcnav{align-items:center;gap:8px}.pcnav .btn{min-width:40px}.pcrange{min-width:130px;text-align:center}
 .pcgrid .wth{flex-direction:column;gap:0;line-height:1.15}.pcgrid .wth small{display:block;font-weight:400;font-size:.72rem}
 .pcgrid .wth.today{color:var(--wt-ink);box-shadow:inset 0 -2px 0 var(--wt-deco)}
@@ -1314,6 +1315,7 @@ label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-
 <script src="roomfx.js"></script>
 <script src="rooms.js"></script>
 <script src="weekplan.js"></script>
+<script src="weeklymail.js"></script>
 <script>
 /* ============================================================
    CONTENT: Pearson Edexcel International A Level units
@@ -3590,7 +3592,7 @@ function viewSettings(){
     '<div><h1>Settings</h1><p class="muted">Your profile, subjects, study habits and how the app looks.</p></div>' +
     accountCard() + profileCard() + friendsCard() + shareCard() + mySubjectsCard() + habitsCard() + lookCard() + notifCard() + reminderCard() + buddySettings() + installCard() + offlineCard() +
     ((state.linkReports || []).length ? '<div class="card stack"><div class="card-h"><h2>Broken links (' + state.linkReports.length + ')</h2></div><p class="small muted" style="margin:0">Links you reported. Copy the list and paste it to Claude, and they’ll be fixed in one go.</p><div class="list">' + state.linkReports.map(x => '<div class="li"><div class="grow"><div class="t">' + esc(x.where) + '</div><div class="small muted">Reported ' + fmtDate(x.at, {day:'numeric', month:'short'}) + '</div></div><button class="x" data-act="report-del" data-id="' + x.id + '" aria-label="Remove report">×</button></div>').join('') + '</div><div class="row"><button class="btn primary" data-act="report-copy">Copy list</button><button class="btn ghost" data-act="report-clear">Clear all</button></div><textarea readonly rows="3" aria-label="Broken links list">' + esc(reportsText()) + '</textarea></div>' : '') +
-    weeklyCard() + dataCard() + creditsCard() + '</div>';
+    (typeof wmCard === 'function' ? wmCard() : '') + weeklyCard() + dataCard() + creditsCard() + '</div>';
 }
 
 
@@ -6163,6 +6165,7 @@ document.addEventListener('click', e => {
   const act = b.dataset.act, v = b.dataset.v, id = b.dataset.id;
   if (b.tagName === 'INPUT') return;
   if (act.indexOf('rm-') === 0 && typeof rmAct === 'function'){ e.preventDefault(); rmAct(b); return; }
+  if (act.indexOf('wm-') === 0 && typeof wmAct === 'function'){ e.preventDefault(); wmAct(b); return; }
   if (act.indexOf('pc-') === 0 && typeof pcAct === 'function'){ e.preventDefault(); pcAct(b); return; }
   if (act.indexOf('wt-') === 0 && typeof wtAct === 'function'){ if (b.tagName !== 'A') e.preventDefault(); wtAct(b); return; }
   if (act !== 'restore' && act !== 'reset' && act !== 'sub-wipe' && act !== 'pf-clear') ui.confirm = null;
