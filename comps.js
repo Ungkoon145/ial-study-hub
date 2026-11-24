@@ -160,5 +160,8 @@ const COMPS = [
     tl: [{ d: '2027-05', e: 'Applications open' }, { d: '2027-06', e: 'Application deadline' }] },
   { id: 'munth', th: 1, n: 'Model UN conferences in Thailand', org: 'Schools and universities in Thailand (listed on MyMUN)', url: 'https://mymun.com/conferences/thailand', t: 'speak', subj: ['hum', 'econ'], sk: ['speak', 'research', 'write'],
     where: 'Bangkok and Chiang Mai', cost: 'Delegate fee per conference', elig: 'High school delegates, usually through the school MUN club. Conferences run through the year at international schools and universities.',
-    tl: [{ d: '2027-01-16', e: 'SEAMUN I conference, Bangkok (to 17 January)' }, { d: '2027-04', e: 'Chulalongkorn MUN conference' }] }
+    tl: [{ d: '2027-01-16', e: 'SEAMUN I conference, Bangkok (to 17 January)' }, { d: '2027-04', e: 'Chulalongkorn MUN conference' }] },
+  { id: 'asc', th: 1, n: 'Asian Science Camp (ASC)', org: 'POSN Foundation and IPST (Thailand’s delegation)', url: 'https://posn.or.th/en/projects/academic-olympiad/asc/about', t: 'summer', subj: ['phys', 'chem', 'bio', 'math'], sk: ['research', 'speak'],
+    where: 'A different Asian country each year (Thailand 2025, Hong Kong 2026)', cost: 'Free for selected Thai delegates', elig: 'A week of lectures and discussions with Nobel laureates. Thailand picks its delegation by exam and a selection camp. In 2025, applicants had to be in the DPST (พสวท.) science scholarship programme, aged 16–21, and have studied in Thailand for at least 5 years. Check the new rules each year.',
+    tl: [{ d: '2027-01', e: 'Thai selection announced (IPST)' }, { d: '2027-08', e: 'Camp week' }] }
 ];
