@@ -4,7 +4,7 @@
    tl: timeline. d is 'YYYY-MM-DD' (confirmed date) or 'YYYY-MM' (expected month, based on previous years: shown as "usually").
    t: type · subj: related subjects · sk: skills · sch: carries scholarships or money towards study. */
 const COMPS_CHECKED = 'November 2026';
-const COMP_TYPES = { olymp: 'Olympiads and contests', sci: 'Science and research', hack: 'Hackathons and coding', write: 'Writing and essays', speak: 'Speaking and debate', biz: 'Business and economics', summer: 'Summer programmes' };
+const COMP_TYPES = { olymp: 'Olympiads and contests', sci: 'Science and research', hack: 'Coding, hackathons and robotics', write: 'Writing and essays', speak: 'Speaking and debate', biz: 'Business and economics', summer: 'Summer programmes' };
 const COMP_SUBJ = { math: 'Maths', phys: 'Physics', chem: 'Chemistry', bio: 'Biology', cs: 'Computer Science', econ: 'Economics and Business', hum: 'Humanities', eng: 'English' };
 const COMP_SKILL = { solve: 'Problem solving', research: 'Research', code: 'Coding', write: 'Writing', speak: 'Speaking and debate', team: 'Teamwork', enterprise: 'Enterprise', video: 'Science communication' };
 const COMPS = [
@@ -74,6 +74,42 @@ const COMPS = [
   { id: 'wsc', n: 'World Scholar’s Cup', org: 'World Scholar’s Cup', url: 'https://scholarscup.org/', t: 'speak', subj: ['hum', 'eng'], sk: ['speak', 'write', 'team'],
     where: 'Bangkok regional and global rounds', cost: 'Fee per student', elig: 'Teams of three; debate, collaborative writing and a quiz.',
     tl: [{ d: '2027-05', e: 'Bangkok regional round' }, { d: '2027-08', e: 'Bangkok global round' }] },
+  { id: 'hmmt', n: 'Harvard-MIT Mathematics Tournament (HMMT)', org: 'HMMT', url: 'https://hmmt.co/', t: 'olymp', subj: ['math'], sk: ['solve', 'team'],
+    where: 'MIT and Harvard, USA', cost: 'Fee per team', elig: 'Teams of 6–8 students (4–6 in November), under 21. Applications for the 2026–27 season have closed.',
+    tl: [{ d: '2027-02-13', e: 'February tournament at MIT' }, { d: '2027-08', e: 'Applications open for 2027–28' }] },
+  { id: 'purple', n: 'Purple Comet! Math Meet', org: 'AwesomeMath', url: 'https://www.purplecomet.org/', t: 'olymp', subj: ['math'], sk: ['solve', 'team'],
+    where: 'Online', cost: 'Free', elig: 'International team contest for middle and high school; each team needs an adult supervisor.',
+    tl: [{ d: '2027-04-06', e: 'Contest window opens (to 15 April)' }] },
+  { id: 'pico', n: 'picoCTF', org: 'Carnegie Mellon University', url: 'https://picoctf.org/', t: 'hack', subj: ['cs'], sk: ['code', 'solve', 'team'],
+    where: 'Online', cost: 'Free', elig: 'Cybersecurity “capture the flag” for ages 13 and up (13–17 need a parent’s consent). Some prizes have extra rules.',
+    tl: [{ d: '2027-02', e: 'Registration opens' }, { d: '2027-03', e: 'Competition' }] },
+  { id: 'vex', n: 'Thailand VEX V5 National Championship', org: 'VEX Robotics / PIM', url: 'https://events.vex.com/RE-V5RC-26-4339.html', t: 'hack', subj: ['cs', 'phys'], sk: ['code', 'team'],
+    where: 'Central Chaengwattana, Bangkok', cost: '9,000 THB per team', elig: 'High-school robotics teams that qualified at a Thailand qualifying event. Part of the route to the VEX World Championship.',
+    tl: [{ d: '2026-12-10', e: 'Registration and payment deadline' }, { d: '2027-01-10', e: 'Engineering notebook due' }, { d: '2027-01-21', e: 'National Championship (to 22 January)' }] },
+  { id: 'earth', n: 'The Earth Prize', org: 'The Earth Foundation', url: 'https://www.theearthprize.org/', t: 'sci', subj: ['bio', 'chem', 'econ'], sk: ['research', 'enterprise', 'team'], sch: 1,
+    where: 'Online', cost: 'Free', elig: 'Ages 13–19 in school, worldwide; team projects on environmental sustainability, over $100,000 in prizes.',
+    tl: [{ d: '2027-01-10', e: 'Registration closes' }, { d: '2027-01-31', e: 'Project submissions close' }, { d: '2027-03-03', e: 'Earth Prize Scholars announced' }, { d: '2027-05-28', e: 'Awards ceremony (online)' }] },
+  { id: 'genius', n: 'GENIUS Olympiad', org: 'Terra Science and Education', url: 'https://geniusolympiad.org/', t: 'sci', subj: ['bio', 'chem', 'phys', 'cs', 'econ', 'eng'], sk: ['research', 'code', 'write', 'enterprise'],
+    where: 'Online application, finals in New York State, USA', cost: 'Fees for finalists', elig: 'High-school projects on the environment: science, robotics, coding, business, writing, film, art and more.',
+    tl: [{ d: '2027-03-01', e: 'Application deadline' }, { d: '2027-04', e: 'Finalists announced' }, { d: '2027-06', e: 'Finals week' }] },
+  { id: 'diamond', n: 'Diamond Challenge', org: 'Horn Entrepreneurship, University of Delaware', url: 'https://diamondchallenge.org/', t: 'biz', subj: ['econ'], sk: ['enterprise', 'team'], sch: 1,
+    where: 'Online, summit in Delaware, USA', cost: 'Free', elig: 'Teams of 2–4 students aged 14–18 with an adult advisor; business or social venture ideas, $100,000 in prizes.',
+    tl: [{ d: '2027-01-14', e: 'Concept submission deadline' }, { d: '2027-03', e: 'Finalists announced' }, { d: '2027-04-29', e: 'Summit (to 30 April)' }] },
+  { id: 'nyt', n: 'New York Times Student Contests', org: 'The New York Times Learning Network', url: 'https://www.nytimes.com/section/learning', t: 'write', subj: ['eng', 'hum', 'bio', 'phys'], sk: ['write', 'video'],
+    where: 'Online', cost: 'Free', elig: 'Students aged 13–19 in middle or high school, worldwide. Several contests a year; winners are published.',
+    tl: [{ d: '2027-01-06', e: 'STEM Interview video contest opens (to 17 February)' }, { d: '2027-02-17', e: 'Open Letters contest opens (to 31 March)' }] },
+  { id: 'ocean', n: 'Ocean Awareness Contest', org: 'Bow Seat Ocean Awareness Programs', url: 'https://bowseat.org/programs/ocean-awareness-contest/', t: 'write', subj: ['bio', 'eng'], sk: ['write', 'video'],
+    where: 'Online', cost: 'Free', elig: 'Ages 11–18 worldwide, with an adult sponsor. Art, writing, film and more about the ocean and climate.',
+    tl: [{ d: '2027-06', e: 'Entry deadline' }] },
+  { id: 'bennington', n: 'Bennington Young Writers Awards', org: 'Bennington College', url: 'https://bennington.edu/YWA', t: 'write', subj: ['eng', 'hum'], sk: ['write'], sch: 1,
+    where: 'Online', cost: 'Free', elig: 'Grades 9–12 worldwide: poetry, fiction or non-fiction. Cash prizes and Bennington scholarships.',
+    tl: [{ d: '2027-09', e: 'Submissions open' }, { d: '2027-11', e: 'Submission deadline' }] },
+  { id: 'hir', n: 'Harvard International Review Academic Writing Contest', org: 'Harvard International Review', url: 'https://hir.harvard.edu/contest', t: 'write', subj: ['hum', 'econ'], sk: ['write', 'research'],
+    where: 'Online', cost: 'Check the site', elig: 'Students in grades 7–12, including outside the USA; essays on international affairs in English. Dates: see the site.',
+    tl: [] },
+  { id: 'hmun', n: 'Harvard Model United Nations (HMUN)', org: 'Harvard Model United Nations', url: 'https://www.harvardmun.org/', t: 'speak', subj: ['hum', 'econ', 'eng'], sk: ['speak', 'research', 'team'],
+    where: 'Boston, USA', cost: 'Conference fees', elig: 'High-school students aged 13 and over, usually as a school delegation.',
+    tl: [{ d: '2027-01-15', e: 'Optional essay contest deadline' }, { d: '2027-01-28', e: 'Conference (to 31 January)' }] },
   { id: 'rsi', n: 'Research Science Institute (RSI) at MIT', org: 'Center for Excellence in Education', url: 'https://cee.org/apply-rsi', t: 'summer', subj: ['math', 'phys', 'chem', 'bio', 'cs'], sk: ['research'],
     where: 'MIT, USA (6 weeks)', cost: 'Free', elig: 'Students in their penultimate school year. International students apply through their own country’s selection, if their country takes part.',
     tl: [{ d: '2026-12-11', e: 'Application deadline (US route)' }] },
