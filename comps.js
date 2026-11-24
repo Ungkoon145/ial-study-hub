@@ -24,7 +24,7 @@ const COMPS = [
     where: 'Taken at school', cost: 'Usually a fee per student', elig: 'British and British international schools enter their students.',
     tl: [{ d: '2026-12', e: 'Physics Challenge (Year 13)' }, { d: '2027-03', e: 'Senior Physics Challenge (Year 12)' }, { d: '2027-11', e: 'BPhO Round 1' }] },
   { id: 'ukcho', n: 'UK Chemistry Olympiad, Round 1', org: 'Royal Society of Chemistry', url: 'https://edu.rsc.org/enrichment/uk-chemistry-olympiad', t: 'olymp', subj: ['chem'], sk: ['solve'],
-    where: 'Taken at school', cost: 'Fee for schools outside the UK', elig: 'International schools in Thailand enter through ASDAN China, which handles fees.',
+    where: 'Taken at school', cost: 'Fee for schools outside the UK', elig: 'Your school enters you. International schools in Thailand register through ASEEDER (ASDAN China), which handles fees.',
     tl: [{ d: '2027-01', e: 'Round 1 paper' }] },
   { id: 'bbo', n: 'British Biology Olympiad', org: 'UK Biology Competitions', url: 'https://ukbiologycompetitions.org/british-biology-olympiad/', t: 'olymp', subj: ['bio'], sk: ['solve'],
     where: 'Online, at school', cost: '£50 per school outside the UK', elig: 'Final-year students. International schools register students; individuals can’t enter themselves.',
@@ -195,3 +195,28 @@ const COMPS = [
     where: 'Online; top teams invited to a summit in New York', cost: 'About $30 per student', elig: 'High school students, alone or in pairs: pick a listed company, then submit a report, slides and a video with a buy or sell call. Students outside the US enter the International OPEN.',
     tl: [{ d: '2026-12-15', e: 'Registration opens' }, { d: '2027-02-19', e: 'Submission deadline' }, { d: '2027-05', e: 'Global Youth Investment Summit, New York' }] }
 ];
+
+/* How a student gets in: 'self' = enter or apply yourself, 'school' = a teacher or school registers you, 'aseeder' = in Asia, through ASEEDER. */
+const COMP_HOW = {
+  self: 'posn usaco spaceapps mega mlh btjc conrad locke butler qcwc earth genius diamond nyt ocean bennington hir rsi ssp yygs blueocean lsesu trinity sthughs wtw immerse visionaries cmkl timo sft asc minds cefc hcbc yis pico',
+  school: 'amc ukmt cemc bpho bbo ysc isef wharton ieo ipsc wsc hmmt purple vex hmun himcm wdsc euth munth acsl uwchem',
+  aseeder: 'ukcho pbowl ccc c3l6 ino'
+};
+const COMP_HOW_L = { self: 'Enter yourself', school: 'Your school enters you', aseeder: 'Through ASEEDER (Asia)' };
+/* Who can enter: 'no' = probably not open to a student at an international school in Thailand; 'check' = unclear, ask the organiser. */
+const COMP_CAN = { asc: 'no', cmkl: 'check', sft: 'check', ysc: 'check' };
+/* Free past papers and preparation, on the organisers' own sites. */
+const COMP_PREP = {
+  ukmt: [['Past papers and solutions (UKMT)', 'https://ukmt.org.uk/current-past-papers']],
+  amc: [['AMC problems and solutions (AoPS wiki)', 'https://artofproblemsolving.com/wiki/index.php/AMC_Problems_and_Solutions']],
+  bpho: [['Past papers (BPhO)', 'https://www.bpho.org.uk/']],
+  pbowl: [['Past US Physics Team exams (AAPT)', 'https://www.aapt.org/physicsteam/PT-exams.cfm']],
+  ukcho: [['Past papers (Royal Society of Chemistry)', 'https://edu.rsc.org/enrichment/uk-chemistry-olympiad']],
+  bbo: [['Past papers (UK Biology Competitions)', 'https://ukbiologycompetitions.org/british-biology-olympiad/']],
+  ieo: [['Past problems (IEO)', 'https://ecolymp.org/']],
+  locke: [['Questions and past winning essays (John Locke Institute)', 'https://www.johnlockeinstitute.com/essay-competition']]
+};
+/* Day each competition's dates were last checked on its own website. */
+const COMP_CK = {};
+'hmmt purple pico vex earth genius diamond nyt ocean bennington hir hmun himcm wdsc blueocean lsesu trinity sthughs wtw immerse visionaries cmkl euth timo sft munth asc pbowl acsl ccc uwchem c3l6 ino minds cefc hcbc yis'.split(' ').forEach(id => COMP_CK[id] = '2026-11-25');
+COMPS.forEach(c => { c.how = Object.keys(COMP_HOW).find(k => COMP_HOW[k].split(' ').includes(c.id)) || 'self'; c.can = COMP_CAN[c.id] || 'yes'; c.prep = COMP_PREP[c.id] || []; c.ck = COMP_CK[c.id] || ''; c.free = /^(free|no entry fee)/i.test(c.cost); });
