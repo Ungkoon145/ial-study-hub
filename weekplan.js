@@ -300,6 +300,14 @@ function wkWeakness(sid){
   return { w: Math.max(0.05, parts.reduce((a, b) => a + b, 0) / parts.length), why };
 }
 function wkMonday(d){ const x = parseD(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return ymd(x.getFullYear(), x.getMonth(), x.getDate()); }
+/* Exam ramp: the closer a subject's next exam, the more of the week it gets.
+   2 weeks or less: x3 · 4 weeks: x2 · 8 weeks: x1.5 · further away: x1. */
+function wkUrg(sid, d){
+  const t = (state.exams || []).filter(e => e.d >= d && UNIT_SUBJ[e.u] === sid && takes(e.u)).map(e => e.d).sort()[0];
+  if (!t) return 1;
+  const n = daysBetween(d, t);
+  return n <= 14 ? 3 : n <= 28 ? 2 : n <= 56 ? 1.5 : 1;
+}
 function wkPlan(W, from, to, kept, skip){
   const out = {}, now = todayStr(), nowHM = wtHM(new Date().getHours() * 60 + new Date().getMinutes());
   const subsAll = Object.keys(W.per).filter(k => SUBJ[k]);
@@ -321,13 +329,14 @@ function wkPlan(W, from, to, kept, skip){
     const subs = subsAll.filter(k => wkActive(k, slots[0].d));
     if (!subs.length) continue;
     // how many periods each subject gets this week
-    const q = {}; let need = 0; subs.forEach(k => { q[k] = mins[k]; need += q[k]; });
-    while (need > slots.length){ const k = subs.filter(x => q[x] > 0).sort((a, b) => q[b] - q[a] || weak[a] - weak[b])[0]; if (!k) break; q[k]--; need--; }
+    const urg = {}; subs.forEach(k => { urg[k] = wkUrg(k, wk < from ? from : wk); });
+    const q = {}; let need = 0; subs.forEach(k => { q[k] = Math.round(mins[k] * Math.min(2, urg[k])); need += q[k]; });
+    while (need > slots.length){ const k = subs.filter(x => q[x] > 0).sort((a, b) => q[b] / urg[b] - q[a] / urg[a] || weak[a] - weak[b])[0]; if (!k) break; q[k]--; need--; }
     let extra = slots.length - need;
-    const wsum = subs.reduce((a, k) => a + weak[k], 0) || 1;
-    const share = subs.map(k => ({ k, x: extra * weak[k] / wsum })), give = {};
+    const ew = k => weak[k] * urg[k], wsum = subs.reduce((a, k) => a + ew(k), 0) || 1;
+    const share = subs.map(k => ({ k, x: extra * ew(k) / wsum })), give = {};
     share.forEach(o => { give[o.k] = Math.floor(o.x); extra -= give[o.k]; });
-    share.sort((a, b) => (b.x - Math.floor(b.x)) - (a.x - Math.floor(a.x)) || weak[b.k] - weak[a.k]).forEach(o => { if (extra > 0){ give[o.k]++; extra--; } });
+    share.sort((a, b) => (b.x - Math.floor(b.x)) - (a.x - Math.floor(a.x)) || ew(b.k) - ew(a.k)).forEach(o => { if (extra > 0){ give[o.k]++; extra--; } });
     subs.forEach(k => q[k] += give[k] || 0);
     // put them in: fixed slots first, then the timetable's own subject, then spread the rest
     const res = {}, onDay = {};
@@ -393,8 +402,16 @@ function pcCard(){
     '<div class="row pcnav"><button class="btn sm" data-act="pc-week" data-v="-1" aria-label="Previous week">‹</button><b class="pcrange">' + fmtR + '</b><button class="btn sm" data-act="pc-week" data-v="1" aria-label="Next week">›</button>' + (P.off ? '<button class="btn sm ghost" data-act="pc-week" data-v="0">This week</button>' : '') + '</div>' +
     '<div class="wtsheet wt-' + ((W && W.theme) || 'brass') + '" style="' + style + '">' + (rows.length || any.length ? grid : '<p class="wtsub" style="margin:0;padding:8px">Nothing planned this week.</p>') + '</div>' +
     (P.ed ? pcEditor() : '') +
-    (W && rtUseWt() ? '<p class="small muted" style="margin:0">Each week every subject gets at least its minimum, and the extra periods go to your weakest subjects. A new week is planned every Sunday; sessions you’ve ticked off or changed stay as they are.</p>' : '') +
+    pcRampNote(wk) +
+    (W && rtUseWt() ? '<p class="small muted" style="margin:0">Each week every subject gets at least its minimum, and the extra periods go to your weakest subjects and to subjects with an exam coming up: three times the share in the last two weeks, double in the two weeks before that. A new week is planned every Sunday; sessions you’ve ticked off or changed stay as they are.</p>' : '') +
   '</div>';
+}
+/* "Exam soon" line: which subjects get extra time this week because their exam is close. */
+function pcRampNote(wk){
+  const from = wk < todayStr() ? todayStr() : wk;
+  const xs = mySubjects().map(s => ({ s, u: wkUrg(s.id, from) })).filter(x => x.u > 1).sort((a, b) => b.u - a.u);
+  if (!xs.length) return '';
+  return '<p class="small pcramp" style="margin:0"><b>Exam soon:</b> ' + xs.map(x => { const e = (state.exams || []).filter(e => e.d >= from && UNIT_SUBJ[e.u] === x.s.id && takes(e.u)).sort((a, b) => a.d.localeCompare(b.d))[0]; const n = daysBetween(todayStr(), e.d); return esc(x.s.short) + ' <span class="muted">(' + esc(UNIT[e.u].l) + ' in ' + n + ' day' + (n === 1 ? '' : 's') + ', ' + (x.u === 3 ? '×3' : x.u === 2 ? '×2' : '×1.5') + ' time)</span>'; }).join(' · ') + '</p>';
 }
 function pcWeakTopics(sid){
   return SUBJ[sid].units.filter(u => takes(u.c)).flatMap(u => u.t.map((n, i) => ({ c: u.c, i, n, l: u.l, st: state.topics[topicId(u.c, i)] || 0, lost: topicMistakes(u.c, i).reduce((a, m) => a + m.lost, 0) })))

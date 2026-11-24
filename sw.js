@@ -1,13 +1,14 @@
 /* Offline support: keeps the app on the device so it opens and works with no internet.
    App files come from the saved copy first (fast on weak signal); a new version is saved whole when this file changes.
-   Papers and notes are PDFs on Pearson's and PMT's own sites, so they still need internet. */
-const CACHE = 'ial-study-hub-20261120231820';
+   Papers and notes are PDFs on Pearson's and PMT's own sites. Papers a student saves for offline use (PMT only) are kept in 'ial-pdf' and open through ./offline-pdf?u=<url>. */
+const CACHE = 'ial-study-hub-20261124223200';
 const IMG = 'ial-img-1';      // PMT picture flashcards, saved as they're viewed or from Settings
 const LIB = 'ial-lib';        // sign-in and sync libraries (versioned URLs, so they never go stale)
 const FILES = ['./', './index.html', './privacy.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',
   './papers.js', './topicqs.js', './practiceqs.js', './mathnotes.js', './notes.js', './decks.js', './boundaries.js', './reports.js', './timetable.js', './tips.js', './practicals.js', './keyphrases.js', './roomfx.js', './rooms.js', './weekplan.js', './weeklymail.js', './oldspec.js', './solutions.js', './deckquiz.js', './schools.js', './i18n.js', './tex.js', './katex/katex.min.js', './katex/katex.min.css', './katex/contrib/mhchem.min.js', './katex/fonts/KaTeX_AMS-Regular.woff2', './katex/fonts/KaTeX_Caligraphic-Bold.woff2', './katex/fonts/KaTeX_Caligraphic-Regular.woff2', './katex/fonts/KaTeX_Fraktur-Bold.woff2', './katex/fonts/KaTeX_Fraktur-Regular.woff2', './katex/fonts/KaTeX_Main-Bold.woff2', './katex/fonts/KaTeX_Main-BoldItalic.woff2', './katex/fonts/KaTeX_Main-Italic.woff2', './katex/fonts/KaTeX_Main-Regular.woff2', './katex/fonts/KaTeX_Math-BoldItalic.woff2', './katex/fonts/KaTeX_Math-Italic.woff2', './katex/fonts/KaTeX_SansSerif-Bold.woff2', './katex/fonts/KaTeX_SansSerif-Italic.woff2', './katex/fonts/KaTeX_SansSerif-Regular.woff2', './katex/fonts/KaTeX_Script-Regular.woff2', './katex/fonts/KaTeX_Size1-Regular.woff2', './katex/fonts/KaTeX_Size2-Regular.woff2', './katex/fonts/KaTeX_Size3-Regular.woff2', './katex/fonts/KaTeX_Size4-Regular.woff2', './katex/fonts/KaTeX_Typewriter-Regular.woff2', './fonts/sarabun-thai-400-normal.woff2', './fonts/sarabun-thai-600-normal.woff2', './fonts/sarabun-thai-700-normal.woff2', './fonts/sarabun-thai-800-normal.woff2'];
 const NCACHE = 'ial-notif';   // upcoming reminders, written by the page
-const KEEP = [CACHE, IMG, LIB, NCACHE];
+const PDF = 'ial-pdf';        // past papers saved for offline use, written by the page
+const KEEP = [CACHE, IMG, LIB, NCACHE, PDF];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => !KEEP.includes(k)).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 async function saved(name, req){
@@ -16,6 +17,12 @@ async function saved(name, req){
   const r = await fetch(req);
   if (r && r.ok) c.put(req, r.clone()).catch(() => {});
   return r;
+}
+async function offPdf(src){
+  const hit = await (await caches.open(PDF)).match(src);
+  if (hit) return new Response(hit.body, { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline' } });
+  if (/^https:\/\/pmt\.physicsandmathstutor\.com\//.test(src)) return Response.redirect(src, 302);
+  return new Response('<!doctype html><meta name="viewport" content="width=device-width"><p style="font:16px sans-serif;padding:20px">This paper isn’t saved on this device. Connect to the internet to open it.</p>', { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
 async function app(req){
   const c = await caches.open(CACHE);
@@ -30,6 +37,7 @@ self.addEventListener('fetch', e => {
   if (u.origin === 'https://www.gstatic.com' && u.pathname.startsWith('/firebasejs/')){ e.respondWith(saved(LIB, req)); return; }
   if (u.origin !== location.origin) return;   // PDFs, Firebase sync and other sites go straight to the network
   if (u.pathname.includes('/__notif/')) return;
+  if (u.pathname.endsWith('/offline-pdf')){ e.respondWith(offPdf(u.searchParams.get('u') || '')); return; }
   if (u.pathname.includes('/deckimg/')){ e.respondWith(saved(IMG, req)); return; }
   e.respondWith(app(req));
 });

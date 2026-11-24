@@ -332,6 +332,205 @@ const UNIT_TIPS = {
   'Test each interpretation against what you know from the course, not just the extracts.',
   'Reach an overall judgement on the view in the question; summarising the extracts isn’t enough.',
   'In Section B essays, stay analytical and support each point with precise evidence.'
+ ],
+ WAC11: [
+  'Read each question twice: a missed instruction, such as writing “No effect” for an adjustment, costs easy marks.',
+  'Journal entries need dates and full narratives, with no abbreviations. Owner’s withdrawals go to Drawings.',
+  'Make every adjustment in the financial statements; don’t copy the original trial balance figures across.',
+  'Lay out Trading and Income and Expenditure accounts as financial statements, not as ledger accounts.',
+  'In “evaluate” questions give both sides, then a clear conclusion.'
+ ],
+ WAC12: [
+  'Give units with every answer: £, £ million, %, times or days for ratios.',
+  'Split semi-variable costs into their fixed and variable parts; don’t put them all on one side.',
+  'Don’t leave out basic lines such as Total costs in budgets and statements.',
+  'In evaluations, don’t just restate your figures in words: say what they mean for the business.',
+  'When asked to choose between options, finish with a decision, e.g. “should invest” or “should not invest”.'
+ ],
+ WBS11: [
+  'Definitions only need to be short and accurate.',
+  'Answer the exact topic asked about; generic business answers score little.',
+  'Use the extract as evidence for your points, but don’t copy long sections of it.',
+  'Develop your counterbalance as fully as your main analysis, in context.',
+  'Always add the currency or units to calculated answers.'
+ ],
+ WBS12: [
+  'Learn the command words: each one tells you how much to write and which skills earn marks.',
+  'In calculations, show the formula, substitute the case data and complete the final step (e.g. margin of safety from break-even).',
+  'Answer every part of the question, including any “other ways” you are asked to evaluate.',
+  'Give causes and consequences in the context of the case to reach the top marks.'
+ ],
+ WBS13: [
+  'Learn formulae exactly (e.g. YED, not PED) and show full workings.',
+  'Round as instructed: answers not given to two decimal places when asked lose the mark.',
+  'Build chains of reasoning from the evidence rather than listing short statements.',
+  'Apply the case context in every answer, not just in the conclusion.'
+ ],
+ WBS14: [
+  'Write out the formula, show workings and check which currency or unit the answer needs.',
+  'Develop a few points into logical chains rather than listing many reasons.',
+  'Check who the question is about: a country, the economy or one business.',
+  'Use extract material to build an argument; copied text earns nothing.',
+  'No marks for definitions here, and an 8-mark question doesn’t need a conclusion.'
+ ],
+ WEN01: [
+  'Only use language frameworks that fit the task and that you can show in the source texts.',
+  'Comment on language choices all the way through your comparison, not in a separate section.',
+  'Read both texts carefully before writing; misreading details costs marks.',
+  'In the writing task, adapt material from the sources into your new text, and plan your time so neither task is rushed.'
+ ],
+ WEN02: [
+  'Read both questions and all the extracts before you start writing.',
+  'Quote from the sources, but don’t copy out large chunks.',
+  'Describe language variation neutrally; avoid calling features “wrong”, “incorrect” or “lazy”.',
+  'Explain why a feature matters (context, function, register), rather than just “feature → standard form”.'
+ ],
+ WEN03: [
+  'Section A: create a completely original text from the sources, not a summary of them.',
+  'Edit and select: writing too much in Section A leaves too little time for Section B.',
+  'In the commentary, analyse discourse, grammar and lexis linked to audience, purpose and context.',
+  'Use a range of rhetorical and linguistic devices suited to the form, e.g. a speech.'
+ ],
+ WEN04: [
+  'Spend longer on Section B: it carries more marks and must include your own research.',
+  'Analyse features with terminology and link them to theory; don’t just spot and describe them.',
+  'Support theory with specific language features from the data.',
+  'For questions on technology, keep the focus on how language and communication change.'
+ ],
+ WET01: [
+  'Choose poems that best fit the task, not just ones you feel comfortable with, and only from the set list.',
+  'Analyse how methods shape meaning; naming techniques alone isn’t enough.',
+  'Make connections between the poems throughout.',
+  'Weave context into your argument rather than adding it as background.',
+  'Plan so your answer responds directly to the question’s terms.'
+ ],
+ WET02: [
+  'Plan a line of argument that engages with the critical view in the question, even if you disagree.',
+  'Use context to illuminate the text, without turning the essay into a history essay.',
+  'Link critical views to specific moments in the text.',
+  'Discuss a range of techniques (structure, form, dramatic methods), not only single words.'
+ ],
+ WET03: [
+  'Spend time reading, annotating and planning before writing: it shows in the results.',
+  'Analyse what is actually in the unseen poem; don’t hunt for forms or techniques that aren’t there.',
+  'Support analysis with close reference to the writer’s methods and their nuances.',
+  'Compare the texts with each other and show how context shapes how they are written and read.'
+ ],
+ WET04: [
+  'Balance your time: don’t over-write on Shakespeare at the expense of the poetry.',
+  'Section A: weigh the view in quotation marks and answer the task that follows it; use it to build a thesis.',
+  'Section B: choose a second poem that really fits the argument, not just the one you know best.',
+  'Use precise literary terminology for both drama and poetry.'
+ ],
+ WIT11: [
+  'Use precise technical terms; vague phrases (“makes sure there is enough memory”) score little.',
+  'Use the words in the question to work out what kind of answer is needed.',
+  'Draw flowcharts with standard symbols, and join loop-back arrows to a line, not to a symbol.',
+  'Keep extended answers technically accurate as well as well argued.'
+ ],
+ WIT12: [
+  'Use a plain text editor only, as required: no WYSIWYG or code-completing tools.',
+  'Check details in CSS and HTML, e.g. full border declarations and table backgrounds.',
+  'Test your JavaScript logic for every case, including the first item.',
+  'Save files in the original folder and submit the whole zipped folder structure.'
+ ],
+ WIT13: [
+  'Know when to use flowchart, data-flow and entity-relationship symbols, and use them correctly.',
+  'Universal usability means different groups of users, including accessibility needs.',
+  'Use technical terms with their exact meaning, e.g. integration.',
+  'Use the words in each question to judge the kind and depth of answer needed.'
+ ],
+ WIT14: [
+  'Choose the right data type for every field, e.g. Date/Time for dates.',
+  'Rename calculated fields in queries.',
+  'Don’t store data that can be calculated and will go out of date, such as years of service.',
+  'When normalising, spot every table needed (e.g. sale details, performance) and its fields.',
+  'Follow each validation or format rule fully, e.g. forcing uppercase.'
+ ],
+ WFR01: [
+  'Answer the four stimulus questions fully: detailed answers earn the top understanding marks.',
+  'Bring facts, figures and evidence of research on your topic area to the discussion.',
+  'Develop your points with concrete examples rather than general opinions.'
+ ],
+ WFR02: [
+  'Answer in your own words; copied chunks of the text are not credited.',
+  'Read for both the overall gist and specific details: small words can change the answer.',
+  'In gap-fill tasks, choose the word form that fits the grammar of the sentence.',
+  'Look out for linking words and markers that signal the answer.'
+ ],
+ WFR03: [
+  'Research your chosen issue and refer to at least two named written French sources.',
+  'Use facts and statistics; general knowledge alone won’t reach high marks.',
+  'Show a range of complex structures: pronouns, subordination, varied tenses, the subjunctive and idioms.',
+  'Engage in a real discussion: react to what the examiner says rather than giving learnt speeches.'
+ ],
+ WFR04: [
+  'Listen for the gist of the whole passage: a word you hear isn’t necessarily the answer.',
+  'Process the information and use your own words; don’t copy whole passages.',
+  'Manipulated sentences must make sense and be grammatically correct in their original context.',
+  'Check where each question puts its weight, often in its second part.'
+ ],
+ WGN01: [
+  'Answer each stimulus question with as many relevant elements as you can, giving reasons and examples.',
+  'Consider more than one implication when asked about consequences.',
+  'Let the discussion build naturally on your earlier answers.'
+ ],
+ WGN02: [
+  'Work at sentence level: clues to tense or number may not be next to the gap.',
+  'Check verb endings to tell singular from plural.',
+  'Use nouns or names instead of unclear pronouns in your answers.',
+  'Essays don’t need to be long; around 240 well-organised words can earn full marks.'
+ ],
+ WGN03: [
+  'Pick a debate issue where you can refer to at least two written German sources.',
+  'Link your topic to the German-speaking world with specific examples.',
+  'Engage with the examiner in a real discussion, not question and answer.'
+ ],
+ WGN04: [
+  'Infer carefully: answer exactly what the question asks, not what it seems to suggest.',
+  'Rephrase ideas from the text in clear German, without making it convoluted.',
+  'Give the specific detail asked for, e.g. what the mistakes were, not what should be done.'
+ ],
+ WSP01: [
+  'Show research on your topic area: facts, figures and examples raise your knowledge mark.',
+  'Give full, developed answers to the set questions in Section A.',
+  'Keep the discussion going in Spanish with opinions you can justify.'
+ ],
+ WSP02: [
+  'Give all the relevant information from the text, not just part of it.',
+  'Read figures and details carefully: one wrong detail loses the mark.',
+  'Don’t repeat the same idea twice when two separate points are needed.'
+ ],
+ WSP03: [
+  'Research your issue thoroughly so you can justify your opinion with examples.',
+  'Show A level depth: develop AS topics further rather than repeating them.',
+  'Expect challenging questions and respond to them in a genuine debate.'
+ ],
+ WSP04: [
+  'Make sure each answer responds to the exact question asked.',
+  'Check accents carefully: accent errors lose marks.',
+  'In essays, avoid vague references; give specific examples from the book or film.',
+  'Finish with a conclusion that sums up your argument and gives a personal response.'
+ ],
+ WAA01: [
+  'Add the correct vowel marking, only one per letter.',
+  'Revise how verbs change after particles and in different contexts.',
+  'Use context to choose words that fit both the grammar and the meaning.'
+ ],
+ WAA02: [
+  'Plan essays before writing and practise different essay types.',
+  'Know the difference between a story and an article, and use the right features for each.',
+  'In stories, include the time, place, problem, events, climax and resolution.'
+ ],
+ WGK01: [
+  'Find the key word in each question and infer the answer from the source text.',
+  'Present people’s views accurately, as the text gives them.',
+  'In written responses, develop and justify your opinion fully.'
+ ],
+ WGK02: [
+  'Keep a sharp focus on the question; use quotations only to support your argument.',
+  'Use examples from the right list of set works for each question.',
+  'Avoid summarising the plot or the writer’s life; analyse instead.'
  ]
 };
-const UNIT_TIPS_SRC = 'Pearson examiners’ reports, Oct 2024–June 2025';
+const UNIT_TIPS_SRC = 'Pearson examiners’ reports, 2023–2025';

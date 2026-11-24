@@ -1276,6 +1276,7 @@ label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-
 .pfai{font-size:.95rem;line-height:1.5;color:var(--muted)}
 .pfa.got .pfai{color:var(--brass)}
 .frname{font:inherit;color:var(--ink);text-decoration:underline;text-underline-offset:3px;padding:0;min-height:0;background:none;border:0;cursor:pointer}
+#papview{position:fixed;inset:0;z-index:9999;background:var(--bg,#fff);display:flex;flex-direction:column}#papview .papbar{display:flex;gap:10px;align-items:center;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;border-bottom:1px solid var(--line,#ddd)}#papview iframe{flex:1;border:0;width:100%}
 </style>
 </head>
 <body>
@@ -1511,6 +1512,28 @@ function shuffle(a){ a = a.slice(); for (let i=a.length-1;i>0;i--){ const j = Ma
 const UNIT = {}; const UNIT_SUBJ = {};
 SUBJECTS.forEach(s => s.units.forEach(u => { UNIT[u.c] = u; UNIT_SUBJ[u.c] = s.id; }));
 const SUBJ = Object.fromEntries(SUBJECTS.map(s => [s.id, s]));
+/* Pure Mathematics (XPM01 / YPM01): IAS = P1, P2, FP1; IAL = P1, P2, P3, P4, FP1 and FP2 or FP3.
+   It is a mode of Maths, not a copy: the same units, papers and progress, shown as one subject called Pure Maths. */
+const PURE_UNITS = ['WMA11','WMA12','WMA13','WMA14','WFM01','WFM02','WFM03'];
+const MATH_APPLIED = ['WME01','WME02','WME03','WST01','WST02','WST03','WDM11'];
+const MATH_BASE = { m: SUBJ.math.units.slice(), f: SUBJ.fm.units.slice() };
+const VIRT = { pm: { id: 'pm', name: 'Pure Maths', short: 'Pure Maths', units: [] } };
+let pureOn = false;
+function isPure(){ try { return !!(state && state.pure); } catch(e){ return false; } }
+function applyPure(){
+  const on = isPure(); if (on === pureOn) return; pureOn = on;
+  const all = MATH_BASE.m.concat(MATH_BASE.f);
+  if (on){ SUBJ.math.units = PURE_UNITS.map(c => all.find(u => u.c === c)); SUBJ.fm.units = []; all.forEach(u => { UNIT_SUBJ[u.c] = 'math'; }); }
+  else { SUBJ.math.units = MATH_BASE.m.slice(); SUBJ.fm.units = MATH_BASE.f.slice(); MATH_BASE.m.forEach(u => { UNIT_SUBJ[u.c] = 'math'; }); MATH_BASE.f.forEach(u => { UNIT_SUBJ[u.c] = 'fm'; }); }
+  SUBJ.math.name = SUBJ.math.short = on ? 'Pure Maths' : 'Maths';
+  try { subjSortedFor = null; } catch(e){}
+  try { TARGET_KEYS[0][1] = SUBJ.math.name; } catch(e){}
+}
+/* Switch Pure Maths on or off. On: hide the applied units (M1–M3, S1–S3, D1), which Pure Maths doesn't use. Nothing is deleted. */
+function setPure(on){
+  state.pure = !!on; applyPure();
+  if (on){ MATH_APPLIED.forEach(c => { if (!state.hidden.includes(c)) state.hidden.push(c); }); }
+}
 
 const ICONS = {
  today:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
@@ -1745,7 +1768,7 @@ function go(r){ const changed = route() !== r; setTimeout(() => { if (route() ==
    Views
    ============================================================ */
 /* Subject groups for pickers */
-const SUBJ_GROUPS = [['Sciences and Maths', ['math','fm','phys','chem','bio','cs','it']], ['Humanities and social sciences', ['econ','geog','psych','hist','law']], ['Business', ['bus','acc']], ['English Language and Literature', ['enlang','enlit']], ['Languages', ['fre','ger','spa','ara','gre']]];
+const SUBJ_GROUPS = [['Sciences and Maths', ['math','fm','pm','phys','chem','bio','cs','it']], ['Humanities and social sciences', ['econ','geog','psych','hist','law']], ['Business', ['bus','acc']], ['English Language and Literature', ['enlang','enlit']], ['Languages', ['fre','ger','spa','ara','gre']]];
 /* Subjects (and the picker's groups) in alphabetical order of the name shown: English names, or Thai names when Thai is on. */
 let subjSortedFor = null;
 function sortSubjects(){
@@ -1754,13 +1777,14 @@ function sortSubjects(){
   const nm = x => (th && thText(x)) || x, coll = new Intl.Collator(th ? 'th' : 'en', { sensitivity: 'base' });
   SUBJECTS.sort((a, b) => coll.compare(nm(a.name), nm(b.name)));
   const pos = {}; SUBJECTS.forEach((x, i) => pos[x.id] = i);
-  SUBJ_GROUPS.forEach(g => g[1].sort((a, b) => pos[a] - pos[b]));
+  const gn = id => nm((SUBJ[id] || VIRT[id]).name);
+  SUBJ_GROUPS.forEach(g => g[1].sort((a, b) => coll.compare(gn(a), gn(b))));
   SUBJ_GROUPS.sort((a, b) => coll.compare(nm(a[0]), nm(b[0])));
   subjSortedFor = key;
 }
 function groupedChips(list, chip){
   const ids = new Set(list.map(x => x.id)), seen = new Set();
-  const out = SUBJ_GROUPS.map(([name, g]) => { const xs = g.filter(id => ids.has(id) && SUBJ[id]).map(id => { seen.add(id); return SUBJ[id]; }); return xs.length ? '<div class="sgroup"><div class="small muted">' + esc(name) + '</div><div class="chips">' + xs.map(chip).join('') + '</div></div>' : ''; }).join('');
+  const out = SUBJ_GROUPS.map(([name, g]) => { const xs = g.filter(id => ids.has(id) && (SUBJ[id] || VIRT[id])).map(id => { seen.add(id); return SUBJ[id] || VIRT[id]; }); return xs.length ? '<div class="sgroup"><div class="small muted">' + esc(name) + '</div><div class="chips">' + xs.map(chip).join('') + '</div></div>' : ''; }).join('');
   const rest = list.filter(x => !seen.has(x.id));
   return out + (rest.length ? '<div class="sgroup"><div class="chips">' + rest.map(chip).join('') + '</div></div>' : '');
 }
@@ -2465,7 +2489,7 @@ function viewPapers(){
   const rows = shown.map(r => {
     const [sr, qp, ms] = r; const key = paperKey(u.c, sr); const rec = state.papers[key];
     const older = /^\w+ (\d{4})$/.test(sr) && +sr.slice(-4) < 2019 && !(RES[u.c] && RES[u.c].pearson);
-    const links = (qp ? '<a class="btn sm" href="' + qp + '" target="_blank" rel="noopener">Paper</a>' : '<span class="small muted">' + (/^W(FR|GN|SP)0[13]$/.test(u.c) ? 'Speaking test: no question paper' : 'Paper not published') + '</span>') + (ms ? '<a class="btn sm" href="' + ms + '" target="_blank" rel="noopener">Mark scheme</a>' : '<span class="small muted">No mark scheme</span>') + (erUrl(u.c, sr) ? '<a class="btn sm er" href="' + esc(erUrl(u.c, sr)) + '" target="_blank" rel="noopener" title="Pearson examiners’ report: common mistakes on each question">Report</a>' : '<span class="small muted noer">' + esc(noErReason(sr, u.c)) + '</span>') + flagBtn('IAL ' + u.l + ' ' + (UNIT_SUBJ[u.c] === 'math' || UNIT_SUBJ[u.c] === 'fm' ? '' : SUBJ[UNIT_SUBJ[u.c]].short + ' ') + sr) + srcCredit([[qp, 'Paper'], [ms, 'Mark scheme'], [erUrl(u.c, sr), 'Report']]) + plHint(qp || ms);
+    const links = (qp ? '<a class="btn sm" href="' + esc(papHref(qp)) + '" target="_blank" rel="noopener">Paper</a>' : '<span class="small muted">' + (/^W(FR|GN|SP)0[13]$/.test(u.c) ? 'Speaking test: no question paper' : 'Paper not published') + '</span>') + (ms ? '<a class="btn sm" href="' + esc(papHref(ms)) + '" target="_blank" rel="noopener">Mark scheme</a>' : '<span class="small muted">No mark scheme</span>') + papBtn([qp, ms]) + (erUrl(u.c, sr) ? '<a class="btn sm er" href="' + esc(erUrl(u.c, sr)) + '" target="_blank" rel="noopener" title="Pearson examiners’ report: common mistakes on each question">Report</a>' : '<span class="small muted noer">' + esc(noErReason(sr, u.c)) + '</span>') + flagBtn('IAL ' + u.l + ' ' + (UNIT_SUBJ[u.c] === 'math' || UNIT_SUBJ[u.c] === 'fm' ? '' : SUBJ[UNIT_SUBJ[u.c]].short + ' ') + sr) + srcCredit([[qp, 'Paper'], [ms, 'Mark scheme'], [erUrl(u.c, sr), 'Report']]) + plHint(qp || ms);
     let status;
     if (p.log === key){
       status = '<form class="editbox" data-form="paper-log" data-key="' + esc(key) + '">' +
@@ -2473,7 +2497,7 @@ function viewPapers(){
         '<label class="f" style="min-width:90px">Out of<input type="number" inputmode="numeric" id="pl-m" min="1" required value="' + (rec ? rec.m : max) + '"></label>' +
         '<label class="f" style="min-width:90px">Time (min)<input type="number" inputmode="numeric" id="pl-t" min="0" value="' + (ui.papers.mockKey === key ? ui.papers.mockMin : rec && rec.min ? rec.min : '') + '" placeholder="optional"></label>' +
         '<label class="f" style="min-width:140px">Date<input type="date" id="pl-d" value="' + (rec ? rec.d : todayStr()) + '"></label></div>' +
-        '<div class="row" style="gap:8px"><button class="btn sm' + (p.qmode ? ' primary' : '') + '" type="button" data-act="pq-toggle" aria-pressed="' + !!p.qmode + '">' + (p.qmode ? '✓ ' : '') + 'Mark question by question</button>' + (p.qmode ? '' : '<span class="small muted">Optional: logs lost marks by topic</span>') + '</div>' +
+        '<div class="chips" role="group" aria-label="How to mark"><button class="chip" type="button" data-act="pq-toggle" aria-pressed="' + !!p.qmode + '"' + (p.qmode ? ' disabled' : '') + '>Question by question</button><button class="chip" type="button" data-act="pq-toggle" aria-pressed="' + !p.qmode + '"' + (p.qmode ? '' : ' disabled') + '>Just the total</button></div>' + (p.qmode ? '' : '<p class="small muted" style="margin:0">Question by question is better: lost marks go to your mistake log by topic, and Plan and your weekly email then target those topics.</p>') +
         (p.qmode ? pqTable(u.c) : '') +
         '<div class="row"><button class="btn primary" type="submit">Save mark</button><button class="btn" type="button" data-act="paper-cancel">Cancel</button>' + (rec ? '<button class="btn danger" type="button" data-act="paper-remove" data-key="' + esc(key) + '">Remove</button>' : '') + '</div></form>';
     } else if (rec){
@@ -2490,11 +2514,75 @@ function viewPapers(){
     '<div class="chips" role="group" aria-label="Subject">' + mySubjects().map(x => '<button class="chip" data-subj style="--sc:var(--' + x.id + ')" data-act="pp-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === p.subj) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
     '<div class="row" style="align-items:flex-end"><label class="f" style="flex:2;min-width:220px">Unit<select id="pp-unit">' + units.map(x => { const n = papersFor(x.c).length; const d = n ? papersFor(x.c).filter(r => state.papers[paperKey(x.c, r[0])]).length : 0; return '<option value="' + x.c + '"' + (x.c === p.unit ? ' selected' : '') + '>' + esc(x.l + ' · ' + x.n) + ' (' + d + '/' + n + ' done)</option>'; }).join('') + '</select></label>' +
     '<div class="chips" role="group" aria-label="Show">' + [['all','All'],['todo','Not done'],['done','Done']].map(([v, l]) => '<button class="chip" data-act="pp-filter" data-v="' + v + '" aria-pressed="' + (p.filter === v) + '">' + l + '</button>').join('') + '</div></div>' +
-    optPick + (u ? stats + '<div class="oldhint">' + oldHint(u.c) + '</div>' + tipsBlock(u.c, !!(MOCK && MOCK.key.split('|')[0] === u.c)) + '<div class="card"><div class="list">' + (rows || '<div class="empty">' + (p.filter === 'done' ? 'No papers logged yet for this unit.' : 'You’ve done every paper for this unit.') + '</div>') + '</div></div>' : '<div class="empty">All ' + esc(s.short) + ' units are hidden. <a href="#prefs">Choose your units</a>.</div>') +
+    optPick + (u ? stats + '<div class="oldhint">' + oldHint(u.c) + '</div>' + tipsBlock(u.c, !!(MOCK && MOCK.key.split('|')[0] === u.c)) + '<div class="card stack"><div class="list">' + (rows || '<div class="empty">' + (p.filter === 'done' ? 'No papers logged yet for this unit.' : 'You’ve done every paper for this unit.') + '</div>') + '</div>' + papUnitBtn(u.c) + '</div>' : '<div class="empty">All ' + esc(s.short) + ' units are hidden. <a href="#prefs">Choose your units</a>.</div>') +
     '<p class="small muted">Papers, mark schemes and examiner reports © Pearson Education. Papers and mark schemes are hosted by Physics &amp; Maths Tutor; examiner reports open from Pearson’s website. Papers before 2019 are from the older specification but most questions still match the current units.</p>' +
   '</div>';
 }
 
+/* ---------- Offline papers ----------
+   PDFs from Physics & Maths Tutor can be saved on this device (PMT allows it); Pearson and PaperLords files can't, so they stay online-only.
+   Saved files live in the browser's cache 'ial-pdf' and open through the offline page served by sw.js. */
+const PDF_CACHE = 'ial-pdf';
+const POFF = { on: false, saved: new Set(), busy: new Set(), bytes: 0 };
+function papCan(url){ return POFF.on && !!url && /^https:\/\/pmt\.physicsandmathstutor\.com\//.test(url); }
+function papHref(url){ return url && POFF.saved.has(url) ? 'offline-pdf?u=' + encodeURIComponent(url) : url; }
+async function papInit(){
+  try {
+    if (!STANDALONE || !('caches' in window) || !('serviceWorker' in navigator)) return;
+    const reg = await navigator.serviceWorker.getRegistration(); if (!reg) return;
+    POFF.on = true; await papScan(); render();
+  } catch(e){}
+}
+async function papScan(){
+  const c = await caches.open(PDF_CACHE), ks = await c.keys(); POFF.saved = new Set(ks.map(r => r.url)); POFF.bytes = 0;
+  for (const r of ks){ const x = await c.match(r); const n = x && +x.headers.get('x-size'); if (n) POFF.bytes += n; }
+}
+async function papSave(urls){
+  const c = await caches.open(PDF_CACHE); let ok = 0, bad = 0;
+  for (const u of urls.filter(x => papCan(x) && !POFF.saved.has(x))){
+    POFF.busy.add(u);
+    try {
+      const r = await fetch(u, { mode: 'cors' }); if (!r.ok) throw 0;
+      const b = await r.blob();
+      await c.put(u, new Response(b, { headers: { 'Content-Type': 'application/pdf', 'x-size': String(b.size) } }));
+      POFF.saved.add(u); POFF.bytes += b.size; ok++;
+    } catch(e){ bad++; }
+    POFF.busy.delete(u);
+  }
+  return { ok, bad };
+}
+async function papRemove(urls){ const c = await caches.open(PDF_CACHE); for (const u of urls){ await c.delete(u); POFF.saved.delete(u); } await papScan(); }
+function papMB(){ return (POFF.bytes / 1048576).toFixed(POFF.bytes < 10485760 ? 1 : 0); }
+function papBtn(urls){
+  urls = urls.filter(papCan); if (!urls.length) return '';
+  const all = urls.every(u => POFF.saved.has(u)), busy = urls.some(u => POFF.busy.has(u)), v = esc(urls.join(' '));
+  return busy ? '<span class="small muted">Saving…</span>'
+    : all ? '<button class="btn sm ghost offok" type="button" data-act="pap-del" data-v="' + v + '" title="Saved on this device: opens without internet. Tap to remove.">✓ Offline</button>'
+    : '<button class="btn sm ghost" type="button" data-act="pap-save" data-v="' + v + '" title="Save the paper and mark scheme on this device so they open without internet">⤓ Save offline</button>';
+}
+function papUnitBtn(c){
+  if (!POFF.on) return '';
+  const urls = papersFor(c).flatMap(r => [r[1], r[2]]).filter(papCan), left = urls.filter(u => !POFF.saved.has(u));
+  if (!urls.length) return '<p class="small muted" style="margin:0">These papers can’t be saved for offline use: their publisher doesn’t allow it.</p>';
+  return '<div class="row" style="gap:8px;align-items:center">' + (left.length ? '<button class="btn sm" type="button" data-act="pap-save" data-v="' + esc(left.join(' ')) + '">⤓ Save all ' + left.length + ' files offline</button>' : '<span class="small">✓ All papers for this unit are saved offline.</span>') + (POFF.saved.size ? '<span class="small muted">' + POFF.saved.size + ' files saved on this device (' + papMB() + ' MB)</span>' : '') + '</div>';
+}
+/* In the installed app, a saved paper opens inside the app: opening a new browser tab would leave the app, and on iPhone the browser can't see the app's saved files. */
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('a[href^="offline-pdf?"]'); if (!a || !IS_INSTALLED) return;
+  e.preventDefault(); papView(a.getAttribute('href'));
+}, true);
+function papView(href){
+  let o = document.getElementById('papview'); if (o) o.remove();
+  o = document.createElement('div'); o.id = 'papview'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-label', 'Saved paper');
+  o.innerHTML = '<div class="papbar"><button class="btn sm" type="button" id="papclose">Close</button><span class="small muted">Saved on this device</span></div><iframe src="' + esc(href) + '" title="Saved paper"></iframe>';
+  document.body.appendChild(o);
+  const close = () => { o.remove(); document.removeEventListener('keydown', esc1); }, esc1 = ev => { if (ev.key === 'Escape') close(); };
+  o.querySelector('#papclose').onclick = close; document.addEventListener('keydown', esc1); o.querySelector('#papclose').focus();
+}
+function papSettings(){
+  if (!POFF.on) return '';
+  return '<div class="stack" style="gap:6px"><b>Offline papers</b><p class="small muted" style="margin:0">' + (POFF.saved.size ? POFF.saved.size + ' papers and mark schemes saved on this device (' + papMB() + ' MB). They open without internet.' : 'None saved yet. On Past papers, tap “Save offline” on a paper, or save a whole unit.') + ' Papers from Pearson and PaperLords can’t be saved and need internet.</p>' + (POFF.saved.size ? '<div><button class="btn sm danger" type="button" data-act="pap-clear">Remove all offline papers</button></div>' : '') + '</div>';
+}
 function noteLink(x, short){ const label = short && x.n.includes(':') ? x.n.split(':')[0] : x.n; return '<a class="note ' + (x.k === 'cards' ? 'k-cards' : 'k-pdf') + '" href="' + esc(x.k === 'cards' ? ((typeof PMT_DECK_PDF !== 'undefined' && PMT_DECK_PDF[x.url]) || x.url) : x.url) + '" target="_blank" rel="noopener" title="' + esc(x.n) + '">' + (x.k === 'cards' ? '<span aria-hidden="true">▤</span>' : '<span aria-hidden="true">≡</span>') + esc(label) + ' ↗</a>'; }
 function unitNotesBlock(code){
   const N = (typeof PMT_NOTES !== 'undefined' && PMT_NOTES[code]) || null;
@@ -3247,7 +3335,7 @@ function subEditor(){
   }).join('');
   const n = s.units.filter(u => E.taking[u.c] && !(E.ias && !isASUnit(u.c))).length;
   return '<div class="card stack seditor"><div class="card-h"><h2><span class="dot" style="background:var(--' + s.id + ');margin-right:8px"></span>' + (E.adding ? 'Add ' : 'Edit ') + esc(s.name) + '</h2></div>' +
-    '<p class="small muted" style="margin:0">Tick the units you’re taking. “Sat” takes a unit out of your daily plan but keeps its result; “Resitting” keeps the old result and plans for the new exam.' + (s.id === 'math' ? ' Change your applied units (M1, S1, D1, M2, S2) here: the grade calculator picks the best legal combination.' : '') + '</p>' +
+    '<p class="small muted" style="margin:0">Tick the units you’re taking. “Sat” takes a unit out of your daily plan but keeps its result; “Resitting” keeps the old result and plans for the new exam.' + (s.id === 'math' ? (isPure() ? ' Pure Maths is P1–P4, FP1 and FP2 or FP3. <button class="btn sm ghost" type="button" data-act="sub-unpure">Switch to Maths and Further Maths</button>' : ' Change your applied units (M1, S1, D1, M2, S2) here: the grade calculator picks the best legal combination.') : '') + '</p>' +
     '<label class="toggle"><input type="checkbox" data-se-ias="1"' + (E.ias ? ' checked' : '') + '><span>IAS only: I’m taking just the first half (' + (s.id === 'math' || s.id === 'fm' ? 'AS units' : 'Units 1–' + (s.units.length / 2)) + ')</span></label>' +
     '<div class="list">' + rows + '</div>' +
     '<div class="row tpicks">' + targetPicker(s.id, '') + '</div>' +
@@ -3258,7 +3346,7 @@ function mySubjectsCard(){
   const taken = SUBJECTS.filter(s => subjTaken(s.id) && (setupDone() || subjStatus(s.id) !== 'studying'));
   const by = st => taken.filter(s => subjStatus(s.id) === st);
   const studying = setupDone() ? by('studying') : [], fin = by('finished'), drop = by('dropped');
-  const notTaken = SUBJECTS.filter(s => !taken.includes(s) || (!setupDone() && subjStatus(s.id) === 'studying'));
+  const notTaken = SUBJECTS.filter(s => s.units.length && (!taken.includes(s) || (!setupDone() && subjStatus(s.id) === 'studying'))).concat(isPure() ? [] : [VIRT.pm]);
   return '<div class="card stack"><div class="card-h"><h2>My subjects</h2>' + (setupDone() ? '' : '<a class="btn sm primary" href="#setup" data-act="su-open">Run setup</a>') + '</div>' +
     (setupDone() ? '' : '<p class="small muted" style="margin:0">You haven’t picked your subjects yet, so everything is shown. Run setup, or add subjects one by one below.</p>') +
     (studying.length ? '<div class="list">' + studying.map(subjRow).join('') + '</div>' : '') +
@@ -3424,7 +3512,7 @@ function topicGains(c){
 function gainCard(sid){
   const s = SUBJ[sid]; if (!s) return '';
   const list = s.units.filter(u => takes(u.c)).map(u => topicGains(u.c)).filter(Boolean);
-  if (!list.length) return '<div class="card stack" id="gains"><h2>Marks to win back</h2><p class="small muted" style="margin:0">After a past paper, use “Mark question by question”. This card then shows which topics cost you the most marks, and the grade you’d reach by fixing them.</p></div>';
+  if (!list.length) return '<div class="card stack" id="gains"><h2>Marks to win back</h2><p class="small muted" style="margin:0">After a past paper, log your marks question by question. This card then shows which topics cost you the most marks, and the grade you’d reach by fixing them.</p></div>';
   return '<div class="card stack" id="gains"><div class="card-h"><h2>Marks to win back</h2><span class="small muted">From your mistake log</span></div>' + list.map(x => {
     const u = UNIT[x.c];
     const line = x.now ? 'Your papers average ' + x.now.raw + '/' + x.max + ' (grade ' + x.now.g + '). These topics cost you about <b>' + x.gain + ' mark' + (x.gain === 1 ? '' : 's') + ' a paper</b>. Win them back and you’d score about ' + x.then.raw + '/' + x.max + (x.then.g !== x.now.g ? ', <b>grade ' + x.then.g + '</b>.' : ', still grade ' + x.then.g + ' but closer to the next one.')
@@ -3697,6 +3785,7 @@ const P_UNITS = ['WMA11','WMA12','WMA13','WMA14'];
 const MATH_PAIRS = [['WME01','WST01'],['WME01','WDM11'],['WME01','WME02'],['WST01','WDM11'],['WST01','WST02']];
 const FM_POOL = ['WFM02','WFM03','WME01','WME02','WME03','WST01','WST02','WST03','WDM11'];
 function mathAward(){
+  if (isPure()) return pureAward();
   const vals = valsFor(SUBJ.math.units.concat(SUBJ.fm.units).map(u => u.c)), has = c => vals[c] !== undefined;
   const mathOpts = P_UNITS.every(has) ? MATH_PAIRS.filter(p => p.every(has)).map(p => P_UNITS.concat(p)) : [];
   let best = null;
@@ -3727,6 +3816,18 @@ function mathAward(){
     const rest = FM_POOL.filter(c => has(c) && !used.has(c)).sort((x, y) => vals[y] - vals[x]).slice(0, 2);
     if (rest.length === 2){ const units = ['WFM01'].concat(rest), t = sum(units, vals); out.asF = { units, total: t, max: 300, grade: qualGrade(t, 300) }; }
   }
+  return out;
+}
+
+/* Pure Mathematics: IAL = P1–P4 + FP1 + FP2 or FP3 (600 UMS; A* needs A overall and 270 of 300 on P3, P4 and FP2/FP3). IAS = P1, P2, FP1 (300 UMS). */
+function pureAward(){
+  const vals = valsFor(PURE_UNITS), has = c => vals[c] !== undefined, out = { vals, m: null, f: null, pure: true };
+  if (['WMA11','WMA12','WMA13','WMA14','WFM01'].every(has)) ['WFM02','WFM03'].filter(has).forEach(x => {
+    const units = ['WMA11','WMA12','WMA13','WMA14','WFM01', x], t = sum(units, vals), a2codes = ['WMA13','WMA14', x], a2 = sum(a2codes, vals);
+    let g = qualGrade(t, 600); if (g === 'A' && a2 >= 270) g = 'A*';
+    if (!out.m || gIdx(g) > gIdx(out.m.grade) || (g === out.m.grade && t > out.m.total)) out.m = { units, total: t, max: 600, grade: g, a2, a2need: 270, a2codes };
+  });
+  if (!out.m && ['WMA11','WMA12','WFM01'].every(has)){ const units = ['WMA11','WMA12','WFM01'], t = sum(units, vals); out.asM = { units, total: t, max: 300, grade: qualGrade(t, 300) }; }
   return out;
 }
 
@@ -3843,7 +3944,7 @@ function onTrackItems(){
   gradeSubjects().forEach(x => {
     if (x.id === 'fm') return;
     if (!(gradeSubjHasData(x.id) || (x.id === 'math' && gradeSubjHasData('fm')))) return;
-    if (x.id === 'math'){ const a = mathAward(); [['Maths', a.m || a.asM], ['Further Maths', a.f || a.asF]].forEach(([n, q]) => { if (q) items.push([n === 'Maths' ? 'math' : 'fm', (q.max === 300 ? 'AS ' : '') + n, q.grade, targetFor(n === 'Maths' ? 'math' : 'fm')]); }); }
+    if (x.id === 'math'){ const a = mathAward(); [['math', SUBJ.math.name, a.m || a.asM], ['fm', 'Further Maths', a.f || a.asF]].forEach(([k, n, q]) => { if (q) items.push([k, (q.max === 300 ? 'AS ' : '') + n, q.grade, targetFor(k)]); }); }
     else { const a = sciAward(x.id); if (iasOnly(x.id)){ if (a.as) items.push([x.id, 'IAS ' + x.short, a.as.grade, targetFor(x.id)]); } else if (a.grade) items.push([x.id, x.short + (a.complete ? '' : ' (projected)'), a.grade, targetFor(x.id)]); }
   });
   ui.grades.whatif = saved;
@@ -4147,13 +4248,14 @@ function viewGrades(){
     const a = mathAward(); ui.grades.lastVals = a.vals;
     const units = s.units;
     const isF = g.subj === 'fm';
-    let cards = [awardCard('IAL Mathematics', a.m, a.m ? a.m.units.map(c => UNIT[c].l).join(' · ') : ''), awardCard('IAL Further Mathematics', a.f, a.f ? a.f.units.map(c => UNIT[c].l).join(' · ') : ''),
-      awardCard('IAS Mathematics', a.asM, a.asM ? a.asM.units.map(c => UNIT[c].l).join(' · ') : ''), awardCard('IAS Further Mathematics', a.asF, a.asF ? a.asF.units.map(c => UNIT[c].l).join(' · ') : '')];
+    const PN = a.pure ? 'Pure Mathematics' : 'Mathematics';
+    let cards = [awardCard('IAL ' + PN, a.m, a.m ? a.m.units.map(c => UNIT[c].l).join(' · ') : ''), awardCard('IAL Further Mathematics', a.f, a.f ? a.f.units.map(c => UNIT[c].l).join(' · ') : ''),
+      awardCard('IAS ' + PN, a.asM, a.asM ? a.asM.units.map(c => UNIT[c].l).join(' · ') : ''), awardCard('IAS Further Mathematics', a.asF, a.asF ? a.asF.units.map(c => UNIT[c].l).join(' · ') : '')];
     cards = (isF ? [cards[1], cards[3], cards[0], cards[2]] : cards).join('');
-    body = '<div class="card stack"><div class="row tpicks">' + (isF ? targetPicker('fm', 'Further Maths') : targetPicker('math', 'Maths')) + '</div>' + (cards ? '<div class="awards">' + cards + '</div>' : '<div class="empty" style="padding:8px 0">Add results (or log past papers) for P1, P2 and one of M1, S1 or D1 to see an AS grade; all of P1–P4 plus an applied pair (M1+M2, M1+S1, M1+D1, S1+S2 or S1+D1) for the full A level.</div>') +
+    body = '<div class="card stack"><div class="row tpicks">' + (isF ? targetPicker('fm', 'Further Maths') : targetPicker('math', SUBJ.math.name)) + '</div>' + (cards ? '<div class="awards">' + cards + '</div>' : '<div class="empty" style="padding:8px 0">' + (a.pure ? 'Add results (or log past papers) for P1, P2 and FP1 to see an AS grade; P1–P4, FP1 and FP2 or FP3 for the full A level.' : 'Add results (or log past papers) for P1, P2 and one of M1, S1 or D1 to see an AS grade; all of P1–P4 plus an applied pair (M1+M2, M1+S1, M1+D1, S1+S2 or S1+D1) for the full A level.') + '</div>') +
       (isF ? targetLine(a.f || a.asF, 'fm', 'Further Maths') + plannerHtml(a.f || a.asF, (a.f ? '' : 'AS ') + 'Further Maths', targetFor('fm'))
-           : targetLine(a.m || a.asM, 'math', 'Maths') + plannerHtml(a.m || a.asM, (a.m ? '' : 'AS ') + 'Maths', targetFor('math'))) +
-      '<p class="small muted" style="margin:0">Maths and Further Maths share M1, M2, S1, S2 and D1, so both grades are worked out together: Pearson picks the units that give you the best Maths grade, then uses the rest for Further Maths. A unit can’t count twice.</p></div>' +
+           : targetLine(a.m || a.asM, 'math', SUBJ.math.name) + plannerHtml(a.m || a.asM, (a.m ? '' : 'AS ') + SUBJ.math.name, targetFor('math'))) +
+      (a.pure ? '<p class="small muted" style="margin:0">Pure Maths uses P1–P4, FP1 and the better of FP2 or FP3. For A*, you need an A overall and at least 270 of 300 UMS on P3, P4 and FP2 or FP3.</p></div>' : '<p class="small muted" style="margin:0">Maths and Further Maths share M1, M2, S1, S2 and D1, so both grades are worked out together: Pearson picks the units that give you the best Maths grade, then uses the rest for Further Maths. A unit can’t count twice.</p></div>') +
       '<div class="card"><div class="list">' + units.filter(u => takes(u.c)).map(unitRow).join('') + '</div></div>';
   } else {
     const a = sciAward(g.subj); ui.grades.lastVals = a.vals;
@@ -4409,18 +4511,23 @@ function setupInit(){
   units.forEach(c => { const e = state.exams.find(x => x.u === c && x.d >= todayStr()); series[c] = e ? (TT_SERIES.find(s => ttDate(c, s) && ttDate(c, s)[0] === e.d) || 'keep') : (state.setup && state.setup.series && state.setup.series[c]) || 'later'; });
   ui.setup = { units: new Set(units), series, def: (state.setup && state.setup.def) || TT_SERIES[0] || '' };
 }
+function pureCard(){
+  return '<div class="card stack"><div class="card-h"><h2><span class="dot" style="background:var(--math);margin-right:8px"></span>Pure Maths</h2></div>' +
+    '<p class="small muted" style="margin:0">IAL Pure Mathematics: P1–P4, FP1 and FP2 or FP3 (IAS: P1, P2 and FP1). It uses the same papers as Maths and Further Maths, so your progress carries over.</p>' +
+    '<div class="row"><button class="btn sm" type="button" data-act="su-pure">I’m taking Pure Maths</button></div></div>';
+}
 function setupSeriesFor(c){ const s = ui.setup.series[c]; return s === undefined ? ui.setup.def : s; }
 function viewSetup(){
   if (!ui.setup) setupInit();
   const S = ui.setup, chosen = SUBJECTS.flatMap(s => s.units.filter(u => S.units.has(u.c)));
   const card = s => {
     const n = s.units.filter(u => S.units.has(u.c)).length;
-    return '<div class="card stack"><div class="card-h"><h2><span class="dot" style="background:var(--' + s.id + ');margin-right:8px"></span>' + esc(s.name) + '</h2><button class="btn sm ghost" data-act="su-all" data-v="' + s.id + '">' + (n === s.units.length ? 'Clear' : 'Select all') + '</button></div>' +
+    return '<div class="card stack"><div class="card-h"><h2><span class="dot" style="background:var(--' + s.id + ');margin-right:8px"></span>' + esc(s.name) + '</h2><button class="btn sm ghost" data-act="su-all" data-v="' + s.id + '">' + (n === s.units.length ? 'Clear' : 'Select all') + '</button></div>' + (s.id === 'math' && isPure() ? '<p class="small muted" style="margin:0">IAL Pure Mathematics: P1–P4, FP1 and FP2 or FP3. <button class="btn sm ghost" type="button" data-act="sub-unpure">Switch to Maths and Further Maths</button></p>' : '') +
       '<div class="chips">' + s.units.map(u => '<label class="chip pick"><input type="checkbox" data-su="' + u.c + '"' + (S.units.has(u.c) ? ' checked' : '') + '><span>' + esc(u.l) + '</span><span class="muted small">' + esc(u.n) + '</span></label>').join('') + '</div></div>';
   };
   if (!S.open) S.open = new Set();
-  const unitsHtml = SUBJ_GROUPS.map(([name, g]) => { const xs = g.filter(id => SUBJ[id]); const n = xs.reduce((a, id) => a + SUBJ[id].units.filter(u => S.units.has(u.c)).length, 0);
-    return '<details class="sgdet" data-sg="' + esc(name) + '"' + (n || S.open.has(name) ? ' open' : '') + '><summary><b>' + esc(name) + '</b> <span class="muted small">' + (n ? n + ' unit' + (n === 1 ? '' : 's') + ' picked' : xs.map(id => esc(SUBJ[id].short)).join(', ')) + '</span></summary><div class="grid2">' + xs.map(id => card(SUBJ[id])).join('') + '</div></details>'; }).join('');
+  const unitsHtml = SUBJ_GROUPS.map(([name, g]) => { const xs = g.filter(id => SUBJ[id] && SUBJ[id].units.length); const n = xs.reduce((a, id) => a + SUBJ[id].units.filter(u => S.units.has(u.c)).length, 0);
+    return '<details class="sgdet" data-sg="' + esc(name) + '"' + (n || S.open.has(name) ? ' open' : '') + '><summary><b>' + esc(name) + '</b> <span class="muted small">' + (n ? n + ' unit' + (n === 1 ? '' : 's') + ' picked' : xs.map(id => esc(SUBJ[id].short)).join(', ')) + '</span></summary><div class="grid2">' + g.filter(id => (SUBJ[id] && SUBJ[id].units.length) || (id === 'pm' && !isPure())).map(id => id === 'pm' ? pureCard() : card(SUBJ[id])).join('') + '</div></details>'; }).join('');
   const opts = c => TT_SERIES.map(sr => { const d = ttDate(c, sr); return d ? '<option value="' + sr + '"' + (setupSeriesFor(c) === sr ? ' selected' : '') + '>' + sr + '</option>' : ''; }).join('') +
     (setupSeriesFor(c) === 'keep' ? '<option value="keep" selected>Keep my date</option>' : '') +
     '<option value="later"' + (setupSeriesFor(c) === 'later' ? ' selected' : '') + '>Later / not decided</option><option value="done"' + (setupSeriesFor(c) === 'done' ? ' selected' : '') + '>Already sat</option>';
@@ -4490,7 +4597,7 @@ function targetGaps(){
     const vis = sid => SUBJ[sid].units.some(u => !isHidden(u.c));
     if (!(vis(s.id) || (s.id === 'math' && vis('fm')))) return;
     if (s.id === 'math'){
-      const a = mathAward(); [['math', 'Maths', a.m || a.asM], ['fm', 'Further Maths', a.f || a.asF]].forEach(([k, n, q]) => { const tg = targetFor(k); if (q && tg && gIdx(q.grade) < gIdx(tg)) out.push({ sid: k === 'fm' ? 'fm' : 'math', k, n, q, tg }); });
+      const a = mathAward(); [['math', SUBJ.math.name, a.m || a.asM], ['fm', 'Further Maths', a.f || a.asF]].forEach(([k, n, q]) => { const tg = targetFor(k); if (q && tg && gIdx(q.grade) < gIdx(tg)) out.push({ sid: k === 'fm' ? 'fm' : 'math', k, n, q, tg }); });
     } else { const a = sciAward(s.id), tg = targetFor(s.id); if (a.grade && tg && gIdx(a.grade) < gIdx(tg)) out.push({ sid: s.id, k: s.id, n: s.short, q: a, tg }); }
   });
   ui.grades.whatif = saved; return out;
@@ -5760,8 +5867,8 @@ function offlineCard(){
   else pics = '<p class="small muted" style="margin:0">Some flashcards are pictures of the original PMT card. Save them so they show without internet: ' + OFF.saved + ' of ' + OFF.total + ' saved (about ' + mb(OFF.total - OFF.saved) + ' MB more). Best done on Wi‑Fi.</p><div class="row"><button class="btn primary" data-act="off-save">Save picture cards</button></div>';
   return '<div class="card stack"><div class="card-h"><h2>Use without internet</h2>' + (ready ? '<span class="pill good">Ready offline</span>' : '<span class="pill">Setting up</span>') + '</div>' +
     '<p class="small" style="margin:0"><b>Works offline:</b> flashcards and quizzes, topic questions, mistakes, planner, grade calculator, timetable and all your progress. Anything you do is saved on this device and syncs to your account when you’re back online.</p>' +
-    '<p class="small muted" style="margin:0"><b>Needs internet:</b> past papers, mark schemes, examiner reports and PMT notes (they open on Pearson’s and PMT’s own sites), and signing in for the first time.</p>' +
-    pics + (OFF.err ? '<p class="small" style="margin:0;color:var(--bad,#b3261e)">' + OFF.err + '</p>' : '') +
+    '<p class="small muted" style="margin:0"><b>Needs internet:</b> examiner reports, PMT notes, papers you haven’t saved, and signing in for the first time.</p>' +
+    pics + papSettings() + (OFF.err ? '<p class="small" style="margin:0;color:var(--bad,#b3261e)">' + OFF.err + '</p>' : '') +
     (ready ? '' : '<p class="small muted" style="margin:0">Keep this page open for a moment while it saves the app to your device.</p>') +
     '<p class="small muted" style="margin:0">Open the app now and then while online so it picks up new papers and fixes.</p></div>';
 }
@@ -6082,6 +6189,7 @@ function renderRet(){
 }
 
 function render(){
+  applyPure();
   applyPrefs(); ensureSubjects(); try { sortSubjects(); } catch(err){ console.error(err); }
   const r = route(); setHdr(); try { subjColours(); } catch(err){}
   document.body.classList.toggle('focusing', (r === 'cards' && !!(ui.cards && (ui.cards.review || ui.cards.dq))) || (r === 'quiz' && !!(ui.quiz && ui.quiz.run)));
@@ -6279,7 +6387,8 @@ document.addEventListener('click', e => {
     case 'pf-color': pfRead(); prof().color = v; commit(); break;
     case 'pf-photo-del': pfRead(); prof().photo = ''; commit(); break;
     case 'pf-clear': if (ui.confirm === 'pf-clear'){ ui.confirm = null; state.profile = null; ui.pfEdit = false; commit(); toast('Profile cleared'); } else { ui.confirm = 'pf-clear'; render(); } break;
-    case 'sub-add': subEditInit(v, true); render(); window.scrollTo({ top: 0 }); break;
+    case 'sub-add': if (v === 'pm'){ setPure(true); commit(); subEditInit('math', true); } else subEditInit(v, true); render(); window.scrollTo({ top: 0 }); break;
+    case 'sub-unpure': setPure(false); ui.subEdit = null; ui.setup = null; commit(); render(); toast('Back to Maths and Further Maths. Your applied units (M1, S1, D1…) are still there: tick the ones you take.'); break;
     case 'sub-edit': subEditInit(v, false); render(); window.scrollTo({ top: 0 }); break;
     case 'sub-cancel': ui.subEdit = null; render(); break;
     case 'sub-save': subEditSave(); break;
@@ -6299,7 +6408,7 @@ document.addEventListener('click', e => {
     case 'summary-copy': { const txt = summaryText(); try { navigator.clipboard.writeText(txt).then(() => toast('Summary copied'), () => toast('Copy blocked here')); } catch(e){ toast('Copy blocked here'); } break; }
     case 'hist-opt': state.histOpt = Object.assign({}, state.histOpt || {}, { [b.dataset.u]: v }); commit(); break;
     case 'goto-papers': ui.papers.subj = UNIT_SUBJ[b.dataset.u]; ui.papers.unit = b.dataset.u; ui.papers.log = null; if (route() === 'papers') render(); else go('papers'); break;
-    case 'paper-log': ui.papers.log = b.dataset.key; ui.papers.qmode = !!(state.papers[b.dataset.key] && state.papers[b.dataset.key].qs); ui.papers.qrows = ui.papers.qmode ? pqDefault(b.dataset.key) : null; render(); { const el = $('#pl-s'); if (el) el.focus(); } break;
+    case 'paper-log': ui.papers.log = b.dataset.key; ui.papers.qmode = !(state.papers[b.dataset.key] && !state.papers[b.dataset.key].qs); ui.papers.qrows = ui.papers.qmode ? pqDefault(b.dataset.key) : null; render(); { const el = $('#pl-s'); if (el) el.focus(); } break;
     case 'paper-cancel': ui.papers.log = null; ui.papers.qmode = false; ui.papers.qrows = null; render(); break;
     case 'pq-toggle': { const keep = { s: ($('#pl-s') || {}).value, m: ($('#pl-m') || {}).value, t: ($('#pl-t') || {}).value, d: ($('#pl-d') || {}).value }; if (ui.papers.qmode) pqRead(); ui.papers.qmode = !ui.papers.qmode; if (ui.papers.qmode && !ui.papers.qrows) ui.papers.qrows = pqDefault(ui.papers.log); render(); ['s','m','t','d'].forEach(k => { const el = $('#pl-' + k); if (el && keep[k] !== undefined && keep[k] !== '') el.value = keep[k]; }); pqSyncTotal(); break; }
     case 'pq-add': { const rows = pqRead(); const last = rows[rows.length - 1]; const n = last && /^\d+$/.test(last.q) ? String(+last.q + 1) : ''; rows.push({ q: n, s: '', m: '', t: '', why: '' }); ui.papers.qrows = rows; const keep = { s: $('#pl-s').value, m: $('#pl-m').value, t: $('#pl-t').value, d: $('#pl-d').value }; render(); ['s','m','t','d'].forEach(k => { const el = $('#pl-' + k); if (el) el.value = keep[k]; }); pqSyncTotal(); const r = document.querySelectorAll('.pqrow'); if (r.length) r[r.length - 1].querySelector('.pq-s').focus(); break; }
@@ -6312,7 +6421,7 @@ document.addEventListener('click', e => {
     case 'wel-next': ui.welcomeStep = 4; render(); window.scrollTo({ top: 0 }); break;
     case 'wel-done': state.welcomed = true; ui.welcomeStep = null; commit(); window.scrollTo({ top: 0 }); toast('You’re all set. Start with “Do this next”.'); break;
     case 'ret-dismiss': ui.ret = null; renderRet(); break;
-    case 'ret-paper': { const key = b.dataset.key, c = key.split('|')[0]; ui.ret = null; renderRet(); ui.papers.mode = 'ial'; ui.papers.subj = UNIT_SUBJ[c]; ui.papers.unit = c; ui.papers.filter = 'all'; ui.papers.log = key; ui.papers.qmode = false; ui.papers.qrows = null; if (route() === 'papers') render(); else go('papers'); setTimeout(() => { const el = $('#pl-s'); if (el){ el.scrollIntoView({ block: 'center' }); el.focus(); } }, 120); break; }
+    case 'ret-paper': { const key = b.dataset.key, c = key.split('|')[0]; ui.ret = null; renderRet(); ui.papers.mode = 'ial'; ui.papers.subj = UNIT_SUBJ[c]; ui.papers.unit = c; ui.papers.filter = 'all'; ui.papers.log = key; ui.papers.qmode = !(state.papers[key] && !state.papers[key].qs); ui.papers.qrows = ui.papers.qmode ? pqDefault(key) : null; if (route() === 'papers') render(); else go('papers'); setTimeout(() => { const el = $('#pl-s'); if (el){ el.scrollIntoView({ block: 'center' }); el.focus(); } }, 120); break; }
     case 'ret-topic': { const id = b.dataset.id, nv = +v; ui.ret = null; renderRet(); if ((state.topics[id] || 0) < nv){ state.topics[id] = nv; state.topicAt = state.topicAt || {}; state.topicAt[id] = todayStr(); } commit(); toast(nv === 3 ? 'Marked Confident.' : 'Marked as Revising.'); break; }
     case 'rt-clear': { const n = rtTasks().filter(x => !x.done).length; state.tasks = state.tasks.filter(x => !(x.gen === 'rt' && !x.done)); state.rt = null; commit(); toast(n + ' planned session' + (n === 1 ? '' : 's') + ' removed.'); break; }
     case 'kp-one': { const k = CARDS.find(x => x.id === b.dataset.id); if (k){ ui.cards.subj = UNIT_SUBJ[k.u]; ui.cards.unit = k.u; ui.cards.review = { queue: [k.id], idx: 0, shown: false, done: 0, again: 0 }; } break; }
@@ -6400,6 +6509,10 @@ document.addEventListener('click', e => {
     case 'report-copy': { const txt = 'Broken links in IAL Revise:\n' + reportsText(); try { navigator.clipboard.writeText(txt).then(() => toast('Copied. Paste it to Claude to fix them.'), () => toast('Copy blocked: select the text below instead.')); } catch(err){ toast('Copy blocked: select the text below instead.'); } break; }
     case 'backup-download': downloadBackup(); break;
     case 'backup-snooze': try { localStorage.setItem(SNOOZE_KEY, String(Date.now() + 7 * 864e5)); } catch(err){} render(); break;
+    case 'pap-save': { const urls = v.split(' '); urls.forEach(x => POFF.busy.add(x)); render(); papSave(urls).then(r => { render(); toast(r.bad ? r.ok + ' saved, ' + r.bad + ' couldn’t be saved. Check your internet and try again.' : r.ok === 1 ? 'Saved offline.' : r.ok + ' files saved offline.'); }); break; }
+    case 'pap-del': papRemove(v.split(' ')).then(() => { render(); toast('Removed from this device.'); }); break;
+    case 'pap-clear': papRemove([...POFF.saved]).then(() => { render(); toast('All offline papers removed.'); }); break;
+    case 'su-pure': { setPure(true); commit(); MATH_APPLIED.forEach(c => ui.setup.units.delete(c)); ['WMA11','WMA12','WMA13','WMA14','WFM01','WFM02'].forEach(c => ui.setup.units.add(c)); render(); toast('Pure Maths on: P1–P4, FP1 and FP2 ticked. Swap FP2 for FP3 if that’s your choice.'); break; }
     case 'su-all': { const sub = SUBJ[v], all = sub.units.every(u => ui.setup.units.has(u.c)); sub.units.forEach(u => all ? ui.setup.units.delete(u.c) : ui.setup.units.add(u.c)); render(); break; }
     case 'su-apply': { const d = $('#su-def'); if (d) ui.setup.def = d.value; ui.setup.units.forEach(c => { if (ttDate(c, ui.setup.def)) ui.setup.series[c] = ui.setup.def; }); render(); break; }
     case 'su-save': setupSave(); break;
@@ -6584,6 +6697,7 @@ document.addEventListener('click', e => { const a = e.target.closest && e.target
 
 try { rmHashJoin(); } catch(e){}
 render();
+papInit();
 { const _ra = renderAsk; renderAsk = function(){ _ra(); askTH(); }; }
 connectCloud();
 fbInit();
