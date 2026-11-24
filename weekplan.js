@@ -402,9 +402,40 @@ function pcCard(){
     '<div class="row pcnav"><button class="btn sm" data-act="pc-week" data-v="-1" aria-label="Previous week">‹</button><b class="pcrange">' + fmtR + '</b><button class="btn sm" data-act="pc-week" data-v="1" aria-label="Next week">›</button>' + (P.off ? '<button class="btn sm ghost" data-act="pc-week" data-v="0">This week</button>' : '') + '</div>' +
     '<div class="wtsheet wt-' + ((W && W.theme) || 'brass') + '" style="' + style + '">' + (rows.length || any.length ? grid : '<p class="wtsub" style="margin:0;padding:8px">Nothing planned this week.</p>') + '</div>' +
     (P.ed ? pcEditor() : '') +
-    pcRampNote(wk) +
+    bnCard(wk) + pcRampNote(wk) +
     (W && rtUseWt() ? '<p class="small muted" style="margin:0">Each week every subject gets at least its minimum, and the extra periods go to your weakest subjects and to subjects with an exam coming up: three times the share in the last two weeks, double in the two weeks before that. A new week is planned every Sunday; sessions you’ve ticked off or changed stay as they are.</p>' : '') +
   '</div>';
+}
+/* Burnout check for one week of Plan: too many hours, a day that's too long, no day off, or late nights several days running.
+   Limits are for a student who is also at school: 25 h a week; 5 h on a school day, 7 h at the weekend; sessions ending after 10:30 pm on 3+ days. */
+const BN_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const BN = { week: 1500, school: 300, weekend: 420, late: 22 * 60 + 30, lateDays: 3 };
+function bnLen(x){ if (+x.min > 0) return +x.min; const m = /(\d+) min\b/.exec(x.t || ''); return m ? +m[1] : 0; }
+function bnCheck(wk){
+  const days = [0, 1, 2, 3, 4, 5, 6].map(i => addDays(wk, i));
+  const tasks = state.tasks.filter(x => x.d && x.d >= wk && x.d <= days[6] && (x.gen === 'rt' || x.tm || x.s));
+  const per = days.map(d => tasks.filter(x => x.d === d).reduce((a, x) => a + bnLen(x), 0));
+  const total = per.reduce((a, b) => a + b, 0);
+  const late = days.filter(d => tasks.some(x => x.d === d && x.tm && wtMin(x.tm) + bnLen(x) > BN.late));
+  const long = days.map((d, i) => ({ d, i, m: per[i], cap: i >= 5 ? BN.weekend : BN.school })).filter(x => x.m > x.cap);
+  const out = [];
+  const h = m => (Math.round(m / 6) / 10) + ' h';
+  if (total > BN.week) out.push({ k: 'week', t: h(total) + ' planned this week. More than about 25 hours on top of school is hard to keep up, and tired revision sticks less.', fix: 'wt' });
+  const nm = xs => xs.map(x => fmtDate(x.d, {weekday:'short'})).join(', ');
+  const sch = long.filter(x => x.i < 5), wke = long.filter(x => x.i >= 5);
+  if (sch.length) out.push({ k: 'day', t: 'Over 5 hours on a school day (' + nm(sch) + ', up to ' + h(Math.max(...sch.map(x => x.m))) + '). Keep school days under 5 hours.', fix: 'wt' });
+  if (wke.length) out.push({ k: 'day', t: 'Over 7 hours on a weekend day (' + nm(wke) + ', up to ' + h(Math.max(...wke.map(x => x.m))) + ').', fix: 'wt' });
+  if (per.every(m => m > 0)) { const light = per.indexOf(Math.min(...per)); out.push({ k: 'rest', t: 'No day off this week. One full rest day a week helps you remember more.', fix: 'rest', day: parseD(days[light]).getDay() }); }
+  if (late.length >= BN.lateDays) out.push({ k: 'late', t: 'Study ends after 10:30 pm on ' + late.length + ' days. Late nights cut into sleep, and sleep is when what you learnt gets stored.', fix: 'wt' });
+  return { out, total };
+}
+function bnCard(wk){
+  if (wk < wkMonday(todayStr())) return '';
+  const r = bnCheck(wk); if (!r.out.length) return '';
+  const rest = r.out.find(x => x.fix === 'rest'), W = wtSaved();
+  return '<div class="bnwarn stack" role="status"><b>This week looks too heavy</b><ul>' + r.out.map(x => '<li>' + esc(x.t) + '</li>').join('') + '</ul><div class="row" style="gap:8px">' +
+    (rest ? '<button class="btn sm" type="button" data-act="pc-rest" data-v="' + rest.day + '">Make ' + esc(BN_DAYS[rest.day]) + ' a rest day</button>' : '') +
+    (W && r.out.some(x => x.fix === 'wt') ? '<button class="btn sm" type="button" data-act="wt-edit">Edit weekly timetable</button>' : '') + '</div></div>';
 }
 /* "Exam soon" line: which subjects get extra time this week because their exam is close. */
 function pcRampNote(wk){
@@ -439,6 +470,7 @@ function pcAct(el){
     case 'pc-add': { const [d, tm] = v.split('|'); P.ed = { id: null, d, tm, sid: '', c: '', ti: null, min: W ? W.len : 45 }; break; }
     case 'pc-subj': P.ed.sid = v; P.ed.c = ''; P.ed.ti = null; break;
     case 'pc-cancel': P.ed = null; break;
+    case 'pc-rest': { const p = prefs(), d = +v; if (!p.offDays.includes(d)) p.offDays.push(d); const r = state.rt || {}; let n = 0; if (rtExams().length) n = rtBuild(r.min || goalMin(), r.rest === undefined ? -1 : r.rest); commit(); toast(BN_DAYS[d] + ' is now a rest day every week. ' + (n ? 'Your plan has been rebuilt.' : 'Nothing new will be planned on it.')); break; }
     case 'pc-done': { const x = state.tasks.find(y => y.id === P.ed.id); if (x){ x.done = !x.done; if (x.done) x.doneAt = todayStr(); else delete x.doneAt; commit(); } P.ed = null; break; }
     case 'pc-del': { const x = state.tasks.find(y => y.id === P.ed.id); if (x){ state.tasks = state.tasks.filter(y => y !== x); if (x.gen === 'rt' && x.tm){ state.rt = state.rt || {}; state.rt.skip = Object.assign({}, state.rt.skip || {}, { [x.d + '|' + x.tm]: 1 }); } commit(); toast('Session removed. That period stays free when the week is re-planned.'); } P.ed = null; break; }
     case 'pc-save': {

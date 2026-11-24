@@ -1277,6 +1277,7 @@ label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-
 .pfa.got .pfai{color:var(--brass)}
 .frname{font:inherit;color:var(--ink);text-decoration:underline;text-underline-offset:3px;padding:0;min-height:0;background:none;border:0;cursor:pointer}
 #papview{position:fixed;inset:0;z-index:9999;background:var(--bg,#fff);display:flex;flex-direction:column}#papview .papbar{display:flex;gap:10px;align-items:center;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;border-bottom:1px solid var(--line,#ddd)}#papview iframe{flex:1;border:0;width:100%}
+.bnwarn{gap:6px;padding:12px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--c-orange) 45%,transparent);background:color-mix(in srgb,var(--c-orange) 10%,var(--card,transparent))}.bnwarn ul{margin:0;padding-left:20px}.bnwarn li{margin:2px 0}
 </style>
 </head>
 <body>
@@ -1318,6 +1319,7 @@ label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-
 <script src="rooms.js"></script>
 <script src="weekplan.js"></script>
 <script src="weeklymail.js"></script>
+<script src="stretch.js"></script>
 <script>
 /* ============================================================
    CONTENT: Pearson Edexcel International A Level units
@@ -1547,7 +1549,7 @@ const ICONS = {
 };
 const ROUTES = [['today','Today'],['syllabus','Study'],['quiz','Practise'],['grades','Progress'],['planner','Plan'],['rooms','Rooms']];
 function pSeg(cur){ return '<nav class="seg" aria-label="Plan"><a href="#planner"' + (cur === 'planner' ? ' aria-current="page"' : '') + '>Planner</a><a href="#calendar"' + (cur === 'calendar' ? ' aria-current="page"' : '') + '>Calendar</a></nav>'; }
-function sSeg(cur){ const due = decksIn('all').filter(d => deckStatus(d) === 'due').length + allCards().filter(c => cardStatus(c) === 'due').length; return '<nav class="seg" aria-label="Study"><a href="#syllabus"' + (cur === 'syllabus' ? ' aria-current="page"' : '') + '>Revise</a><a href="#cards"' + (cur === 'cards' ? ' aria-current="page"' : '') + '>Flashcards' + (due ? ' <span class="badge">' + due + '</span>' : '') + '</a></nav>'; }
+function sSeg(cur){ const due = decksIn('all').filter(d => deckStatus(d) === 'due').length + allCards().filter(c => cardStatus(c) === 'due').length; return '<nav class="seg" aria-label="Study"><a href="#syllabus"' + (cur === 'syllabus' ? ' aria-current="page"' : '') + '>Revise</a><a href="#cards"' + (cur === 'cards' ? ' aria-current="page"' : '') + '>Flashcards' + (due ? ' <span class="badge">' + due + '</span>' : '') + '</a><a href="#stretch"' + (cur === 'stretch' ? ' aria-current="page"' : '') + '>Stretch</a></nav>'; }
 
 /* ============================================================
    State + saving (device first, then the user's private cloud copy)
@@ -1760,7 +1762,7 @@ const ui = {
   confirm: null
 };
 let curRoute = null;
-function route(){ let h = curRoute; if (h == null){ try { h = (location.hash || '').slice(1); } catch(e){ h = ''; } } if (h === 'settings') h = 'prefs'; return ['today','cards','quiz','papers','mistakes','grades','syllabus','planner','calendar','rooms','prefs','setup','search','profile','week'].includes(h) ? h : (h === '' && ['today','syllabus','quiz','papers','grades','planner'].includes(prefs().start) ? prefs().start : 'today'); }
+function route(){ let h = curRoute; if (h == null){ try { h = (location.hash || '').slice(1); } catch(e){ h = ''; } } if (h === 'settings') h = 'prefs'; return ['today','cards','quiz','papers','mistakes','grades','syllabus','planner','calendar','rooms','prefs','setup','search','profile','week','stretch'].includes(h) ? h : (h === '' && ['today','syllabus','quiz','papers','grades','planner'].includes(prefs().start) ? prefs().start : 'today'); }
 // Navigate without relying on the host page delivering hashchange events (artifact viewers differ).
 function go(r){ const changed = route() !== r; setTimeout(() => { if (route() === 'search' && changed){ const i = $('#search-q'); if (i) i.focus(); } }, 30); curRoute = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch(e){} ui.confirm = null; ui.editTask = null; render(); if (changed) window.scrollTo({ top: 0 }); if (ui.scrollCp){ ui.scrollCp = false; const o = document.querySelector('details.cp[open]'); if (o) o.scrollIntoView({ block: 'center' }); } }
 
@@ -2600,6 +2602,21 @@ function topicNotes(code, i){
     (kp ? '<details class="kpts"><summary>Key points</summary><ul>' + kp.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></details>' : '');
 }
 
+/* ---------- Stretch: beyond the syllabus (data in stretch.js) ---------- */
+function viewStretch(){
+  if (!ui.stretch) ui.stretch = { subj: null };
+  const subs = mySubjects(), sid = subs.some(x => x.id === ui.stretch.subj) ? ui.stretch.subj : (subs.find(x => (STRETCH[x.id] || []).length || STRETCH_POSN[x.id === 'fm' ? 'math' : x.id]) || subs[0]).id;
+  ui.stretch.subj = sid;
+  const s = SUBJ[sid], pk = sid === 'fm' ? 'math' : sid;
+  const items = (STRETCH[sid] || []).slice();
+  if (STRETCH_POSN[pk]) items.push({ k: 'posn', n: 'POSN Olympiad camps in Thailand', by: 'POSN Foundation', url: STRETCH_POSN[pk], d: 'Thailand’s route to the International Olympiads: apply in July, selection exam in August, then training camps. Check with POSN whether you can apply from your school.' });
+  const row = x => '<div class="li stretch"><div class="grow stack" style="gap:4px"><div><span class="pill">' + esc(STRETCH_K[x.k] || '') + '</span></div><a href="' + esc(x.url) + '" target="_blank" rel="noopener"><b>' + esc(x.n) + '</b> ↗</a><div class="small">' + esc(x.d) + '</div><div class="small muted"><span>From</span> ' + esc(x.by) + '</div></div></div>';
+  return '<div class="stack subjtint" style="--sc:var(--' + sid + ')">' + sSeg('stretch') +
+    '<div><h1>Stretch</h1><p class="muted">Beyond the syllabus: olympiads, admissions tests, university courses and essay competitions. Good for strong students and for university applications. Do this after your IAL revision, not instead of it.</p></div>' +
+    '<div class="chips" role="group" aria-label="Subject">' + subs.map(x => '<button class="chip" data-subj style="--sc:var(--' + x.id + ')" data-act="str-subj" data-v="' + x.id + '" aria-pressed="' + (x.id === sid) + '"><span class="dot" style="background:var(--' + x.id + ')"></span>' + esc(x.short) + '</button>').join('') + '</div>' +
+    '<div class="card"><div class="list">' + (items.length ? items.map(row).join('') : '<div class="empty">No stretch list for ' + esc(s.name) + ' yet.</div>') + '</div></div>' +
+    '<p class="small muted">Links only: each opens on its owner’s site. All are free to use; any entry fee is noted. Checked November 2026.</p></div>';
+}
 function viewSyllabus(){
   const sid = ui.syllabus.subj;
   const s = SUBJ[sid];
@@ -6193,10 +6210,10 @@ function render(){
   applyPrefs(); ensureSubjects(); try { sortSubjects(); } catch(err){ console.error(err); }
   const r = route(); setHdr(); try { subjColours(); } catch(err){}
   document.body.classList.toggle('focusing', (r === 'cards' && !!(ui.cards && (ui.cards.review || ui.cards.dq))) || (r === 'quiz' && !!(ui.quiz && ui.quiz.run)));
-  $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && r === 'cards') || (id === 'planner' && r === 'week') || (id === 'planner' && r === 'calendar') ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
+  $('#tabs').innerHTML = ROUTES.map(([id, label]) => '<a href="#' + id + '"' + (r === id || (id === 'quiz' && (r === 'papers' || r === 'mistakes')) || (id === 'syllabus' && (r === 'cards' || r === 'stretch')) || (id === 'planner' && r === 'week') || (id === 'planner' && r === 'calendar') ? ' aria-current="page"' : '') + '>' + ICONS[id] + '<span>' + label + '</span></a>').join('');
   $('#nav-settings').setAttribute('aria-current', r === 'prefs' ? 'page' : 'false');
   { const np = $('#nav-profile'); if (np){ np.setAttribute('aria-current', r === 'profile' ? 'page' : 'false'); const k = (prof().photo || '').length + '|' + (prof().name || '') + '|' + avatarColor(); if (np.dataset.k !== k){ np.dataset.k = k; np.innerHTML = hasProfile() ? avatar(30) : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'; } } } { const ns = $('#nav-search'); if (ns) ns.setAttribute('aria-current', r === 'search' ? 'page' : 'false'); } fsSync();
-  const v = { today:viewToday, cards:viewCards, quiz:viewQuiz, papers:viewPapers, syllabus:viewSyllabus, planner:viewPlanner, week:viewWeek, calendar:viewCalendar, prefs:viewSettings, search:viewSearch, grades:viewGrades, mistakes:viewMistakes, setup:viewSetup, profile:viewProfile, rooms:viewRooms }[r];
+  const v = { today:viewToday, cards:viewCards, quiz:viewQuiz, papers:viewPapers, syllabus:viewSyllabus, stretch:viewStretch, planner:viewPlanner, week:viewWeek, calendar:viewCalendar, prefs:viewSettings, search:viewSearch, grades:viewGrades, mistakes:viewMistakes, setup:viewSetup, profile:viewProfile, rooms:viewRooms }[r];
   const gate = needLogin() || !!(ACCT && FB.action); document.body.classList.toggle('gate', gate);
   try { $('#view').innerHTML = ACCT && FB.action ? viewAuthAction() : gate ? viewLogin() : mockBar() + (route() === 'today' && shouldWelcome() ? verifyBanner() + viewWelcome() : v()); }
   catch(err){ console.error(err); $('#view').innerHTML = '<div class="card" role="alert"><h2>Something went wrong on this page</h2><p class="muted">' + esc(String(err && err.message || err)) + '</p><div class="row"><button class="btn primary" data-act="err-reload">Reload</button></div></div>'; }
@@ -6512,6 +6529,7 @@ document.addEventListener('click', e => {
     case 'pap-save': { const urls = v.split(' '); urls.forEach(x => POFF.busy.add(x)); render(); papSave(urls).then(r => { render(); toast(r.bad ? r.ok + ' saved, ' + r.bad + ' couldn’t be saved. Check your internet and try again.' : r.ok === 1 ? 'Saved offline.' : r.ok + ' files saved offline.'); }); break; }
     case 'pap-del': papRemove(v.split(' ')).then(() => { render(); toast('Removed from this device.'); }); break;
     case 'pap-clear': papRemove([...POFF.saved]).then(() => { render(); toast('All offline papers removed.'); }); break;
+    case 'str-subj': ui.stretch.subj = v; render(); break;
     case 'su-pure': { setPure(true); commit(); MATH_APPLIED.forEach(c => ui.setup.units.delete(c)); ['WMA11','WMA12','WMA13','WMA14','WFM01','WFM02'].forEach(c => ui.setup.units.add(c)); render(); toast('Pure Maths on: P1–P4, FP1 and FP2 ticked. Swap FP2 for FP3 if that’s your choice.'); break; }
     case 'su-all': { const sub = SUBJ[v], all = sub.units.every(u => ui.setup.units.has(u.c)); sub.units.forEach(u => all ? ui.setup.units.delete(u.c) : ui.setup.units.add(u.c)); render(); break; }
     case 'su-apply': { const d = $('#su-def'); if (d) ui.setup.def = d.value; ui.setup.units.forEach(c => { if (ttDate(c, ui.setup.def)) ui.setup.series[c] = ui.setup.def; }); render(); break; }
@@ -6693,7 +6711,7 @@ function rmHashJoin(){ let h = ''; try { h = location.hash.slice(1); } catch(e){
 function rmPendingJoin(){ let c = ''; try { c = localStorage.getItem('ial-room-join') || ''; } catch(e){} if (!c || typeof rmAvailable !== 'function' || !rmAvailable()) return; try { localStorage.removeItem('ial-room-join'); } catch(e){} rmJoin(c); }
 window.addEventListener('hashchange', () => { if (rmHashJoin()) return; let h = ''; try { h = location.hash.slice(1); } catch(e){} if (h === curRoute) return; curRoute = h || null; ui.confirm = null; ui.editTask = null; render(); window.scrollTo({ top: 0 }); });
 // Every in-app link (#route) is handled here, in capture phase, before anything else can swallow it.
-document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return; const h = a.getAttribute('href').slice(1); if (!['today','cards','quiz','papers','mistakes','grades','syllabus','planner','calendar','rooms','prefs','setup','search','profile','week'].includes(h)) return; e.preventDefault(); setTimeout(() => go(h), 0); }, true);
+document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return; const h = a.getAttribute('href').slice(1); if (!['today','cards','quiz','papers','mistakes','grades','syllabus','planner','calendar','rooms','prefs','setup','search','profile','week','stretch'].includes(h)) return; e.preventDefault(); setTimeout(() => go(h), 0); }, true);
 
 try { rmHashJoin(); } catch(e){}
 render();
