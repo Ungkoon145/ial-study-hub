@@ -1312,6 +1312,9 @@ label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-
 .tl-card{flex:1;min-width:0;display:flex;gap:12px;padding:12px;border:1px solid var(--line);border-left:4px solid var(--tc);border-radius:14px;background:var(--card)}
 .tl-what{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}.tl-btns{gap:6px;margin-top:8px}
 @media (max-width:560px){.cc-types{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px;padding:2px 16px 6px;scrollbar-width:none}.cc-types .chip{flex:none}.cc-stats b{font-size:1.35rem}.cc-stats span{font-size:.74rem}.ccgrid{grid-template-columns:1fr}.tl-card .cc-logo{display:none}}
+.cc-where{display:inline-flex;align-self:flex-start;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--card)}.cc-where button{border:0;background:transparent;font:inherit;font-weight:600;font-size:.9rem;padding:8px 16px;border-radius:999px;cursor:pointer;color:inherit;min-height:38px}.cc-where button[aria-pressed="true"]{background:var(--primary);color:#fff}
+.cc-th{font-size:.76rem;font-weight:600;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--c-pink) 18%,transparent)}
+.cc-group{display:flex;flex-direction:column;gap:10px}.cc-group h2{margin:6px 0 0}.cc-group h2 .muted{font-weight:400;font-size:.9em}
 </style>
 </head>
 <body>
@@ -2641,7 +2644,7 @@ function topicNotes(code, i){
 
 /* ---------- Stretch: beyond the syllabus (data in stretch.js) ---------- */
 /* ---------- Stretch tab: competitions (comps.js), their calendar, and practice (stretch.js) ---------- */
-function strUi(){ if (!ui.str) ui.str = { tab: 'comps', type: 'all', subj: 'all', skill: 'all', mine: false, calAll: false }; return ui.str; }
+function strUi(){ if (!ui.str) ui.str = { tab: 'comps', type: 'all', subj: 'all', skill: 'all', where: 'all', mine: false, calAll: false }; return ui.str; }
 function strSeg(cur){ const n = compFollowed().length; return '<nav class="seg" aria-label="Stretch"><a href="#stretch" data-act="str-tab" data-v="comps"' + (cur === 'comps' ? ' aria-current="page"' : '') + '>Competitions</a><a href="#stretch" data-act="str-tab" data-v="cal"' + (cur === 'cal' ? ' aria-current="page"' : '') + '>Calendar' + (n ? ' <span class="badge">' + n + '</span>' : '') + '</a><a href="#stretch" data-act="str-tab" data-v="prac"' + (cur === 'prac' ? ' aria-current="page"' : '') + '>Practice</a></nav>'; }
 function viewStretch(){ const U = strUi(); return U.tab === 'cal' ? viewCompCal() : U.tab === 'prac' ? viewStretchPractice() : viewComps(); }
 function compFollowed(){ const f = state.follow || {}; return typeof COMPS === 'undefined' ? [] : COMPS.filter(c => f[c.id]); }
@@ -2649,7 +2652,7 @@ const compExact = d => /^\d{4}-\d{2}-\d{2}$/.test(d);
 function compKey(d){ return compExact(d) ? d : d + '-01'; }
 function compUpcoming(c){ const t = todayStr(), m = t.slice(0, 7); return c.tl.filter(x => compExact(x.d) ? x.d >= t : x.d >= m).sort((a, b) => compKey(a.d).localeCompare(compKey(b.d))); }
 function compWhen(d){ return compExact(d) ? fmtDate(d, {day:'numeric', month:'short', year:'numeric'}) : 'usually ' + fmtDate(d + '-01', {month:'long', year:'numeric'}); }
-function compMatch(c){ const U = strUi(); return (U.type === 'all' || c.t === U.type) && (U.subj === 'all' || c.subj.includes(U.subj)) && (U.skill === 'all' || (U.skill === 'sch' ? !!c.sch : c.sk.includes(U.skill))) && (!U.mine || (state.follow || {})[c.id]); }
+function compMatch(c){ const U = strUi(); return (U.where !== 'th' || !!c.th) && (U.type === 'all' || c.t === U.type) && (U.subj === 'all' || c.subj.includes(U.subj)) && (U.skill === 'all' || (U.skill === 'sch' ? !!c.sch : c.sk.includes(U.skill))) && (!U.mine || (state.follow || {})[c.id]); }
 const COMP_TCOL = { olymp: 'var(--c-blue)', sci: 'var(--c-mint)', hack: 'var(--c-cyan)', write: 'var(--c-violet)', speak: 'var(--c-coral)', biz: 'var(--c-orange)', summer: 'var(--c-yellow)' };
 /* Logos: each organisation's own site icon, through DuckDuckGo's icon service (no tracking). If it can't load, the initials show instead. */
 function compLogo(c, big){
@@ -2660,7 +2663,8 @@ function compLogo(c, big){
 function compIn(d){ const n = daysBetween(todayStr(), d); return n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : 'In ' + n + ' days'; }
 function compFilters(cal){
   const U = strUi(), opt = (o, cur) => Object.entries(o).map(([k, v]) => '<option value="' + k + '"' + (cur === k ? ' selected' : '') + '>' + esc(v) + '</option>').join('');
-  return '<div class="cc-filters stack">' +
+  const wh = '<div class="cc-where" role="group" aria-label="Where">' + [['all', 'Everywhere'], ['th', 'In Thailand']].map(([k, v]) => '<button type="button" data-act="str-where" data-v="' + k + '" aria-pressed="' + (U.where === k) + '">' + v + '</button>').join('') + '</div>';
+  return '<div class="cc-filters stack">' + wh +
     (cal ? '' : '<label class="cc-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input type="search" id="str-q" placeholder="Search competitions" aria-label="Search competitions" value="' + esc(U.q || '') + '"></label>') +
     '<div class="chips cc-types" role="group" aria-label="Type"><button class="chip" data-act="str-type" data-v="all" aria-pressed="' + (U.type === 'all') + '">All</button>' + Object.entries(COMP_TYPES).map(([k, v]) => '<button class="chip" data-act="str-type" data-v="' + k + '" aria-pressed="' + (U.type === k) + '" style="--tc:' + COMP_TCOL[k] + '"><i class="cc-dot"></i>' + esc(v) + '</button>').join('') + '</div>' +
     '<div class="row cc-sel"><label class="f">Subject<select id="str-subj"><option value="all">All subjects</option>' + opt(COMP_SUBJ, U.subj) + '</select></label>' +
@@ -2676,7 +2680,7 @@ function compCard(c){
   return '<article class="cc' + (on ? ' on' : '') + '" style="--tc:' + COMP_TCOL[c.t] + '">' +
     '<header class="cc-h">' + compLogo(c) + '<div class="cc-t"><a class="cc-name" href="' + esc(c.url) + '" target="_blank" rel="noopener">' + esc(c.n) + '</a><span class="cc-org">' + esc(c.org) + '</span></div>' +
     '<button class="cc-fol" type="button" data-act="comp-follow" data-v="' + c.id + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Unfollow ' : 'Follow ') + esc(c.n) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span>' + (on ? 'Following' : 'Follow') + '</span></button></header>' +
-    '<div class="cc-tags"><span class="cc-type"><i class="cc-dot"></i>' + esc(COMP_TYPES[c.t]) + '</span>' + (c.sch ? '<span class="cc-sch">Scholarship or prize money</span>' : '') + '</div>' +
+    '<div class="cc-tags"><span class="cc-type"><i class="cc-dot"></i>' + esc(COMP_TYPES[c.t]) + '</span>' + (c.th ? '<span class="cc-th">In Thailand</span>' : '') + (c.sch ? '<span class="cc-sch">Scholarship or prize money</span>' : '') + '</div>' +
     '<p class="cc-elig">' + esc(c.elig) + '</p>' +
     '<div class="cc-facts"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span>' + esc(c.where) + '</span></span><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.5 0-2.5.8-2.5 2s1 1.6 2.5 2 2.5 1 2.5 2.2-1.1 1.8-2.5 1.8c-1.2 0-2.2-.5-2.7-1.5M12 6.5v1.5M12 16v1.5"/></svg><span>' + esc(c.cost) + '</span></span></div>' +
     '<div class="cc-when">' + when + '</div>' +
@@ -2688,11 +2692,13 @@ function viewComps(){
   const list = all.filter(c => compMatch(c) && compMatchQ(c)).sort((a, b) => { const x = compUpcoming(a)[0], y = compUpcoming(b)[0]; return (x ? compKey(x.d) : '9999').localeCompare(y ? compKey(y.d) : '9999'); });
   const fol = compFollowed(), nextEv = compEvents(false).find(e => compExact(e.x.d));
   return '<div class="stack">' + strSeg('comps') +
-    '<section class="cc-hero"><div><h1>Competitions</h1><p>Olympiads, science fairs, hackathons, robotics, essay and speaking competitions, and summer programmes open to students in Thailand. Follow the ones you want; their dates go into your competition calendar.</p></div>' +
-    '<div class="cc-stats"><div><b>' + all.length + '</b><span>competitions</span></div><div><b>' + fol.length + '</b><span>following</span></div><div>' + (nextEv ? '<b>' + daysBetween(todayStr(), nextEv.x.d) + '</b><span>days to your next date</span>' : '<b>' + all.filter(c => c.sch).length + '</b><span>with scholarships or prizes</span>') + '</div></div></section>' +
+    '<section class="cc-hero"><div><h1>Competitions</h1><p>Olympiads, science fairs, hackathons, robotics, essay and speaking competitions, and summer programmes open to students in Thailand. Competitions held in Thailand come first. Follow the ones you want; their dates go into your competition calendar.</p></div>' +
+    '<div class="cc-stats"><div><b>' + all.length + '</b><span>competitions</span></div><div><b>' + all.filter(c => c.th).length + '</b><span>held in Thailand</span></div><div>' + (nextEv ? '<b>' + daysBetween(todayStr(), nextEv.x.d) + '</b><span>days to your next date</span>' : '<b>' + fol.length + '</b><span>following</span>') + '</div></div></section>' +
     compFilters(false) +
     '<p class="small muted cc-count">' + list.length + ' of ' + all.length + ' shown</p>' +
-    (list.length ? '<div class="ccgrid">' + list.map(compCard).join('') + '</div>' : '<div class="card"><div class="empty">Nothing matches these filters.</div></div>') +
+    (!list.length ? '<div class="card"><div class="empty">Nothing matches these filters.</div></div>'
+      : strUi().where === 'th' ? '<div class="ccgrid">' + list.map(compCard).join('') + '</div>'
+      : [['In Thailand', list.filter(c => c.th)], ['Online and abroad', list.filter(c => !c.th)]].filter(g => g[1].length).map(g => '<section class="cc-group"><h2>' + g[0] + ' <span class="muted">' + g[1].length + '</span></h2><div class="ccgrid">' + g[1].map(compCard).join('') + '</div></section>').join('')) +
     '<p class="small muted">Links open each organiser’s own website; logos belong to their organisations and are shown only to identify them. Dates checked ' + esc(COMPS_CHECKED) + '; “usually” means the expected month based on past years. Always confirm dates and eligibility on the website.</p></div>';
 }
 function compEvents(all){
@@ -6647,6 +6653,7 @@ document.addEventListener('click', e => {
     case 'str-subj': ui.stretch.subj = v; render(); break;
     case 'str-tab': strUi().tab = v; render(); window.scrollTo({ top: 0 }); break;
     case 'str-type': strUi().type = v; render(); break;
+    case 'str-where': strUi().where = v; render(); break;
     case 'comp-follow': { state.follow = state.follow || {}; const c = COMPS.find(x => x.id === v); if (state.follow[v]) delete state.follow[v]; else state.follow[v] = todayStr(); commit(); render(); toast(state.follow[v] ? 'Following ' + c.n + '. Its dates are in your competition calendar.' : 'Stopped following ' + c.n + '.'); break; }
     case 'su-pure': { setPure(true); commit(); MATH_APPLIED.forEach(c => ui.setup.units.delete(c)); ['WMA11','WMA12','WMA13','WMA14','WFM01','WFM02'].forEach(c => ui.setup.units.add(c)); render(); toast('Pure Maths on: P1–P4, FP1 and FP2 ticked. Swap FP2 for FP3 if that’s your choice.'); break; }
     case 'su-all': { const sub = SUBJ[v], all = sub.units.every(u => ui.setup.units.has(u.c)); sub.units.forEach(u => all ? ui.setup.units.delete(u.c) : ui.setup.units.add(u.c)); render(); break; }
