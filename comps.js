@@ -194,17 +194,36 @@ const COMPS = [
   { id: 'yis', n: 'YIS Global Stock Pitch Competition', org: 'Young Investors Society', url: 'https://yis.org/', t: 'biz', subj: ['econ', 'math'], sk: ['enterprise', 'research', 'video'],
     where: 'Online; top teams invited to a summit in New York', cost: 'About $30 per student', elig: 'High school students, alone or in pairs: pick a listed company, then submit a report, slides and a video with a buy or sell call. Students outside the US enter the International OPEN.',
     tl: [{ d: '2026-12-15', e: 'Registration opens' }, { d: '2027-02-19', e: 'Submission deadline' }, { d: '2027-05', e: 'Global Youth Investment Summit, New York' }] }
+,
+  { id: 'iymc', n: 'International Youth Math Challenge (IYMC)', org: 'International Youth Math Challenge', url: 'https://iymc.info/', t: 'olymp', subj: ['math'], sk: ['solve', 'research'], sch: 1,
+    where: 'Online', cost: 'Free first round; about €15 for the pre-final (aid available)', elig: 'High school and university students in any country. Five problems in the qualification round, then a timed pre-final and final; awards and a small cash prize pool. Independent: not part of the official olympiads.',
+    tl: [{ d: '2027-09', e: 'Qualification round deadline' }] },
+  { id: 'iaac', n: 'International Astronomy and Astrophysics Competition (IAAC)', org: 'International Astronomy and Astrophysics Competition', url: 'https://iaac.space/en', t: 'olymp', subj: ['phys'], sk: ['solve', 'research'],
+    where: 'Online', cost: 'Free first round; about €13 for the pre-final (aid available)', elig: 'High school and university students in any country. Five astronomy problems in the qualification round, then a timed pre-final and final. Independent: separate from the official astronomy olympiads.',
+    tl: [{ d: '2027-04', e: 'Qualification round deadline' }, { d: '2027-06', e: 'Pre-final exam' }] },
+  { id: 'opho', n: 'Online Physics Olympiad (OPhO)', org: 'Online Physics Olympiad (student-run)', url: 'https://opho.physoly.tech/', t: 'olymp', subj: ['phys'], sk: ['solve', 'team'],
+    where: 'Online', cost: 'Free', elig: 'Free team contest (up to 3 per team) for high school and university students worldwide. An open round over several days, then an invitational round for the top teams. Usually in the summer.',
+    tl: [] },
+  { id: 'pumac', n: 'Princeton University Mathematics Competition (PUMaC)', org: 'Princeton University Math Club', url: 'https://pumac.princeton.edu/', t: 'olymp', subj: ['math'], sk: ['solve', 'team'],
+    where: 'Princeton University, USA (in person)', cost: 'Small fee per student, plus travel', elig: 'Teams of eight high school students, entered by a coach (usually a teacher). International teams are welcome and are told early so they can arrange travel.',
+    tl: [{ d: '2027-09', e: 'Team application deadline' }, { d: '2027-11', e: 'Competition day' }] },
+  { id: 'smt', n: 'Stanford Math Tournament Online (SMT)', org: 'Stanford University students (SUMO)', url: 'https://www.stanfordmathtournament.com/', t: 'olymp', subj: ['math'], sk: ['solve', 'team'],
+    where: 'Online (tests run on US Pacific time)', cost: 'Small fee per student', elig: 'Teams of 6–8 students in high school or below, from anywhere in the world. International teams take part online.',
+    tl: [{ d: '2027-04', e: 'Online tournament' }] },
+  { id: 'im2c', n: 'International Mathematical Modeling Challenge (IM²C)', org: 'COMAP and NeoUnion', url: 'https://immchallenge.org/', t: 'olymp', subj: ['math', 'cs'], sk: ['solve', 'research', 'write', 'team'],
+    where: 'From your school, then an international summit', cost: 'Set by each country’s organiser', elig: 'School teams solve a real-world modelling problem. Each country or region runs its own round and sends up to two teams; ask your school whether Thailand has an organiser this year.',
+    tl: [{ d: '2027-02-01', e: 'Contest window opens' }, { d: '2027-04-26', e: 'Contest window closes' }] }
 ];
 
 /* How a student gets in: 'self' = enter or apply yourself, 'school' = a teacher or school registers you, 'aseeder' = in Asia, through ASEEDER. */
 const COMP_HOW = {
   self: 'posn usaco spaceapps mega mlh btjc conrad locke butler qcwc earth genius diamond nyt ocean bennington hir rsi ssp yygs blueocean lsesu trinity sthughs wtw immerse visionaries cmkl timo sft asc minds cefc hcbc yis pico',
-  school: 'amc ukmt cemc bpho bbo ysc isef wharton ieo ipsc wsc hmmt purple vex hmun himcm wdsc euth munth acsl uwchem',
+  school: 'pumac im2c amc ukmt cemc bpho bbo ysc isef wharton ieo ipsc wsc hmmt purple vex hmun himcm wdsc euth munth acsl uwchem',
   aseeder: 'ukcho pbowl ccc c3l6 ino'
 };
 const COMP_HOW_L = { self: 'Enter yourself', school: 'Your school enters you', aseeder: 'Through ASEEDER (Asia)' };
 /* Who can enter: 'no' = probably not open to a student at an international school in Thailand; 'check' = unclear, ask the organiser. */
-const COMP_CAN = { asc: 'no', cmkl: 'check', sft: 'check', ysc: 'check' };
+const COMP_CAN = { im2c: 'check', asc: 'no', cmkl: 'check', sft: 'check', ysc: 'check' };
 /* Free past papers and preparation, on the organisers' own sites. */
 const COMP_PREP = {
   ukmt: [['Past papers and solutions (UKMT)', 'https://ukmt.org.uk/current-past-papers']],
@@ -218,5 +237,5 @@ const COMP_PREP = {
 };
 /* Day each competition's dates were last checked on its own website. */
 const COMP_CK = {};
-'hmmt purple pico vex earth genius diamond nyt ocean bennington hir hmun himcm wdsc blueocean lsesu trinity sthughs wtw immerse visionaries cmkl euth timo sft munth asc pbowl acsl ccc uwchem c3l6 ino minds cefc hcbc yis bpho rsi amc ukmt cemc posn ukcho bbo usaco spaceapps'.split(' ').forEach(id => COMP_CK[id] = '2026-11-25');
+'pumac smt im2c hmmt purple pico vex earth genius diamond nyt ocean bennington hir hmun himcm wdsc blueocean lsesu trinity sthughs wtw immerse visionaries cmkl euth timo sft munth asc pbowl acsl ccc uwchem c3l6 ino minds cefc hcbc yis bpho rsi amc ukmt cemc posn ukcho bbo usaco spaceapps'.split(' ').forEach(id => COMP_CK[id] = '2026-11-25');
 COMPS.forEach(c => { c.how = Object.keys(COMP_HOW).find(k => COMP_HOW[k].split(' ').includes(c.id)) || 'self'; c.can = COMP_CAN[c.id] || 'yes'; c.prep = COMP_PREP[c.id] || []; c.ck = COMP_CK[c.id] || ''; c.free = /^(free|no entry fee)/i.test(c.cost); });
