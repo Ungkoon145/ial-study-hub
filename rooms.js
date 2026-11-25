@@ -76,6 +76,7 @@ const _rmMine0 = rmMine;
 rmMine = function(){ const m = _rmMine0(); if (RM.awayAt && Date.now() - RM.awayAt >= RM_AWAY) m.st = 'away'; if (RM.room && RM.room.kind === 'cam') m.nv = (RM.nv || []).slice(0, 12); if (RM.rid){ const G = rmGoal(); m.g = G.g || ''; m.gd = !!(G.g && G.gd); } return m; };
 async function rmBeat(){
   if (!RM.rid || !rmUid()) return;
+  if (rmExpired(RM.room) && RM.room.owner !== rmUid()){ toast('This room has ended.'); rmLeave(); return; }
   try { await rmDb().setMe(RM.rid, rmUid(), rmMine()); }
   catch(e){ if (/permission/.test(String(e && (e.code || e.message)))) rmKicked(); }
 }
@@ -108,6 +109,7 @@ async function rmJoin(id, stay){
   try {
     const room = await rmDb().get(id);
     if (!room){ RM.busy = false; RM.joinErr = 'No room has that code. Check it and try again.'; render(); return; }
+    if (rmExpired(room) && room.owner !== rmUid()){ RM.busy = false; RM.joinErr = 'This room has ended.'; render(); return; }
     if ((room.ban || []).includes(rmUid())){ RM.busy = false; RM.joinErr = 'You can’t join this room.'; render(); return; }
     if (room.lock && !(room.m || {})[rmUid()] && room.owner !== rmUid()){ RM.busy = false; RM.joinErr = 'This room is locked. Ask the person who made it to unlock it.'; render(); return; }
     const n = rmMembers(room).filter(m => m.id !== rmUid()).length;
@@ -119,6 +121,7 @@ async function rmJoin(id, stay){
     clearInterval(RM.beat); RM.beat = setInterval(rmBeat, RM_BEAT); RM.joinedAt = Date.now(); RM.sess = { rid: id, n: String(room.name || ''), kind: room.kind, at: Date.now(), min: 0, blocks: 0 }; RM.recap = null; RM.ppSeen = undefined;
     if (room.kind === 'cam') setTimeout(() => { if (RM.rid === id && RM.room) rmSyncPeers(); }, 6500);
     RM.busy = false; try { localStorage.setItem('ial-room', id); } catch(e){}
+    if (room.owner === rmUid()){ if (state.rmOwned && state.rmOwned[id]){ delete state.rmOwned[id]; commitQuiet(); } if (room.exp) rmDb().setRoom(id, { exp: null }).catch(() => {}); }
     RMS.hide = {}; RMS.hits = {}; RMS.ok = {}; RMS.recent = []; try { rmsOwnerWatch(); } catch(e){}
     if (room.kind === 'cam') frSchedule();
     if (stay) render(); else go('rooms');
@@ -126,7 +129,7 @@ async function rmJoin(id, stay){
 }
 async function rmLeave(quiet){
   const id = RM.rid, uid = rmUid(); if (!id) return;
-  RM.leaving = true;
+  RM.leaving = true; RM.leaveAsk = false;
   try { rmRecapMake(); } catch(e){}
   try { rmxStopAll(); } catch(e){} RM.panel = null;
   if (RM.full){ RM.full = false; try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e){} const fe = document.getElementById('rmfull'); if (fe) fe.remove(); document.body.classList.remove('rmfulling'); }
@@ -149,6 +152,7 @@ function rmKicked(){ const name = RM.room ? RM.room.name : ''; rmLeave(true).the
 function rmOnRoom(d){
   if (!RM.rid) return;
   if (!d){ toast('This room was closed.'); rmLeave(); return; }
+  if (rmExpired(d) && d.owner !== rmUid()){ toast('This room has ended.'); rmLeave(); return; }
   if ((d.ban || []).includes(rmUid())){ rmKicked(); return; }
   const prevM = RM.room && RM.room.id === RM.rid ? RM.room.m : null;
   RM.room = Object.assign({ id: RM.rid }, d);
@@ -171,11 +175,13 @@ async function rmRemove(uid){
   if (!confirm('Remove ' + n + ' from this room? They won’t be able to join it again.')) return;
   try { await rmDb().ban(RM.rid, uid); rmClosePc(uid); } catch(e){ toast(rmErrMsg(e)); }
 }
-async function rmDelete(){
+async function rmDelete(sure){
   if (!RM.room || RM.room.owner !== rmUid()) return;
-  if (!confirm('Close this room for everyone?')) return;
+  if (!sure && !confirm('Delete this room for everyone? Everyone inside will be sent out, and the code will stop working.')) return;
   const id = RM.rid; await rmLeave(true);
   try { await rmDb().remove(id); } catch(e){}
+  if (state.rmOwned && state.rmOwned[id]){ delete state.rmOwned[id]; commitQuiet(); }
+  toast('Room deleted.');
   render();
 }
 function rmReact(e){
@@ -433,7 +439,7 @@ function viewRoom(){
     (r.tm && r.owner !== me ? '<label class="row small rmfollow" style="gap:8px;align-items:center;min-height:44px"><input type="checkbox" data-act="rm-follow"' + (rmFollowOn() ? ' checked' : '') + '> <span>Follow the room timer (the person who made this room can start and pause it for everyone)</span></label>' : '') +
     (RM.camBlocked ? '<p class="small muted" role="status">The person who made this room has turned your camera off for now.</p>' : '') +
     (RM.safeMsg && !RM.cam ? '<p class="small warnline" role="status">' + esc(RM.safeMsg) + '</p>' : '') +
-    (RM.rulesAsk ? rmRulesCard() : '') + (RM.reportFor ? rmReportCard() : '') +
+    (RM.leaveAsk ? rmLeaveCard() : '') + (RM.rulesAsk ? rmRulesCard() : '') + (RM.reportFor ? rmReportCard() : '') +
     panel +
     (cam ? '<div class="card stack rminvite"><div class="row" style="justify-content:space-between;align-items:center"><div><div class="small muted">Room code</div><div class="rmcode notr">' + esc(r.id.slice(0, 4) + ' ' + r.id.slice(4)) + '</div></div>' +
       '<div class="row">' + (navigator.share ? '<button class="btn sm primary" data-act="rm-share" data-v="' + esc(link) + '">Share invite</button>' : '') + '<button class="btn sm" data-act="rm-copy" data-v="' + esc(link) + '">Copy invite link</button></div></div>' +
@@ -442,7 +448,7 @@ function viewRoom(){
     '<div class="card-h rmpeopleh"><h2>In this room</h2><span class="small muted">' + mem.length + '</span></div>' +
     '<div class="rmgrid lay-' + lay + (cam ? ' cam' : '') + '">' + mem.map(m => rmTile(m, m.id === me)).join('') + '</div>' +
     rmPaperCard() + rmGoalRoomCard() + rmGoalCard() + rmBoardCard() +
-    (r.owner === me ? '<div class="row"><button class="btn ghost sm" data-act="rm-close">Close this room for everyone</button></div>' : '') +
+    (r.owner === me ? '<div class="row"><button class="btn ghost sm" data-act="rm-close">Delete room for everyone</button></div>' : '') +
     '<p class="small muted">' + (cam ? 'No microphone and no chat. Your camera turns off when you leave this page.' : 'Others see your first name and last initial, your timer, your subject and your minutes today.') + '</p>' +
   '</div>';
 }
@@ -514,7 +520,7 @@ function rmInvLive(fid, rid){
   if (c && (c.busy || Date.now() - c.t < 60000)) return c.ok;
   RMI.chk[k] = { t: c ? c.t : 0, ok: c ? c.ok : undefined, busy: true };
   rmDb().get(rid).then(d => {
-    const ok = !!d && d.kind === 'cam' && !(d.ban || []).includes(rmUid()) && rmFresh((d.m || {})[fid]);
+    const ok = !!d && d.kind === 'cam' && !rmExpired(d) && !(d.ban || []).includes(rmUid()) && rmFresh((d.m || {})[fid]);
     const was = RMI.chk[k] && RMI.chk[k].ok; RMI.chk[k] = { t: Date.now(), ok };
     if (was !== ok) rmInvChanged();
   }).catch(() => { RMI.chk[k] = { t: Date.now(), ok: false }; });
@@ -639,7 +645,10 @@ function rmAct(el){
   switch (a){
     case 'rm-new': RM.create = v ? { kind: v } : null; RM.joinErr = ''; render(); break;
     case 'rm-join': rmJoin(v); break;
-    case 'rm-leave': rmLeave(); break;
+    case 'rm-leave': rmLeaveAsk(); break;
+    case 'rm-leavekeep': rmLeaveKeep(); break;
+    case 'rm-leavedel': RM.leaveAsk = false; rmDelete(true); break;
+    case 'rm-leavecancel': RM.leaveAsk = false; render(); break;
     case 'rm-back': go('rooms'); break;
     case 'rm-cam-on': rmCamOn(); break;
     case 'rm-cam-off': rmCamOff(); break;
@@ -669,6 +678,7 @@ function rmAct(el){
   return true;
 }
 function rmResume(){
+  setTimeout(() => { try { rmOwnedSweep(); } catch(e){} }, 4000);
   // after a reload, rejoin the room you were in
   let id = ''; try { id = localStorage.getItem('ial-room') || ''; } catch(e){}
   if (id && !RM.rid && rmAvailable()) rmJoin(id, true);
@@ -1654,4 +1664,63 @@ document.addEventListener('change', e => {
   const el = e.target; if (!el) return;
   if (el.id === 'rm-pp-u'){ RM.ppU = el.value; RM.ppS = ''; render(); }
   else if (el.id === 'rm-pp-s'){ RM.ppS = el.value; }
+});
+/* ---------- when the owner leaves ----------
+   Owner leaving an empty room: the room is deleted. Owner leaving while others are inside: they choose
+   to keep it open for the others (for at most 2 more hours) or delete it for everyone. Only the owner
+   can delete a room, so the owner's app remembers rooms it left open and deletes them once they're
+   empty or their 2 hours are up. Rooms planned for a study session later are never deleted early. */
+const RM_KEEP = 7200000;
+function rmExpired(d){ return !!(d && d.exp && Date.now() > d.exp); }
+function rmPlanned(id){
+  const now = Date.now();
+  return (state.meets || []).some(m => m.k === 'room' && m.rm === id && typeof rmSessWhen === 'function' && rmSessWhen(m) + (+m.dur || 60) * 60000 > now);
+}
+function rmOthers(){ return RM.room ? rmMembers(RM.room).filter(m => m.id !== rmUid()) : []; }
+function rmLeaveAsk(){
+  if (!RM.room || RM.room.owner !== rmUid()) return rmLeave();
+  if (!rmOthers().length){
+    const id = RM.rid, keep = rmPlanned(id);
+    return rmLeave(true).then(async () => { if (!keep) try { await rmDb().remove(id); } catch(e){} render(); });
+  }
+  if (RM.full) try { rmFullClose(); } catch(e){}
+  RM.leaveAsk = true; render();
+  setTimeout(() => { const b = document.querySelector('.rmleaveask button'); if (b){ b.scrollIntoView({ block: 'center' }); b.focus(); } }, 30);
+}
+function rmLeaveCard(){
+  const n = rmOthers().length;
+  return '<div class="card stack rmleaveask" role="alertdialog" aria-labelledby="rmleaveh" aria-describedby="rmleavep"><h2 id="rmleaveh">Leave your room?</h2>' +
+    '<p id="rmleavep" class="small">' + (n === 1 ? '1 person is' : n + ' people are') + ' still studying here. You made this room, so choose what happens to it.</p>' +
+    '<div class="row"><button class="btn primary" data-act="rm-leavekeep">Leave, keep the room open for others</button>' +
+    '<button class="btn" data-act="rm-leavedel">Delete room for everyone</button>' +
+    '<button class="btn ghost" data-act="rm-leavecancel">Stay</button></div>' +
+    '<p class="small muted">If you keep it open, it closes by itself when everyone has left, or after 2 hours.</p></div>';
+}
+async function rmLeaveKeep(){
+  const id = RM.rid; RM.leaveAsk = false; if (!id) return;
+  try { await rmDb().setRoom(id, { exp: Date.now() + RM_KEEP }); } catch(e){}
+  state.rmOwned = state.rmOwned || {}; state.rmOwned[id] = Date.now(); commitQuiet();
+  await rmLeave(true); toast('You left. The room stays open for the others for up to 2 hours.'); render();
+}
+// the owner's app tidies up rooms it left open
+async function rmOwnedSweep(){
+  if (!state.rmOwned || !rmUid() || typeof rmAvailable !== 'function' || !rmAvailable()) return;
+  let changed = false;
+  for (const id of Object.keys(state.rmOwned)){
+    if (id === RM.rid) continue;
+    try {
+      const d = await rmDb().get(id);
+      if (!d || d.owner !== rmUid()){ delete state.rmOwned[id]; changed = true; continue; }
+      if (rmPlanned(id)) continue;
+      const others = rmMembers(d).filter(m => m.id !== rmUid()).length;
+      if (!others || rmExpired(d) || Date.now() - state.rmOwned[id] > RM_KEEP + 600000){ await rmDb().remove(id); delete state.rmOwned[id]; changed = true; }
+      else if (!d.exp){ await rmDb().setRoom(id, { exp: state.rmOwned[id] + RM_KEEP }); }
+    } catch(e){}
+  }
+  if (changed) commitQuiet();
+}
+setInterval(() => { rmOwnedSweep(); }, 120000);
+// owner closed the tab without choosing: treat it as "keep open", so the sweep can tidy up later
+window.addEventListener('pagehide', () => {
+  try { if (RM.rid && RM.room && RM.room.owner === rmUid() && !rmPlanned(RM.rid)){ state.rmOwned = state.rmOwned || {}; if (!state.rmOwned[RM.rid]) state.rmOwned[RM.rid] = Date.now(); saveLocal(); } } catch(e){}
 });
