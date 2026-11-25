@@ -140,6 +140,8 @@ async function rmLeave(quiet){
   try { localStorage.removeItem('ial-room'); } catch(e){}
   try { await rmDb().dropMember(id, uid); } catch(e){}
   RM.leaving = false;
+  if (state.rmInv){ delete state.rmInv; try { commitQuiet(); } catch(e){} }
+  RM.pick = null;
   if (wasCam) frSchedule();
   if (!quiet) render();
 }
@@ -370,7 +372,7 @@ function viewLobby(){
     rmLobbyStage() +
     rmRecapCard() +
     (RM.noRules ? '<div class="card warnline" role="alert"><p>Study rooms aren’t switched on for this site yet.</p></div>' : '') +
-    (inv.length ? '<div class="card stack"><h2>Invitations from friends</h2>' + inv.map(x => '<div class="li"><div class="grow"><div class="t"><b>' + esc(x.from) + '</b></div><div class="small muted">' + esc(x.name) + ' · <span>camera room</span></div></div><button class="btn sm primary" data-act="rm-join" data-v="' + esc(x.id) + '">Join</button></div>').join('') + '</div>' : '') +
+    (inv.length ? '<div class="card stack"><h2>Invitations from friends</h2>' + inv.map(x => '<div class="li"><div class="grow"><div class="t"><b>' + esc(x.from) + '</b></div><div class="small muted">' + esc(x.name) + ' · <span>camera room</span></div></div><div class="row"><button class="btn sm primary" data-act="rm-join" data-v="' + esc(x.id) + '">Join</button><button class="btn sm ghost" data-act="rm-invno" data-v="' + esc(x.key) + '">Not now</button></div></div>').join('') + '</div>' : '') +
     '<div class="card stack"><h2>Join with a code</h2><form class="row" data-form="rm-join" style="align-items:flex-end"><label class="f" style="flex:1;min-width:160px">Room code<input name="code" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. K7QM 2XPA"></label><button class="btn primary" type="submit"' + (RM.busy ? ' disabled' : '') + '>Join</button></form>' +
       (RM.joinErr ? '<p class="small warnline" role="alert">' + esc(RM.joinErr) + '</p>' : '') + '</div>' +
     (c ? createCard : '') +
@@ -435,7 +437,7 @@ function viewRoom(){
     panel +
     (cam ? '<div class="card stack rminvite"><div class="row" style="justify-content:space-between;align-items:center"><div><div class="small muted">Room code</div><div class="rmcode notr">' + esc(r.id.slice(0, 4) + ' ' + r.id.slice(4)) + '</div></div>' +
       '<div class="row">' + (navigator.share ? '<button class="btn sm primary" data-act="rm-share" data-v="' + esc(link) + '">Share invite</button>' : '') + '<button class="btn sm" data-act="rm-copy" data-v="' + esc(link) + '">Copy invite link</button></div></div>' +
-      (frOk ? '<label class="row small" style="gap:8px;align-items:center;min-height:44px"><input type="checkbox" data-act="rm-frinv"' + (state.rmInvite ? ' checked' : '') + '> <span>Invite my friends to this room</span></label>' : '') +
+      (frOk ? rmInvPanel() : '') +
       '<p class="small muted">This room isn’t listed anywhere. People can only join with the code or this link, so share it only with people you know. Lock the room (Owner) once everyone’s in.</p></div>' : '') +
     '<div class="card-h rmpeopleh"><h2>In this room</h2><span class="small muted">' + mem.length + '</span></div>' +
     '<div class="rmgrid lay-' + lay + (cam ? ' cam' : '') + '">' + mem.map(m => rmTile(m, m.id === me)).join('') + '</div>' +
@@ -444,13 +446,128 @@ function viewRoom(){
     '<p class="small muted">' + (cam ? 'No microphone and no chat. Your camera turns off when you leave this page.' : 'Others see your first name and last initial, your timer, your subject and your minutes today.') + '</p>' +
   '</div>';
 }
+/* ---------- friend invitations ----------
+   The host picks friends; each invite travels only in that friend's encrypted friend card.
+   While the host is in the room, their card refreshes every 2 minutes (a heartbeat), so a friend's
+   copy of the invite is trusted for 5 minutes at most. Before showing an invite we also check that
+   the room still exists and the host is still in it. An invite ends when the host leaves, or after 2 hours. */
+const RMI_TTL = 7200000, RMI_FRESH = 300000, RMI_REMIND = 600000, RMI_BEAT = 120000;
+const RMI = { chk: {}, seen: {}, timer: null };
+function rmInvMine(){
+  const v = state.rmInv;
+  return v && RM.rid && v.rid === RM.rid && RM.room && RM.room.kind === 'cam' && Date.now() - v.at < RMI_TTL ? v : null;
+}
+function rmInvSig(){ const v = rmInvMine(); return v && Object.keys(v.to).length ? [v.rid, v.to, v.rem || {}, Math.floor(Date.now() / RMI_BEAT)] : null; }
+function rmForFriends(fid){
+  const v = rmInvMine(); if (!v || !fid || !v.to[fid]) return null;
+  return { id: RM.rid, n: String(RM.room.name || '').slice(0, 40), at: Date.now(), s: Math.max(v.to[fid], (v.rem || {})[fid] || 0) };
+}
+function rmInvFriends(){
+  if (typeof FR === 'undefined' || !FR.peers || typeof frState !== 'function') return [];
+  const f = frState();
+  return Object.keys(f.friends).filter(id => FR.peers[id] && !f.ignored.includes(id)).map(id => ({ id, n: FR.peers[id].n || 'A friend' })).sort((a, b) => a.n.localeCompare(b.n));
+}
+function rmInvPanel(){
+  const fr = rmInvFriends(), v = rmInvMine(), mem = rmMembers(RM.room).map(m => m.id), now = Date.now();
+  if (!fr.length) return '<p class="small muted">Add friends on the Friends page to invite them here.</p>';
+  const sent = v ? Object.keys(v.to).filter(id => FR.peers[id]) : [];
+  const status = sent.length ? '<div class="list rminvlist">' + sent.map(id => {
+    const p = FR.peers[id], joined = mem.includes(id), rem = (v.rem || {})[id], canRem = !joined && !rem && now - v.to[id] >= RMI_REMIND;
+    return '<div class="li"><div class="grow"><div class="t">' + esc(p.n || 'A friend') + '</div><div class="small muted">' + (joined ? 'Joined' : rem ? 'Invited ✓ · reminded' : 'Invited ✓') + '</div></div>' +
+      (canRem ? '<button class="btn sm" data-act="rm-invrem" data-v="' + esc(id) + '">Remind</button>' : '') + '</div>';
+  }).join('') + '</div>' : '';
+  let pick = '';
+  if (RM.pick){
+    const left = fr.filter(f => !(v && v.to[f.id]));
+    pick = left.length ? '<fieldset class="stack rminvpick"><legend class="small">Choose friends to invite</legend>' +
+      left.map(f => '<label class="row small" style="gap:8px;align-items:center;min-height:44px"><input type="checkbox" data-act="rm-invsel" data-v="' + esc(f.id) + '"' + (RM.pick[f.id] ? ' checked' : '') + '> <span>' + esc(f.n) + '</span></label>').join('') +
+      '<div class="row"><button class="btn sm primary" data-act="rm-invsend" id="rminvsend"' + (Object.keys(RM.pick).length ? '' : ' disabled') + '>' + rmInvSendLabel() + '</button>' +
+      (left.length > 1 ? '<button class="btn sm" data-act="rm-invall">Select all</button>' : '') + '<button class="btn sm ghost" data-act="rm-invpick">Cancel</button></div></fieldset>'
+      : '<p class="small muted">You’ve invited all your friends.</p>';
+  }
+  return '<div class="stack rminvfr"><div class="row" style="justify-content:space-between;align-items:center"><h3 class="small" style="margin:0">Friends</h3>' +
+    (RM.pick ? '' : '<button class="btn sm" data-act="rm-invpick">Invite friends</button>') + '</div>' + pick + status +
+    '<p class="small muted">Only the friends you pick see this room. Invites end when you leave, or after 2 hours.</p></div>';
+}
+function rmInvSendLabel(){ const n = RM.pick ? Object.keys(RM.pick).length : 0; return n ? 'Send invite to ' + n + (n === 1 ? ' friend' : ' friends') : 'Send invite'; }
+function rmInvPickSync(){ const b = document.getElementById('rminvsend'); if (b){ b.disabled = !Object.keys(RM.pick || {}).length; b.textContent = rmInvSendLabel(); } }
+function rmInvSend(){
+  const ids = Object.keys(RM.pick || {}).filter(id => FR.peers[id]); if (!ids.length || !RM.rid) return;
+  let v = rmInvMine(); if (!v) v = state.rmInv = { rid: RM.rid, at: Date.now(), to: {}, rem: {} };
+  const now = Date.now(); ids.forEach(id => v.to[id] = now);
+  RM.pick = null; commit(); frPublish();
+  toast('Invite sent to ' + (ids.length === 1 ? (FR.peers[ids[0]].n || 'your friend') : ids.length + ' friends') + '.');
+}
+function rmInvRemind(id){
+  const v = rmInvMine(); if (!v || !v.to[id] || (v.rem || {})[id]) return;
+  v.rem = v.rem || {}; v.rem[id] = Date.now(); commit(); frPublish();
+  toast('Reminder sent to ' + ((FR.peers[id] && FR.peers[id].n) || 'your friend') + '.');
+}
+function rmInvNo(key){
+  state.rmNo = state.rmNo || {}; state.rmNo[key] = Date.now();
+  Object.keys(state.rmNo).forEach(k => { if (Date.now() - state.rmNo[k] > 86400000) delete state.rmNo[k]; });
+  commit(); rmInvBar();
+}
+// is this friend's room real right now? (checked at most once a minute per room)
+function rmInvLive(fid, rid){
+  const k = fid + ':' + rid, c = RMI.chk[k];
+  if (c && (c.busy || Date.now() - c.t < 60000)) return c.ok;
+  RMI.chk[k] = { t: c ? c.t : 0, ok: c ? c.ok : undefined, busy: true };
+  rmDb().get(rid).then(d => {
+    const ok = !!d && d.kind === 'cam' && !(d.ban || []).includes(rmUid()) && rmFresh((d.m || {})[fid]);
+    const was = RMI.chk[k] && RMI.chk[k].ok; RMI.chk[k] = { t: Date.now(), ok };
+    if (was !== ok) rmInvChanged();
+  }).catch(() => { RMI.chk[k] = { t: Date.now(), ok: false }; });
+  return c ? c.ok : undefined;
+}
 function rmInvites(){
-  if (typeof FR === 'undefined' || !FR.peers) return [];
-  const f = frState(), out = [];
-  Object.keys(FR.peers).forEach(id => { const p = FR.peers[id]; if (f.friends[id] && p.rm && p.rm.id && p.rm.id !== RM.rid) out.push({ from: p.n || 'A friend', id: p.rm.id, name: p.rm.n || 'Study room' }); });
+  if (typeof FR === 'undefined' || !FR.peers || !rmUid() || typeof frState !== 'function') return [];
+  const f = frState(), out = [], now = Date.now(), no = state.rmNo || {};
+  Object.keys(FR.peers).forEach(id => {
+    const p = FR.peers[id], r = p.rm;
+    if (!f.friends[id] || f.ignored.includes(id) || !r || !r.id || r.id === RM.rid || !r.at || Math.abs(now - r.at) > RMI_FRESH) return;
+    const key = id + ':' + r.id + ':' + (r.s || 0);
+    if (no[key] || rmInvLive(id, r.id) !== true) return;
+    out.push({ from: p.n || 'A friend', id: r.id, name: r.n || 'Study room', key });
+  });
   return out;
 }
-function rmForFriends(){ return RM.rid && RM.room && RM.room.kind === 'cam' && state.rmInvite ? { id: RM.rid, n: String(RM.room.name || '').slice(0, 40) } : null; }
+// banner on every page (except Rooms, which lists invites itself), and a notification for new ones
+function rmInvBar(){
+  let el = document.getElementById('rminvbar');
+  const inv = route() === 'rooms' || RM.rid ? [] : rmInvites(), x = inv[0];
+  document.body.classList.toggle('has-rminv', !!x);
+  if (!x){ if (el) el.remove(); return; }
+  if (!el){ el = document.createElement('div'); el.id = 'rminvbar'; el.className = 'rminvbar'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  const th = typeof isTH === 'function' && isTH(), more = inv.length - 1;
+  const html = '<div class="grow">' + (th ? '<b>' + esc(x.from) + '</b> ชวนคุณเข้าห้อง <b>' + esc(x.name) + '</b>' + (more ? ' <span class="small muted">(อีก ' + more + ' คำชวนในหน้าห้อง)</span>' : '')
+      : '<b>' + esc(x.from) + '</b> invited you to <b>' + esc(x.name) + '</b>' + (more ? ' <span class="small muted">(+' + more + ' more on Rooms)</span>' : '')) + '</div>' +
+    '<button class="btn sm primary" data-act="rm-join" data-v="' + esc(x.id) + '">' + (th ? 'เข้าร่วม' : 'Join') + '</button><button class="btn sm ghost" data-act="rm-invno" data-v="' + esc(x.key) + '">' + (th ? 'ไว้ทีหลัง' : 'Not now') + '</button>';
+  if (el.dataset.k !== x.key + inv.length + th){ el.innerHTML = html; el.dataset.k = x.key + inv.length + th; }
+}
+async function rmInvNotify(inv){
+  inv.forEach(x => { if (!RMI.seen[x.key]) RMI.seen[x.key] = 'new'; });
+  const fresh = inv.filter(x => RMI.seen[x.key] === 'new'); if (!fresh.length) return;
+  fresh.forEach(x => RMI.seen[x.key] = 1);
+  if (document.visibilityState === 'visible' || typeof notifOn !== 'function' || !notifOn()) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    for (const x of fresh) await reg.showNotification(isTH() ? x.from + ' ชวนคุณมาอ่านหนังสือด้วยกัน' : x.from + ' invited you to study', { body: isTH() ? 'เข้าห้อง ' + x.name + ' บน IAL Revise' : 'Join ' + x.name + ' on IAL Revise', tag: 'rminv-' + x.key, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: '#join-' + x.id } });
+  } catch(e){}
+}
+function rmInvChanged(){
+  const inv = rmInvites(); rmInvNotify(inv); rmInvBar();
+  if (route() === 'rooms' && !RM.rid){ const a = document.activeElement; if (!(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName))) render(); }
+}
+// heartbeat: keep my invites fresh while I'm in the room; drop them when they end
+function rmInvBeat(){
+  let saved = ''; try { saved = localStorage.getItem('ial-room') || ''; } catch(e){}
+  if (state.rmInv && !rmInvMine() && !RM.rid && !saved){ delete state.rmInv; commit(); frSchedule(); }
+  else if (rmInvSig()) frSchedule();
+  try { rmInvChanged(); } catch(e){}
+}
+setInterval(rmInvBeat, 30000);
+window.addEventListener('hashchange', () => setTimeout(() => { try { rmInvBar(); } catch(e){} }, 0));
 function rmTick(){
   document.querySelectorAll('.rmclk[data-end]').forEach(el => { const e = +el.dataset.end; if (e) el.textContent = fmtClock(Math.max(0, e - Date.now())); });
   const c = document.getElementById('rmclock'); if (c) c.textContent = fmtClock(remainMs());
@@ -540,6 +657,12 @@ function rmAct(el){
     case 'rm-layout': rmvPrefs().layout = v; commit(); break;
     case 'rm-snd': if (rmxOn(v)) rmxStop(v); else rmxStart(v); render(); break;
     case 'rm-snd-off': rmxStopAll(); render(); break;
+    case 'rm-invpick': RM.pick = RM.pick ? null : {}; render(); break;
+    case 'rm-invsel': if (RM.pick){ if (el.checked) RM.pick[v] = 1; else delete RM.pick[v]; rmInvPickSync(); } break;
+    case 'rm-invall': if (RM.pick){ rmInvFriends().forEach(f => { const m = rmInvMine(); if (!m || !m.to[f.id]) RM.pick[f.id] = 1; }); render(); } break;
+    case 'rm-invsend': rmInvSend(); break;
+    case 'rm-invrem': rmInvRemind(v); break;
+    case 'rm-invno': rmInvNo(v); break;
     case 'rm-copy': try { navigator.clipboard.writeText(v).then(() => toast('Invite link copied'), () => prompt('Copy this link', v)); } catch(e){ prompt('Copy this link', v); } break;
     default: return false;
   }
