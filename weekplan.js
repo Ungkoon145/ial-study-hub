@@ -150,13 +150,13 @@ function wtTable(d, o){
   const style = '--wt-bg:' + th.bg + ';--wt-ink:' + th.ink + ';--wt-soft:' + th.soft + ';--wt-line:' + th.line + ';--wt-cell:' + th.cell + ';--wt-deco:' + th.deco + (th.rule ? ';--wt-rule:' + th.rule : '');
   const head = '<div class="wthead">' + (o.mini ? '' : '<div><div class="wtname">' + esc(d.name || 'My study week') + '</div><div class="wtsub">' + d.grid.length + ' periods of ' + d.len + ' minutes · ' + fmtMin(d.grid.length * d.len) + ' a week</div></div>') + (o.mini ? '' : wtArt(th.art, th.deco)) + '</div>';
   const grid = '<div class="wtgrid" role="table" aria-label="Weekly timetable" style="grid-template-columns:64px repeat(7,minmax(0,1fr))">' +
-    '<div class="wtc wth" role="columnheader"></div>' + WT_DAYS.map((w, i) => '<div class="wtc wth' + (+d.off === i ? ' off' : '') + '" role="columnheader">' + w + '</div>').join('') +
-    rows.map(s => '<div class="wtc wtt" role="rowheader">' + s + '</div>' + WT_DAYS.map((_, day) => {
+    '<div class="wtrow" role="row"><div class="wtc wth" role="columnheader"><span class="sr-only">Time</span></div>' + WT_DAYS.map((w, i) => '<div class="wtc wth' + (+d.off === i ? ' off' : '') + '" role="columnheader">' + w + '</div>').join('') + '</div>' +
+    rows.map(s => '<div class="wtrow" role="row"><div class="wtc wtt" role="rowheader">' + s + '</div>' + WT_DAYS.map((_, day) => {
       const sid = at[day + '|' + s], k = day + '|' + s;
       if (sid && SUBJ[sid]) return '<div class="wtc wtp" role="cell"' + (o.edit ? ' data-act="wt-cell" data-v="' + k + '" tabindex="0"' : '') + ' style="--c:' + col(sid) + ';color:' + wtTextOn(col(sid)) + '"><span class="wl">' + esc(SUBJ[sid].short) + '</span><span class="ws">' + esc(wtAbbr(sid)) + '</span></div>';
       if (o.edit && open[k]) return '<div class="wtc wte" role="cell" data-act="wt-cell" data-v="' + k + '" tabindex="0" aria-label="' + WT_DAYS_LONG[day] + ' ' + s + ', empty"><span aria-hidden="true">+</span></div>';
       return '<div class="wtc wtx" role="cell"></div>';
-    }).join('')).join('') + '</div>';
+    }).join('') + '</div>').join('') + '</div>';
   const key = o.mini ? '' : '<div class="wtkey">' + subs.filter(sid => SUBJ[sid]).map(sid => '<span><i style="background:' + col(sid) + '"></i>' + esc(SUBJ[sid].short) + ' · ' + (wtTotals(d)[sid] || 0) + '</span>').join('') + '</div>';
   return '<div class="wtsheet wt-' + d.theme + (o.mini ? ' wtmini' : '') + '" style="' + style + '" id="' + (o.id || '') + '">' + head + (rows.length ? grid : '<p class="wtsub" style="padding:16px">No periods yet.</p>') + key + '</div>';
 }
@@ -384,19 +384,19 @@ function pcCard(){
   const times = new Set(); tasks.forEach(x => { if (x.tm) times.add(x.tm); }); if (W) W.grid.forEach(g => times.add(g.s));
   const rows = [...times].sort((a, b) => wtMin(a) - wtMin(b)), any = tasks.filter(x => !x.tm);
   const slotOpen = {}; if (W) W.grid.forEach(g => slotOpen[g.day + '|' + g.s] = 1);
-  const cell = (x) => '<div class="wtc wtp pcs' + (x.done ? ' done' : '') + '" role="cell" data-act="pc-open" data-id="' + esc(x.id) + '" tabindex="0" style="--c:' + pcCol(x.s) + ';color:' + wtTextOn(pcCol(x.s)) + '" title="' + esc(x.t) + '"><span class="pcsub">' + (x.done ? '✓ ' : '') + esc(x.s && SUBJ[x.s] ? wtAbbr(x.s) : 'Task') + '</span><span class="pctop">' + esc(pcTopicName(x)) + '</span></div>';
+  const cell = (x, inner) => '<div class="wtc wtp pcs' + (x.done ? ' done' : '') + '" role="' + (inner ? 'button' : 'cell') + '" data-act="pc-open" data-id="' + esc(x.id) + '" tabindex="0" style="--c:' + pcCol(x.s) + ';color:' + wtTextOn(pcCol(x.s)) + '" title="' + esc(x.t) + '"><span class="pcsub">' + (x.done ? '✓ ' : '') + esc(x.s && SUBJ[x.s] ? wtAbbr(x.s) : 'Task') + '</span><span class="pctop">' + esc(pcTopicName(x)) + '</span></div>';
   const style = '--wt-bg:' + th.bg + ';--wt-ink:' + th.ink + ';--wt-soft:' + th.soft + ';--wt-line:' + th.line + ';--wt-cell:' + th.cell + ';--wt-deco:' + th.deco + (th.rule ? ';--wt-rule:' + th.rule : '');
   const fmtR = fmtDate(days[0], {day:'numeric', month:'short'}) + ' – ' + fmtDate(days[6], {day:'numeric', month:'short'});
   const doneN = tasks.filter(x => x.done).length;
   const grid = '<div class="wtgrid pcgrid" role="table" aria-label="Planned sessions this week" style="grid-template-columns:52px repeat(7,minmax(0,1fr))">' +
-    '<div class="wtc wth" role="columnheader"></div>' + days.map((d, i) => '<div class="wtc wth' + (d === t ? ' today' : '') + '" role="columnheader">' + WT_DAYS[i] + '<small>' + parseD(d).getDate() + '</small></div>').join('') +
-    rows.map(tm => '<div class="wtc wtt" role="rowheader">' + tm + '</div>' + days.map((d, i) => {
+    '<div class="wtrow" role="row"><div class="wtc wth" role="columnheader"><span class="sr-only">Time</span></div>' + days.map((d, i) => '<div class="wtc wth' + (d === t ? ' today' : '') + '" role="columnheader">' + WT_DAYS[i] + '<small>' + parseD(d).getDate() + '</small></div>').join('') + '</div>' +
+    rows.map(tm => '<div class="wtrow" role="row"><div class="wtc wtt" role="rowheader">' + tm + '</div>' + days.map((d, i) => {
       const here = tasks.filter(x => x.d === d && x.tm === tm);
-      if (here.length) return here.length === 1 ? cell(here[0]) : '<div class="wtc pcmulti" role="cell">' + here.map(cell).join('') + '</div>';
+      if (here.length) return here.length === 1 ? cell(here[0]) : '<div class="wtc pcmulti" role="cell">' + here.map(x => cell(x, true)).join('') + '</div>';
       if (W && slotOpen[i + '|' + tm] && (d > t || (d === t && tm >= nowHM))) return '<div class="wtc wte" role="cell" data-act="pc-add" data-v="' + d + '|' + tm + '" tabindex="0" aria-label="Add a session ' + WT_DAYS_LONG[i] + ' ' + tm + '"><span aria-hidden="true">+</span></div>';
       return '<div class="wtc wtx" role="cell"></div>';
-    }).join('')).join('') +
-    (any.length ? '<div class="wtc wtt" role="rowheader">Any time</div>' + days.map(d => { const h = any.filter(x => x.d === d); return '<div class="wtc pcmulti" role="cell">' + h.slice(0, 3).map(cell).join('') + (h.length > 3 ? '<span class="small">+' + (h.length - 3) + '</span>' : '') + '</div>'; }).join('') : '') +
+    }).join('') + '</div>').join('') +
+    (any.length ? '<div class="wtrow" role="row"><div class="wtc wtt" role="rowheader">Any time</div>' + days.map(d => { const h = any.filter(x => x.d === d); return '<div class="wtc pcmulti" role="cell">' + h.slice(0, 3).map(x => cell(x, true)).join('') + (h.length > 3 ? '<span class="small">+' + (h.length - 3) + '</span>' : '') + '</div>'; }).join('') + '</div>' : '') +
     '</div>';
   return '<div class="card stack pccard"><div class="card-h"><h2>Your week</h2><span class="small muted">' + tasks.length + ' sessions · ' + doneN + ' done</span></div>' +
     '<div class="row pcnav"><button class="btn sm" data-act="pc-week" data-v="-1" aria-label="Previous week">‹</button><b class="pcrange">' + fmtR + '</b><button class="btn sm" data-act="pc-week" data-v="1" aria-label="Next week">›</button>' + (P.off ? '<button class="btn sm ghost" data-act="pc-week" data-v="0">This week</button>' : '') + '</div>' +
