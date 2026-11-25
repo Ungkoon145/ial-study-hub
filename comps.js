@@ -196,14 +196,14 @@ const COMPS = [
     tl: [{ d: '2026-12-15', e: 'Registration opens' }, { d: '2027-02-19', e: 'Submission deadline' }, { d: '2027-05', e: 'Global Youth Investment Summit, New York' }] }
 ,
   { id: 'iymc', n: 'International Youth Math Challenge (IYMC)', org: 'International Youth Math Challenge', url: 'https://iymc.info/', t: 'olymp', subj: ['math'], sk: ['solve', 'research'], sch: 1,
-    where: 'Online', cost: 'Free first round; about €15 for the pre-final (aid available)', elig: 'High school and university students in any country. Five problems in the qualification round, then a timed pre-final and final; awards and a small cash prize pool. Independent: not part of the official olympiads.',
-    tl: [{ d: '2027-09', e: 'Qualification round deadline' }] },
+    where: 'Online', cost: 'Free first round; €13 for the pre-final (aid available)', elig: 'High school and university students in any country. Five problems in the qualification round, then a timed pre-final and final; awards and a small cash prize pool. Independent: not part of the official olympiads.',
+    tl: [{ d: '2026-12', e: 'Final round (qualifiers only)' }, { d: '2027-09', e: 'Qualification round deadline' }] },
   { id: 'iaac', n: 'International Astronomy and Astrophysics Competition (IAAC)', org: 'International Astronomy and Astrophysics Competition', url: 'https://iaac.space/en', t: 'olymp', subj: ['phys'], sk: ['solve', 'research'],
-    where: 'Online', cost: 'Free first round; about €13 for the pre-final (aid available)', elig: 'High school and university students in any country. Five astronomy problems in the qualification round, then a timed pre-final and final. Independent: separate from the official astronomy olympiads.',
-    tl: [{ d: '2027-04', e: 'Qualification round deadline' }, { d: '2027-06', e: 'Pre-final exam' }] },
-  { id: 'opho', n: 'Online Physics Olympiad (OPhO)', org: 'Online Physics Olympiad (student-run)', url: 'https://opho.physoly.tech/', t: 'olymp', subj: ['phys'], sk: ['solve', 'team'],
-    where: 'Online', cost: 'Free', elig: 'Free team contest (up to 3 per team) for high school and university students worldwide. An open round over several days, then an invitational round for the top teams. Usually in the summer.',
-    tl: [] },
+    where: 'Online', cost: 'Free first round; €13 for the pre-final (aid available)', elig: 'High school and university students in any country. Five astronomy problems in the qualification round, then a timed pre-final and final. Independent: separate from the official astronomy olympiads.',
+    tl: [{ d: '2027-03-14', e: 'Qualification round deadline' }, { d: '2027-04-23', e: 'Pre-final exam window opens (to 27 April)' }, { d: '2027-05-25', e: 'Final round' }] },
+  { id: 'opho', n: 'Online Physics Olympiad (OPhO)', org: 'Online Physics Olympiad (student-run)', url: 'https://opho.physoly.org/', t: 'olymp', subj: ['phys'], sk: ['solve', 'team'],
+    where: 'Online', cost: 'Free', elig: 'Team contest (up to 3 per team) for high school and university students worldwide: one round over three days with short-answer, long-answer and simulated experiment problems.',
+    tl: [{ d: '2027-08', e: 'Contest (three days)' }] },
   { id: 'pumac', n: 'Princeton University Mathematics Competition (PUMaC)', org: 'Princeton University Math Club', url: 'https://pumac.princeton.edu/', t: 'olymp', subj: ['math'], sk: ['solve', 'team'],
     where: 'Princeton University, USA (in person)', cost: 'Small fee per student, plus travel', elig: 'Teams of eight high school students, entered by a coach (usually a teacher). International teams are welcome and are told early so they can arrange travel.',
     tl: [{ d: '2027-09', e: 'Team application deadline' }, { d: '2027-11', e: 'Competition day' }] },
@@ -237,5 +237,5 @@ const COMP_PREP = {
 };
 /* Day each competition's dates were last checked on its own website. */
 const COMP_CK = {};
-'pumac smt im2c hmmt purple pico vex earth genius diamond nyt ocean bennington hir hmun himcm wdsc blueocean lsesu trinity sthughs wtw immerse visionaries cmkl euth timo sft munth asc pbowl acsl ccc uwchem c3l6 ino minds cefc hcbc yis bpho rsi amc ukmt cemc posn ukcho bbo usaco spaceapps'.split(' ').forEach(id => COMP_CK[id] = '2026-11-25');
+'iymc iaac opho pumac smt im2c hmmt purple pico vex earth genius diamond nyt ocean bennington hir hmun himcm wdsc blueocean lsesu trinity sthughs wtw immerse visionaries cmkl euth timo sft munth asc pbowl acsl ccc uwchem c3l6 ino minds cefc hcbc yis bpho rsi amc ukmt cemc posn ukcho bbo usaco spaceapps'.split(' ').forEach(id => COMP_CK[id] = '2026-11-25');
 COMPS.forEach(c => { c.how = Object.keys(COMP_HOW).find(k => COMP_HOW[k].split(' ').includes(c.id)) || 'self'; c.can = COMP_CAN[c.id] || 'yes'; c.prep = COMP_PREP[c.id] || []; c.ck = COMP_CK[c.id] || ''; c.free = /^(free|no entry fee)/i.test(c.cost); });
