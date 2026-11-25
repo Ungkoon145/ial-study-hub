@@ -1324,6 +1324,15 @@ label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-
 .cc-ck{margin-left:auto;border:0!important;padding-left:0!important;font-size:.72rem;color:var(--muted)}
 .cc-rec ul,.cc-remind ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.cc-rec li{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}
 .cc-remind li{display:flex;flex-direction:column;gap:1px;padding:8px 12px;border-left:4px solid var(--tc);border-radius:8px;background:color-mix(in srgb,var(--tc) 7%,transparent)}.cc-remind li.soon{background:color-mix(in srgb,var(--c-coral) 14%,transparent)}
+.cc-fits{border-left:4px solid var(--primary)}.cc-fitlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}.cc-fitlist li{display:flex;gap:10px;align-items:center}
+.cc-fitname{font-weight:700;color:inherit;text-decoration:none}.cc-fitname:hover,.cc-fitname:focus-visible{text-decoration:underline}.cc-why{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}.cc-why span{font-size:.74rem;padding:1px 7px;border-radius:6px;background:color-mix(in srgb,var(--tc) 11%,transparent)}
+.cc-view{display:inline-flex;border:1px solid var(--line);border-radius:10px;padding:2px;align-self:flex-end}.cc-view button{border:0;background:transparent;font:inherit;font-size:.86rem;font-weight:600;padding:7px 12px;border-radius:8px;cursor:pointer;color:inherit;min-height:36px}.cc-view button[aria-pressed="true"]{background:var(--primary);color:#fff}
+.cc-rows{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+.cc-row{display:flex;gap:10px;align-items:center;padding:10px 12px;border-left:4px solid var(--tc)}.cc-row+.cc-row{border-top:1px solid var(--line)}.cc-row .cc-logo{width:34px;height:34px;border-radius:9px}
+.cc-rowmain{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:1px;background:none;border:0;padding:4px 0;font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:44px}.cc-rowmain b{font-size:.94rem;line-height:1.3}
+.cc-rowopen{padding:10px;display:flex;flex-direction:column;gap:6px}.cc-rowopen+.cc-row,.cc-row+.cc-rowopen{border-top:1px solid var(--line)}
+.cc-more{align-self:center;margin-top:10px}
+.cc-ask{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;font-weight:600;padding:3px 9px;border-radius:6px;background:var(--primary);color:#fff;text-decoration:none}.cc-ask svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2}
 </style>
 </head>
 <body>
@@ -2653,7 +2662,7 @@ function topicNotes(code, i){
 
 /* ---------- Stretch: beyond the syllabus (data in stretch.js) ---------- */
 /* ---------- Stretch tab: competitions (comps.js), their calendar, and practice (stretch.js) ---------- */
-function strUi(){ if (!ui.str) ui.str = { tab: 'comps', type: 'all', subj: 'all', skill: 'all', where: 'all', mine: false, calAll: false, free: false, can: false, sort: 'date' }; return ui.str; }
+function strUi(){ if (!ui.str) ui.str = { tab: 'comps', type: 'all', subj: 'all', skill: 'all', where: 'all', mine: false, calAll: false, free: false, can: false, sort: 'date', view: (() => { try { const v = localStorage.getItem('ial-cc-view'); if (v === 'list' || v === 'cards') return v; } catch(e){} return window.innerWidth < 600 ? 'list' : 'cards'; })(), limit: 15, open: {}, fitsHide: false }; return ui.str; }
 function strSeg(cur){ const n = compFollowed().length; return '<nav class="seg" aria-label="Stretch"><a href="#stretch" data-act="str-tab" data-v="comps"' + (cur === 'comps' ? ' aria-current="page"' : '') + '>Competitions</a><a href="#stretch" data-act="str-tab" data-v="cal"' + (cur === 'cal' ? ' aria-current="page"' : '') + '>Calendar' + (n ? ' <span class="badge">' + n + '</span>' : '') + '</a><a href="#stretch" data-act="str-tab" data-v="prac"' + (cur === 'prac' ? ' aria-current="page"' : '') + '>Practice</a></nav>'; }
 function viewStretch(){ const U = strUi(); return U.tab === 'cal' ? viewCompCal() : U.tab === 'prac' ? viewStretchPractice() : viewComps(); }
 function compFollowed(){ const f = state.follow || {}; return typeof COMPS === 'undefined' ? [] : COMPS.filter(c => f[c.id]); }
@@ -2678,6 +2687,7 @@ function compFilters(cal){
     '<div class="chips cc-types" role="group" aria-label="Type"><button class="chip" data-act="str-type" data-v="all" aria-pressed="' + (U.type === 'all') + '">All</button>' + Object.entries(COMP_TYPES).map(([k, v]) => '<button class="chip" data-act="str-type" data-v="' + k + '" aria-pressed="' + (U.type === k) + '" style="--tc:' + COMP_TCOL[k] + '"><i class="cc-dot"></i>' + esc(v) + '</button>').join('') + '</div>' +
     '<div class="row cc-sel"><label class="f">Subject<select id="str-subj"><option value="all">All subjects</option>' + opt(COMP_SUBJ, U.subj) + '</select></label>' +
     '<label class="f">Skill<select id="str-skill"><option value="all">All skills</option>' + opt(COMP_SKILL, U.skill) + '<option value="sch"' + (U.skill === 'sch' ? ' selected' : '') + '>Scholarships and prize money</option></select></label>' +
+    (cal ? '' : '<div class="cc-view" role="group" aria-label="View"><button type="button" data-act="str-view" data-v="cards" aria-pressed="' + (U.view !== 'list') + '">Cards</button><button type="button" data-act="str-view" data-v="list" aria-pressed="' + (U.view === 'list') + '">Compact</button></div>') +
     (cal ? '' : '<label class="f">Sort<select id="str-sort"><option value="date"' + (U.sort !== 'az' ? ' selected' : '') + '>Soonest date</option><option value="az"' + (U.sort === 'az' ? ' selected' : '') + '>A to Z</option></select></label>') + '</div>' +
     '<div class="row cc-toggles">' + (cal ? '' : '<label class="toggle"><input type="checkbox" id="str-mine"' + (U.mine ? ' checked' : '') + '><span>Only ones I follow</span></label>') +
     '<label class="toggle"><input type="checkbox" id="str-free"' + (U.free ? ' checked' : '') + '><span>Free only</span></label>' +
@@ -2706,6 +2716,58 @@ function compBuddies(id){
   if (!compBudShareOk()) return [];
   return BUD.list.filter(b => b.id !== cloud.id && Array.isArray(b.comps) && b.comps.includes(id)).map(buddyName);
 }
+/* "Good fits for you": scored on his subjects, who can enter, Thailand, cost and how soon */
+const COMP_SUBJ_MAP = { math: 'math', fm: 'math', phys: 'phys', chem: 'chem', bio: 'bio', econ: 'econ', acc: 'econ', bus: 'econ', cs: 'cs', it: 'cs', geog: 'hum', psych: 'hum', hist: 'hum', law: 'hum', enlang: 'eng', enlit: 'eng' };
+function compMySubj(){
+  const ms = typeof mySubjects === 'function' ? mySubjects() : [];
+  if (!ms.length || ms.length === SUBJECTS.length) return [];
+  return ms.map(s => COMP_SUBJ_MAP[s.id]).filter((x, i, a) => x && a.indexOf(x) === i);
+}
+function compFitList(){
+  const my = compMySubj(), t = todayStr(), fol = state.follow || {};
+  return COMPS.filter(c => !fol[c.id] && c.can !== 'no').map(c => {
+    const hit = c.subj.filter(k => my.includes(k)), nx = compUpcoming(c)[0];
+    let sc = hit.length ? 5 + (c.subj.length <= 2 ? 2 : 0) : (my.length ? -3 : 0); if (c.t === 'summer') sc -= 1;
+    if (c.can === 'check') sc -= 2; if (c.th) sc += 1; if (c.free) sc += 1; if (c.how === 'self') sc += 1;
+    if (nx){ const n = daysBetween(t, compExact(nx.d) ? nx.d : nx.d + '-28'); if (n >= 7 && n <= 120) sc += 2; else if (n < 7) sc -= 1; } else sc -= 2;
+    const why = [];
+    if (hit.length) why.push(hit.map(k => COMP_SUBJ[k]).join(', '));
+    if (c.th) why.push('In Thailand'); if (c.free) why.push('Free');
+    why.push(COMP_HOW_L[c.how]);
+    if (nx) why.push(compWhen(nx.d));
+    return { c, sc, why };
+  }).sort((a, b) => b.sc - a.sc || a.c.n.localeCompare(b.c.n)).slice(0, 5);
+}
+function compFits(){
+  if (typeof COMPS === 'undefined' || strUi().fitsHide) return '';
+  const f = compFitList(); if (!f.length) return '';
+  const my = compMySubj();
+  return '<section class="card stack cc-fits"><div class="card-h"><h2>Good fits for you</h2><button type="button" class="btn sm ghost" data-act="str-fits-hide">Hide</button></div>' +
+    '<p class="small muted" style="margin:0">' + (my.length ? 'Picked from your subjects, who can enter, cost and how soon the next date is.' : 'Choose your subjects (Plan → My subjects) and these picks will match them.') + '</p>' +
+    '<ol class="cc-fitlist">' + f.map(o => '<li style="--tc:' + COMP_TCOL[o.c.t] + '">' + compLogo(o.c) + '<div class="grow"><a href="' + esc(o.c.url) + '" target="_blank" rel="noopener" class="cc-fitname">' + esc(o.c.n) + '</a><div class="cc-why">' + o.why.map(w => '<span>' + esc(w) + '</span>').join('') + '</div></div>' +
+      '<button class="cc-fol" type="button" data-act="comp-follow" data-v="' + o.c.id + '" aria-pressed="false" aria-label="Follow ' + esc(o.c.n) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span>Follow</span></button></li>').join('') + '</ol></section>';
+}
+/* Compact rows and "Show more" */
+function compRow(c){
+  const on = !!(state.follow || {})[c.id], nx = compUpcoming(c)[0], open = !!strUi().open[c.id];
+  if (open) return '<div class="cc-rowopen">' + compCard(c) + '<button type="button" class="linkbtn" data-act="comp-row" data-v="' + c.id + '">Show less</button></div>';
+  return '<div class="cc-row' + (on ? ' on' : '') + '" style="--tc:' + COMP_TCOL[c.t] + '">' + compLogo(c) +
+    '<button type="button" class="cc-rowmain" data-act="comp-row" data-v="' + c.id + '" aria-expanded="false"><b>' + esc(c.n) + '</b><span class="small muted">' + (nx ? esc(nx.e) + ' · ' + (compExact(nx.d) ? esc(fmtDate(nx.d, {day:'numeric', month:'short'})) : esc(compWhen(nx.d))) : 'Dates to be announced') + '</span></button>' +
+    '<button class="cc-fol" type="button" data-act="comp-follow" data-v="' + c.id + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Unfollow ' : 'Follow ') + esc(c.n) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span>' + (on ? 'Following' : 'Follow') + '</span></button></div>';
+}
+function compBlock(list, key){
+  const U = strUi(), lim = (U.lims || (U.lims = {}))[key] || U.limit || 15, shown = list.slice(0, lim);
+  const body = U.view === 'list' ? '<div class="cc-rows">' + shown.map(compRow).join('') + '</div>' : '<div class="ccgrid">' + shown.map(compCard).join('') + '</div>';
+  return body + (list.length > lim ? '<button type="button" class="btn ghost cc-more" data-act="comp-more" data-v="' + key + '">Show ' + Math.min(15, list.length - lim) + ' more (' + (list.length - lim) + ' left)</button>' : '');
+}
+/* "Ask my teacher" email for competitions the school enters you for */
+function compTeacherMail(c){
+  const nx = compUpcoming(c)[0], name = (prof().name || '').trim();
+  const when = nx ? (compExact(nx.d) ? nx.e + ': ' + fmtDate(nx.d, {day:'numeric', month:'long', year:'numeric'}) : nx.e + ': ' + compWhen(nx.d)) : '';
+  const route = c.how === 'aseeder' ? 'Schools in Asia register students through ASEEDER (ASDAN China).' : 'Students are entered by their school.';
+  const body = 'Dear [teacher’s name],\n\nI would like to take part in the ' + c.n + ' (' + c.org + ').\n' + route + (when ? '\n' + when + '.' : '') + '\nDetails: ' + c.url + '\n\nCould the school enter me, or let me know who organises entries for this competition?\n\nThank you,\n' + (name || '');
+  return 'mailto:?subject=' + encodeURIComponent('Entering the ' + c.n) + '&body=' + encodeURIComponent(body);
+}
 function compCard(c){
   const on = !!(state.follow || {})[c.id], nx = compUpcoming(c)[0];
   const when = nx ? (compExact(nx.d)
@@ -2718,7 +2780,7 @@ function compCard(c){
     '<button class="cc-fol" type="button" data-act="comp-follow" data-v="' + c.id + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Unfollow ' : 'Follow ') + esc(c.n) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span>' + (on ? 'Following' : 'Follow') + '</span></button></header>' +
     '<div class="cc-tags"><span class="cc-type"><i class="cc-dot"></i>' + esc(COMP_TYPES[c.t]) + '</span>' + (c.th ? '<span class="cc-th">In Thailand</span>' : '') + (c.sch ? '<span class="cc-sch">Scholarship or prize money</span>' : '') + '</div>' +
     '<p class="cc-elig">' + esc(c.elig) + '</p>' +
-    '<div class="cc-how"><span class="cc-hw ' + c.how + '">' + esc(COMP_HOW_L[c.how]) + '</span>' + (c.can === 'no' ? '<span class="cc-can no">Probably not open to you</span>' : c.can === 'check' ? '<span class="cc-can check">Check you’re eligible</span>' : '') + '</div>' +
+    '<div class="cc-how"><span class="cc-hw ' + c.how + '">' + esc(COMP_HOW_L[c.how]) + '</span>' + (c.how !== 'self' ? '<a class="cc-ask" href="' + esc(compTeacherMail(c)) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>Ask my teacher</a>' : '') + (c.can === 'no' ? '<span class="cc-can no">Probably not open to you</span>' : c.can === 'check' ? '<span class="cc-can check">Check you’re eligible</span>' : '') + '</div>' +
     '<div class="cc-facts"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span>' + esc(c.where) + '</span></span><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.5 0-2.5.8-2.5 2s1 1.6 2.5 2 2.5 1 2.5 2.2-1.1 1.8-2.5 1.8c-1.2 0-2.2-.5-2.7-1.5M12 6.5v1.5M12 16v1.5"/></svg><span>' + esc(c.cost) + '</span></span></div>' +
     '<div class="cc-when">' + when + '</div>' +
     (clash ? '<p class="cc-clash"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg><span>' + esc(clash) + '</span></p>' : '') +
@@ -2760,11 +2822,12 @@ function viewComps(){
     '<section class="cc-hero"><div><h1>Competitions</h1><p>Olympiads, science fairs, hackathons, robotics, essay and speaking competitions, and summer programmes open to students in Thailand. Competitions held in Thailand come first. Follow the ones you want; their dates go into your competition calendar.</p></div>' +
     '<div class="cc-stats"><div><b>' + all.length + '</b><span>competitions</span></div><div><b>' + all.filter(c => c.th).length + '</b><span>held in Thailand</span></div><div>' + (nextEv ? '<b>' + daysBetween(todayStr(), nextEv.x.d) + '</b><span>days to your next date</span>' : '<b>' + fol.length + '</b><span>following</span>') + '</div></div></section>' +
     compRecord() +
+    compFits() +
     compFilters(false) +
     '<p class="small muted cc-count">' + list.length + ' of ' + all.length + ' shown</p>' +
     (!list.length ? '<div class="card"><div class="empty">Nothing matches these filters.</div></div>'
-      : strUi().where === 'th' ? '<div class="ccgrid">' + list.map(compCard).join('') + '</div>'
-      : [['In Thailand', list.filter(c => c.th)], ['Online and abroad', list.filter(c => !c.th)]].filter(g => g[1].length).map(g => '<section class="cc-group"><h2>' + g[0] + ' <span class="muted">' + g[1].length + '</span></h2><div class="ccgrid">' + g[1].map(compCard).join('') + '</div></section>').join('')) +
+      : strUi().where === 'th' ? compBlock(list, 'all')
+      : [['In Thailand', list.filter(c => c.th), 'th'], ['Online and abroad', list.filter(c => !c.th), 'ab']].filter(g => g[1].length).map(g => '<section class="cc-group"><h2>' + g[0] + ' <span class="muted">' + g[1].length + '</span></h2>' + compBlock(g[1], g[2]) + '</section>').join('')) +
     '<p class="small muted">Links open each organiser’s own website; logos belong to their organisations and are shown only to identify them. Dates checked ' + esc(COMPS_CHECKED) + '; “usually” means the expected month based on past years. Always confirm dates and eligibility on the website.</p></div>';
 }
 function compEvents(all){
@@ -6486,7 +6549,7 @@ function nextQuestion(){
   window.scrollTo({ top: 0 });
 }
 document.addEventListener('input', e => { const el = e.target; if (!el || el.id !== 'str-q') return; const U = strUi(); U.q = el.value; const pos = el.selectionStart; render(); const n = document.getElementById('str-q'); if (n){ n.focus(); try { n.setSelectionRange(pos, pos); } catch(err){} } });
-document.addEventListener('change', e => { const el = e.target; if (!el || !el.id) return; const U = strUi();
+document.addEventListener('change', e => { const el = e.target; if (!el || !el.id) return; const U = strUi(); if (el.id.startsWith('str-')) U.lims = {};
   if (el.id === 'str-subj') U.subj = el.value; else if (el.id === 'str-skill') U.skill = el.value; else if (el.id === 'str-mine') U.mine = el.checked; else if (el.id === 'str-calall') U.calAll = el.checked; else if (el.id === 'str-free') U.free = el.checked; else if (el.id === 'str-can') U.can = el.checked; else if (el.id === 'str-sort') U.sort = el.value; else if (el.id === 'str-budshare'){ state.buddy = state.buddy || {}; state.buddy.comps = el.checked; commit(); BUD.sent = ''; buddySchedule(); } else if (el.id.startsWith('cst-')){ compSetStatus(el.id.slice(4), el.value); } else if (el.id.startsWith('cnote-')){ const st = compSt(el.id.slice(6)); st.note = el.value.slice(0, 300); commit(); return; } else return;
   render(); });
 document.addEventListener('change', e => { const el = e.target; if (!el || el.dataset.act !== 'wk-opt') return; const W = wkPrefs(); W[el.dataset.v] = !!el.checked; commit(); render(); });
@@ -6718,8 +6781,12 @@ document.addEventListener('click', e => {
     case 'pap-clear': papRemove([...POFF.saved]).then(() => { render(); toast('All offline papers removed.'); }); break;
     case 'str-subj': ui.stretch.subj = v; render(); break;
     case 'str-tab': e.preventDefault && e.preventDefault(); strUi().tab = v; if (route() !== 'stretch') go('stretch'); else render(); window.scrollTo({ top: 0 }); break;
-    case 'str-type': strUi().type = v; render(); break;
-    case 'str-where': strUi().where = v; render(); break;
+    case 'str-type': strUi().type = v; strUi().lims = {}; render(); break;
+    case 'str-where': strUi().where = v; strUi().lims = {}; render(); break;
+    case 'str-view': strUi().view = v === 'list' ? 'list' : 'cards'; try { localStorage.setItem('ial-cc-view', strUi().view); } catch(err){} render(); break;
+    case 'comp-more': { const U = strUi(); U.lims = U.lims || {}; U.lims[v] = (U.lims[v] || U.limit || 15) + 15; render(); break; }
+    case 'comp-row': { const U = strUi(); U.open[v] = !U.open[v]; render(); break; }
+    case 'str-fits-hide': strUi().fitsHide = true; render(); break;
     case 'comp-copy': { const txt = compRecordText(); try { navigator.clipboard.writeText(txt).then(() => toast('Copied your competition record.'), () => toast('Couldn’t copy. Select the list and copy it yourself.')); } catch(err){ toast('Couldn’t copy. Select the list and copy it yourself.'); } break; }
     case 'comp-follow': { state.follow = state.follow || {}; const c = COMPS.find(x => x.id === v); if (state.follow[v]) delete state.follow[v]; else { state.follow[v] = todayStr(); compSt(v); } commit(); if (buddyOn && state.buddy && state.buddy.comps){ BUD.sent = ''; buddySchedule(); } render(); toast(state.follow[v] ? 'Following ' + c.n + '. Its dates are in your competition calendar.' : 'Stopped following ' + c.n + '.'); break; }
     case 'su-pure': { setPure(true); commit(); MATH_APPLIED.forEach(c => ui.setup.units.delete(c)); ['WMA11','WMA12','WMA13','WMA14','WFM01','WFM02'].forEach(c => ui.setup.units.add(c)); render(); toast('Pure Maths on: P1–P4, FP1 and FP2 ticked. Swap FP2 for FP3 if that’s your choice.'); break; }
