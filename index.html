@@ -2679,7 +2679,7 @@ const COMP_TCOL = { olymp: 'var(--c-blue)', sci: 'var(--c-mint)', hack: 'var(--c
 /* Logos: each organisation's own site icon, through DuckDuckGo's icon service (no tracking). If it can't load, the initials show instead. */
 /* Logos: the organiser's site icon as a PNG from Google's favicon service (works on phones), DuckDuckGo as a backup,
    and the organiser's initials until a logo has loaded or if neither has one. */
-const COMP_NOLOGO = ['maa.org', 'usaco.org', 'www.c3l6.caths.cam.ac.uk', 'opho.physoly.tech', 'picoctf.org', 'www.acsl.org'];
+const COMP_NOLOGO = ['www.ocecthai.com', 'maa.org', 'usaco.org', 'www.c3l6.caths.cam.ac.uk', 'opho.physoly.tech', 'picoctf.org', 'www.acsl.org'];
 window.ccLogoOk = img => { if (img.naturalWidth < 8) return window.ccLogoErr(img); img.parentNode && img.parentNode.classList.add('ok'); };
 window.ccLogoErr = img => { const h = img.getAttribute('data-h'); if (h && !img.getAttribute('data-f')){ img.setAttribute('data-f', '1'); img.src = 'https://icons.duckduckgo.com/ip3/' + h + '.ico'; } else img.remove(); };
 function compLogo(c, big){
