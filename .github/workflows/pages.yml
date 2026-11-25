@@ -1,0 +1,34 @@
+# Rebuilds the past-paper web pages (past-papers/, th/past-papers/, sitemap.xml) from the site's data,
+# so they match the app whenever papers, examiner reports or exam dates change, and weekly so "next exam" stays current.
+name: Rebuild past-paper pages
+on:
+  push:
+    branches: [main]
+    paths: ['papers.js', 'reports.js', 'timetable.js', 'subjects.json', 'tools/build-pages.mjs']
+  schedule:
+    - cron: '17 21 * * 0'   # Monday 04:17 Bangkok time
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: pages-rebuild
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node tools/build-pages.mjs
+      - name: Save the pages if anything changed
+        run: |
+          if [ -n "$(git status --porcelain -- past-papers th sitemap.xml)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git add past-papers th sitemap.xml
+            git commit -m "Rebuild past-paper pages from the latest data"
+            git pull --rebase
+            git push
+          fi

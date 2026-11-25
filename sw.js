@@ -1,7 +1,7 @@
 /* Offline support: keeps the app on the device so it opens and works with no internet.
    App files come from the saved copy first (fast on weak signal); a new version is saved whole when this file changes.
    Papers and notes are PDFs on Pearson's and PMT's own sites. Papers a student saves for offline use (PMT only) are kept in 'ial-pdf' and open through ./offline-pdf?u=<url>. */
-const CACHE = 'ial-study-hub-20261125192731';
+const CACHE = 'ial-study-hub-20261125194559';
 const IMG = 'ial-img-1';      // PMT picture flashcards, saved as they're viewed or from Settings
 const LIB = 'ial-lib';        // sign-in and sync libraries (versioned URLs, so they never go stale)
 const FILES = ['./', './index.html', './privacy.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',
@@ -26,10 +26,11 @@ async function offPdf(src){
 }
 async function app(req){
   const c = await caches.open(CACHE);
-  const hit = await c.match(req, { ignoreSearch: true }) || (req.mode === 'navigate' && /\/$|\/index\.html$/.test(new URL(req.url).pathname) ? await c.match('./index.html') : null);
+  const root = new URL(self.registration.scope).pathname, path = new URL(req.url).pathname, isApp = path === root || path === root + 'index.html';   // only the app itself falls back to the saved app
+  const hit = await c.match(req, { ignoreSearch: true }) || (req.mode === 'navigate' && isApp ? await c.match('./index.html') : null);
   if (hit) return hit;
   try { const r = await fetch(req); if (r && r.ok) c.put(req, r.clone()).catch(() => {}); return r; }
-  catch(err){ const fb = req.mode === 'navigate' ? await c.match('./index.html') : null; if (fb) return fb; throw err; }
+  catch(err){ const fb = req.mode === 'navigate' && isApp ? await c.match('./index.html') : null; if (fb) return fb; throw err; }
 }
 self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
@@ -39,6 +40,7 @@ self.addEventListener('fetch', e => {
   if (u.pathname.includes('/__notif/')) return;
   if (u.pathname.endsWith('/offline-pdf')){ e.respondWith(offPdf(u.searchParams.get('u') || '')); return; }
   if (u.pathname.includes('/music/')) return;   // study music streams from the network (range requests); never cached
+  if (/\/(th\/)?past-papers\//.test(u.pathname) || /\/(sitemap\.xml|robots\.txt|404\.html)$/.test(u.pathname)) return;   // web pages for search engines: always fresh from the network
   if (u.pathname.includes('/deckimg/')){ e.respondWith(saved(IMG, req)); return; }
   e.respondWith(app(req));
 });

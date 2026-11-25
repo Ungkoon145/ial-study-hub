@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ungkoon145.github.io/ial-study-hub/sitemap.xml
