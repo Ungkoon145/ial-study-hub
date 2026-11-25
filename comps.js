@@ -238,4 +238,35 @@ const COMP_PREP = {
 /* Day each competition's dates were last checked on its own website. */
 const COMP_CK = {};
 'iymc iaac opho pumac smt im2c hmmt purple pico vex earth genius diamond nyt ocean bennington hir hmun himcm wdsc blueocean lsesu trinity sthughs wtw immerse visionaries cmkl euth timo sft munth asc pbowl acsl ccc uwchem c3l6 ino minds cefc hcbc yis bpho rsi amc ukmt cemc posn ukcho bbo usaco spaceapps'.split(' ').forEach(id => COMP_CK[id] = '2026-11-25');
-COMPS.forEach(c => { c.how = Object.keys(COMP_HOW).find(k => COMP_HOW[k].split(' ').includes(c.id)) || 'self'; c.can = COMP_CAN[c.id] || 'yes'; c.prep = COMP_PREP[c.id] || []; c.ck = COMP_CK[c.id] || ''; c.free = /^(free|no entry fee)/i.test(c.cost); });
+/* Level and time: a rough guide written for this site, not the organisers' wording.
+   start = a good first competition; mid = needs solid preparation; adv = for students already strong in the subject
+   (often national-team level). Time is the usual preparation for a student new to the competition. */
+const COMP_LVL_L = { start: 'Starter', mid: 'Intermediate', adv: 'Advanced' };
+const COMP_LVL = {
+  amc: ['mid', '~2 h/week for 10 weeks'], ukmt: ['start', '~1 h/week for 6 weeks'], cemc: ['mid', '~1–2 h/week for 6 weeks'],
+  posn: ['adv', '~4 h/week for several months'], bpho: ['mid', '~1–2 h/week for 8 weeks'], ukcho: ['mid', '~2 h/week for 8 weeks'],
+  bbo: ['mid', '~2 h/week for 8 weeks'], usaco: ['mid', '~3 h/week of coding practice; each contest about 4 hours'],
+  spaceapps: ['start', 'One weekend, plus ~2 weeks of planning'], mega: ['start', 'One weekend'], mlh: ['start', 'One weekend per event'],
+  ysc: ['mid', '~3 h/week for 4–6 months'], isef: ['adv', '~4 h/week for 6–12 months'], btjc: ['mid', '~2 h/week for 6 weeks'],
+  conrad: ['mid', '~3 h/week for 4 months, as a team'], wharton: ['mid', '~2 h/week for 10 weeks, as a team'], ieo: ['adv', '~3 h/week for 3 months'],
+  locke: ['mid', '~2 h/week for 8 weeks'], butler: ['mid', '~2 h/week for 6 weeks'], qcwc: ['start', '~1 h/week for 4 weeks'],
+  ipsc: ['mid', '~1–2 h/week for 6 weeks'], wsc: ['start', '~2 h/week for 8 weeks, as a team'], hmmt: ['adv', '~3 h/week for 3 months, as a team'],
+  purple: ['start', '~1 h/week for 4 weeks; one sitting'], pico: ['start', '~2 h/week for 4 weeks; the contest runs two weeks'],
+  vex: ['mid', '~5 h/week through the season, as a team'], earth: ['mid', '~2 h/week for 3 months, as a team'], genius: ['mid', '~3 h/week for 3 months'],
+  diamond: ['mid', '~2 h/week for 3 months, as a team'], nyt: ['start', '~2 h per entry over 2–3 weeks'], ocean: ['start', '~1–2 h/week for 6 weeks'],
+  bennington: ['mid', '~2 h/week for 6 weeks'], hir: ['mid', '~2 h/week for 6 weeks'], hmun: ['mid', '~2 h/week for 8 weeks, plus a 4-day conference'],
+  rsi: ['adv', 'Application ~10 h over 4 weeks; the programme is 6 weeks full time'], ssp: ['adv', 'Application ~8 h over 4 weeks; the programme is 6 weeks full time'],
+  yygs: ['mid', 'Application ~6 h over 3 weeks; the programme is 2 weeks'], himcm: ['mid', '~2 h/week for 6 weeks; the contest is a few days of team work'],
+  wdsc: ['mid', '~3 h/week for 8 weeks, as a team'], blueocean: ['start', '~2 h/week for 6 weeks'], lsesu: ['mid', '~2 h/week for 8 weeks'],
+  trinity: ['mid', '~2 h/week for 8 weeks'], sthughs: ['mid', '~2 h/week for 8 weeks'], wtw: ['start', '~1–2 h per monthly prompt'],
+  immerse: ['start', '~1 h/week for 4 weeks (500 words)'], visionaries: ['mid', '~2 h/week for 8 weeks, as a team'], cmkl: ['mid', '~3 h/week for 3 months, as a team'],
+  euth: ['mid', '~2 h/week for 6 weeks, plus the tournament'], timo: ['start', '~1 h/week for 4 weeks; one paper'], sft: ['mid', '~2 h/week for 3 months, as a team'],
+  munth: ['start', '~2 h/week for 4 weeks, plus the conference days'], asc: ['adv', 'Selection, then a one-week camp'],
+  pbowl: ['mid', '~1–2 h/week for 6 weeks; one 45-minute paper'], acsl: ['mid', '~1–2 h/week through four rounds'], ccc: ['mid', '~1–2 h/week for 6 weeks; one paper'],
+  uwchem: ['start', '~1 h/week for 4 weeks; one paper'], c3l6: ['mid', '~2 h/week for 6 weeks; one 90-minute paper'], ino: ['mid', '~2 h/week for 8 weeks'],
+  minds: ['start', '~1–2 h/week for 6 weeks'], cefc: ['mid', '~2 h/week for 6 weeks'], hcbc: ['mid', '~2 h/week for 8 weeks, as a team'],
+  yis: ['mid', '~2 h/week for 8 weeks'], iymc: ['mid', '~2 h/week for 4 weeks for the qualifier; the final is harder'],
+  iaac: ['start', '~1 h/week for 4 weeks for the first round; later rounds are harder'], opho: ['adv', '~3 h/week for 2 months, as a team'],
+  pumac: ['adv', '~3 h/week for 3 months, as a team'], smt: ['mid', '~2 h/week for 6 weeks, as a team'], im2c: ['adv', '~2 h/week for 6 weeks; the contest is several days of team work']
+};
+COMPS.forEach(c => { c.how = Object.keys(COMP_HOW).find(k => COMP_HOW[k].split(' ').includes(c.id)) || 'self'; c.can = COMP_CAN[c.id] || 'yes'; c.prep = COMP_PREP[c.id] || []; c.ck = COMP_CK[c.id] || ''; c.free = /^(free|no entry fee)/i.test(c.cost); const L = COMP_LVL[c.id]; c.lvl = L ? L[0] : ''; c.time = L ? L[1] : ''; });
