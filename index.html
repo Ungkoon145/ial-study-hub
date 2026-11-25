@@ -6539,7 +6539,41 @@ function renderRet(){
   el.innerHTML = '<div class="wrap"><div class="retcard"><div class="grow"><div class="small muted">Welcome back</div><div class="retq">' + q + '</div></div><div class="row retbtns">' + btns + '<button class="btn ghost" data-act="ret-dismiss">Not yet</button></div></div></div>';
 }
 
+/* Redraws are made safe for text boxes:
+   - a redraw that starts while another is running (e.g. a text box firing "change" as it is removed) waits until the first finishes;
+   - whatever is being typed, and the cursor position, survive the redraw. */
+let RENDERING = false, RERENDER = false, LAST_ACT = 0;
+['click', 'submit'].forEach(t => document.addEventListener(t, () => { LAST_ACT = Date.now(); }, true));
+document.addEventListener('keydown', e => { if (e.key === 'Enter') LAST_ACT = Date.now(); }, true);
+function focusKey(el){
+  if (!el || !el.tagName) return '';
+  const d = [...el.attributes].filter(a => a.name.startsWith('data-') || a.name === 'name' || a.name === 'type').map(a => a.name + '=' + a.value).sort().join('&');
+  return el.tagName + '#' + (el.id || '') + '?' + d + (el.id || /data-|name=/.test(d) ? '' : '&ph=' + (el.getAttribute('placeholder') || ''));
+}
 function render(){
+  if (RENDERING){ RERENDER = true; return; }
+  const view = $('#view'), a = document.activeElement;
+  let keep = null;
+  if (view && a && view.contains(a) && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|file|range|color)$/.test(a.type)))){
+    keep = { k: focusKey(a), v: a.value, s: null, e: null };
+    try { keep.s = a.selectionStart; keep.e = a.selectionEnd; } catch(err){}
+  }
+  const dKey = d => (d.id || '') + '|' + ((d.querySelector('summary') || {}).textContent || '').trim().slice(0, 80);
+  const openD = view ? new Set([...view.querySelectorAll('details[open]')].map(dKey)) : new Set();
+  RENDERING = true;
+  try { renderNow(); }
+  finally { RENDERING = false; }
+  if (openD.size) document.querySelectorAll('#view details:not([open])').forEach(d => { if (openD.has(dKey(d))) d.open = true; });
+  if (keep){
+    const el = [...document.querySelectorAll('#view input, #view textarea')].find(x => focusKey(x) === keep.k);
+    if (el && document.activeElement !== el){
+      if (el.value !== keep.v && Date.now() - LAST_ACT > 400) el.value = keep.v;   // not after his own Enter or tap, which may clear the box on purpose
+      try { el.focus({ preventScroll: true }); if (keep.s !== null) el.setSelectionRange(keep.s, keep.e); } catch(err){}
+    }
+  }
+  if (RERENDER){ RERENDER = false; setTimeout(render, 0); }
+}
+function renderNow(){
   applyPure();
   applyPrefs(); ensureSubjects(); try { sortSubjects(); } catch(err){ console.error(err); }
   const r = route(); setHdr(); try { subjColours(); } catch(err){}
