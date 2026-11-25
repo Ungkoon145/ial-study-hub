@@ -188,6 +188,7 @@ const RMX_MAKE = {
 function rmxOn(id){ return !!RMX.live[id]; }
 function rmxStart(id){
   if (RMX.live[id] || !RMX_MAKE[id] || !rmxCtx()) return;
+  try { if (typeof musPlaying === 'function' && musPlaying()){ musPause(); toast('Music paused while room sounds play.'); } } catch(e){}
   const g = RMX.ctx.createGain(), v = rmvPrefs().mix[id] == null ? .7 : rmvPrefs().mix[id];
   g.gain.setValueAtTime(.0001, RMX.ctx.currentTime); g.gain.linearRampToValueAtTime(v, RMX.ctx.currentTime + 1.2); g.connect(RMX.master);
   RMX.live[id] = { g, stop: RMX_MAKE[id](g) };

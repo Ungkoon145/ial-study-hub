@@ -136,6 +136,7 @@ async function rmLeave(quiet){
   const wasCam = RM.room && RM.room.kind === 'cam';
   if (RMS.ownWatch){ try { RMS.ownWatch(); } catch(e){} RMS.ownWatch = null; } RM.rulesAsk = false; RM.reportFor = null; RM.safeMsg = '';
   RM.unsub = RM.sigUnsub = null; RM.rid = null; RM.room = null; RM.react = null; RM.vids = {}; RM.nv = []; RM.vis = {}; RM.lowIn = {}; RM.cpuQ = null;
+  try { if (typeof musRoomWatch === 'function') musRoomWatch(null); } catch(e){}
   try { localStorage.removeItem('ial-room'); } catch(e){}
   try { await rmDb().dropMember(id, uid); } catch(e){}
   RM.leaving = false;
@@ -152,6 +153,7 @@ function rmOnRoom(d){
   try { rmGoalWatch(prevM, d.m); } catch(e){}
   try { rmOwnerWatch(prevM, d); rmTallyTidy(); } catch(e){}
   try { rmPaperWatch(d); } catch(e){}
+  try { if (typeof musRoomWatch === 'function') musRoomWatch(d); } catch(e){}
   if (!d.m || !d.m[rmUid()]) rmBeat();
   if (RM.room.kind === 'cam'){ rmSyncPeers(); rmTuneAll(); rmNvUpdate(); }
   if (RM.room.owner === rmUid()) rmTidy();
