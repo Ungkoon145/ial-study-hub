@@ -1333,6 +1333,10 @@ label.row.small > input[type="checkbox"]{width:22px;height:22px;margin:0;accent-
 .cc-rowopen{padding:10px;display:flex;flex-direction:column;gap:6px}.cc-rowopen+.cc-row,.cc-row+.cc-rowopen{border-top:1px solid var(--line)}
 .cc-more{align-self:center;margin-top:10px}
 .cc-ask{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;font-weight:600;padding:3px 9px;border-radius:6px;background:var(--primary);color:#fff;text-decoration:none}.cc-ask svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2}
+.cc-steps{border-top:1px solid var(--line);padding-top:8px}.cc-steps summary{cursor:pointer;font-weight:700;font-size:.92rem;min-height:32px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cc-steps ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}.cc-steps li{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:.88rem}.cc-steps label{display:flex;gap:8px;align-items:center;min-height:36px;cursor:pointer}.cc-steps input{width:20px;height:20px;flex:none}
+.cc-steps li.done span:not(.small){text-decoration:line-through;opacity:.6}.cc-steps li.due .small{color:#b42318;font-weight:700}
+.cc-prepplan{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;border-top:1px solid var(--line);padding-top:8px}
 </style>
 </head>
 <body>
@@ -2768,6 +2772,58 @@ function compTeacherMail(c){
   const body = 'Dear [teacher’s name],\n\nI would like to take part in the ' + c.n + ' (' + c.org + ').\n' + route + (when ? '\n' + when + '.' : '') + '\nDetails: ' + c.url + '\n\nCould the school enter me, or let me know who organises entries for this competition?\n\nThank you,\n' + (name || '');
   return 'mailto:?subject=' + encodeURIComponent('Entering the ' + c.n) + '&body=' + encodeURIComponent(body);
 }
+/* Step-by-step checklists, counted back from the competition's key deadline */
+const COMP_STEP_SETS = {
+  apply: [['Read the requirements and who can apply', 60], ['Ask two teachers for recommendation letters', 42], ['Draft your essays or short answers', 35], ['Ask the school for your transcript or school report', 28], ['Get feedback on your essays', 14], ['Final check, then submit', 3]],
+  essay: [['Choose your question', 45], ['Research and make a plan', 35], ['Write a first draft', 21], ['Ask a teacher for feedback', 14], ['Edit, check the word limit and submit', 3]],
+  project: [['Form your team and choose an idea', 60], ['Research and plan the project', 45], ['Build, test or run the experiment', 25], ['Write it up or film your video', 10], ['Submit', 2]],
+  exam: [['Register, or ask your school to enter you', 35], ['Do a past paper under timed conditions', 14], ['Go through your mistakes', 7]],
+  speak: [['Register, or ask your school', 40], ['Research your topic or country', 21], ['Practise out loud in front of someone', 7]]
+};
+function compStepSet(c){ return c.t === 'summer' ? 'apply' : c.t === 'write' ? 'essay' : c.t === 'olymp' ? 'exam' : c.t === 'speak' ? 'speak' : 'project'; }
+function compKeyDate(c, re){
+  const up = compUpcoming(c); if (!up.length) return null;
+  const x = up.find(e => re.test(e.e)) || up[0];
+  return { e: x.e, d: compExact(x.d) ? x.d : x.d + '-01', exact: compExact(x.d) };
+}
+const COMP_DL_RE = /deadline|submission|submit|due|close|application/i;
+function compSteps(c){
+  const k = compKeyDate(c, COMP_DL_RE); if (!k) return null;
+  const t = todayStr();
+  return { k, set: compStepSet(c), steps: COMP_STEP_SETS[compStepSet(c)].map(([n, off], i) => { const due = addDays(k.d, -off); return { i, n, due: due < t ? t : due, late: due < t }; }) };
+}
+function compStepsHtml(c){
+  const S = compSteps(c); if (!S) return '';
+  const st = compSt(c.id), done = st.steps || {}, t = todayStr(), n = S.steps.filter(x => done[x.i]).length;
+  return '<details class="cc-steps"' + (n < S.steps.length ? ' open' : '') + '><summary>Steps <span class="small muted">' + n + ' of ' + S.steps.length + ' done · for ' + esc(S.k.e) + (S.k.exact ? '' : ' (date not confirmed)') + '</span></summary><ul>' +
+    S.steps.map(x => '<li class="' + (done[x.i] ? 'done' : x.due <= t ? 'due' : '') + '"><label><input type="checkbox" id="cstep-' + c.id + '-' + x.i + '"' + (done[x.i] ? ' checked' : '') + '><span>' + esc(x.n) + '</span></label><span class="small muted">' + (done[x.i] ? '' : x.late ? 'Do this soon' : 'By ' + esc(fmtDate(x.due, {day:'numeric', month:'short'}))) + '</span></li>').join('') + '</ul></details>';
+}
+/* Practice sessions in the Plan for exam-style competitions */
+function compPrepTarget(c){ return c.t === 'olymp' ? compKeyDate(c, /^(?!.*(regist|deadline|open|announce|result|close|publish)).*/i) : null; }
+function compPrepTasks(id){ return (state.tasks || []).filter(x => x.gen === 'comp' && x.cid === id); }
+function compPrepAdd(c){
+  const T = compPrepTarget(c), t = todayStr(); if (!T) return 0;
+  if (daysBetween(t, T.d) < 4){ toast('That’s too soon to plan practice sessions.'); return 0; }
+  compPrepRemove(c.id);
+  const p = prefs(), exams = (state.exams || []).map(e => e.d);
+  const okDay = d => !(p.offDays || []).includes(parseD(d).getDay()) && !(p.busy || []).includes(d) && !exams.some(e => Math.abs(daysBetween(d, e)) <= 2);
+  const start = daysBetween(t, T.d) > 70 ? addDays(T.d, -70) : addDays(t, 1), out = [];
+  for (let d = start; d < T.d; d = addDays(d, 1)){
+    const wd = parseD(d).getDay(), left = daysBetween(d, T.d);
+    if (!(wd === 6 || (left <= 14 && wd === 3))) continue;
+    let day = d; if (!okDay(day)){ const alt = addDays(d, 1); if (alt < T.d && okDay(alt)) day = alt; else continue; }
+    out.push({ id: uid(), t: 'Competition prep: ' + c.n + ' · 45 min', d: day, s: '', p: left <= 14 ? 1 : 2, done: false, gen: 'comp', cid: c.id, k: 'comp', u: null, ti: null, sr: null, min: 45 });
+  }
+  state.tasks = (state.tasks || []).concat(out); compSt(c.id).prep = true; commit();
+  return out.length;
+}
+function compPrepRemove(id){ state.tasks = (state.tasks || []).filter(x => !(x.gen === 'comp' && x.cid === id && !x.done)); if (state.compSt && state.compSt[id]) state.compSt[id].prep = false; }
+function compPrepHtml(c){
+  const T = compPrepTarget(c); if (!T) return '';
+  const n = compPrepTasks(c.id).filter(x => !x.done).length;
+  return '<div class="cc-prepplan">' + (n ? '<span class="small"><b>' + n + '</b> practice session' + (n === 1 ? '' : 's') + ' in your Plan</span> <button type="button" class="linkbtn" data-act="comp-prep-del" data-v="' + c.id + '">Remove them</button>'
+    : '<button type="button" class="btn sm" data-act="comp-prep-add" data-v="' + c.id + '">Add practice sessions to my Plan</button><span class="small muted">45 minutes on Saturdays, plus Wednesdays in the last 2 weeks, before ' + esc(T.e) + '. Days near your IAL exams are skipped.</span>') + '</div>';
+}
 function compCard(c){
   const on = !!(state.follow || {})[c.id], nx = compUpcoming(c)[0];
   const when = nx ? (compExact(nx.d)
@@ -2786,7 +2842,7 @@ function compCard(c){
     (clash ? '<p class="cc-clash"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg><span>' + esc(clash) + '</span></p>' : '') +
     (c.prep.length ? '<div class="cc-prep"><span class="small muted">Prepare:</span> ' + c.prep.map(([l, u]) => '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(l) + '</a>').join(' ') + ' <button type="button" class="linkbtn" data-act="str-tab" data-v="prac">More in Practice</button></div>' : '') +
     (st ? '<div class="cc-track"><label class="f">My progress<select id="cst-' + c.id + '">' + Object.entries(COMP_STATUS).map(([k, v]) => '<option value="' + k + '"' + (st.s === k ? ' selected' : '') + '>' + esc(v) + '</option>').join('') + '</select></label>' +
-      '<label class="f grow">Notes (only you see these)<input id="cnote-' + c.id + '" maxlength="300" placeholder="' + (st.s === 'result' ? 'e.g. Gold award, top 10%' : 'e.g. Mr Smith is registering us') + '" value="' + esc(st.note || '') + '"></label></div>' : '') +
+      '<label class="f grow">Notes (only you see these)<input id="cnote-' + c.id + '" maxlength="300" placeholder="' + (st.s === 'result' ? 'e.g. Gold award, top 10%' : 'e.g. Mr Smith is registering us') + '" value="' + esc(st.note || '') + '"></label></div>' + (st.s !== 'result' ? compStepsHtml(c) + compPrepHtml(c) : '') : '') +
     (bud.length ? '<p class="small muted cc-bud">Also following: ' + esc(bud.slice(0, 4).join(', ')) + (bud.length > 4 ? ' and ' + (bud.length - 4) + ' more' : '') + '</p>' : '') +
     '<footer class="cc-foot">' + c.subj.map(k => '<span>' + esc(COMP_SUBJ[k]) + '</span>').concat(c.sk.map(k => '<span class="sk">' + esc(COMP_SKILL[k]) + '</span>')).join('') + '<span class="cc-ck">Dates checked ' + esc(c.ck ? fmtDate(c.ck, {day:'numeric', month:'short', year:'numeric'}) : COMPS_CHECKED) + '</span></footer></article>';
 }
@@ -2808,10 +2864,12 @@ function compRemindCard(){
   const t = todayStr(), out = [];
   compFollowed().forEach(c => { const st = state.compSt && state.compSt[c.id]; if (st && st.s === 'result') return;
     compUpcoming(c).filter(x => compExact(x.d) && daysBetween(t, x.d) <= 14).forEach(x => out.push({ c, x, n: daysBetween(t, x.d) })); });
+  compFollowed().forEach(c => { const st = state.compSt && state.compSt[c.id]; if (st && st.s === 'result') return; const S = compSteps(c); if (!S) return; const done = (st && st.steps) || {};
+    const x = S.steps.find(y => !done[y.i]); if (x && daysBetween(t, x.due) <= 7) out.push({ c, x: { e: x.n, d: x.due }, n: daysBetween(t, x.due), step: 1 }); });
   if (!out.length) return '';
   out.sort((a, b) => a.n - b.n);
   return '<div class="card stack cc-remind"><div class="card-h"><h2>Competition dates coming up</h2><a class="small" href="#stretch" data-act="str-tab" data-v="cal">Calendar</a></div><ul>' +
-    out.slice(0, 4).map(o => '<li class="' + (o.n <= 3 ? 'soon' : '') + '" style="--tc:' + COMP_TCOL[o.c.t] + '"><b>' + esc(o.x.e) + '</b><span class="small muted">' + esc(o.c.n) + '</span><span class="cc-in">' + esc(compIn(o.x.d)) + ' · ' + esc(fmtDate(o.x.d, {day:'numeric', month:'short'})) + '</span></li>').join('') + '</ul></div>';
+    out.slice(0, 5).map(o => '<li class="' + (o.n <= 3 ? 'soon' : '') + '" style="--tc:' + COMP_TCOL[o.c.t] + '"><b>' + (o.step ? 'Step: ' : '') + esc(o.x.e) + '</b><span class="small muted">' + esc(o.c.n) + '</span><span class="cc-in">' + esc(compIn(o.x.d)) + ' · ' + esc(fmtDate(o.x.d, {day:'numeric', month:'short'})) + '</span></li>').join('') + '</ul></div>';
 }
 function compMatchQ(c){ const q = (strUi().q || '').trim().toLowerCase(); return !q || (c.n + ' ' + c.org + ' ' + c.elig).toLowerCase().includes(q); }
 function viewComps(){
@@ -6550,7 +6608,7 @@ function nextQuestion(){
 }
 document.addEventListener('input', e => { const el = e.target; if (!el || el.id !== 'str-q') return; const U = strUi(); U.q = el.value; const pos = el.selectionStart; render(); const n = document.getElementById('str-q'); if (n){ n.focus(); try { n.setSelectionRange(pos, pos); } catch(err){} } });
 document.addEventListener('change', e => { const el = e.target; if (!el || !el.id) return; const U = strUi(); if (el.id.startsWith('str-')) U.lims = {};
-  if (el.id === 'str-subj') U.subj = el.value; else if (el.id === 'str-skill') U.skill = el.value; else if (el.id === 'str-mine') U.mine = el.checked; else if (el.id === 'str-calall') U.calAll = el.checked; else if (el.id === 'str-free') U.free = el.checked; else if (el.id === 'str-can') U.can = el.checked; else if (el.id === 'str-sort') U.sort = el.value; else if (el.id === 'str-budshare'){ state.buddy = state.buddy || {}; state.buddy.comps = el.checked; commit(); BUD.sent = ''; buddySchedule(); } else if (el.id.startsWith('cst-')){ compSetStatus(el.id.slice(4), el.value); } else if (el.id.startsWith('cnote-')){ const st = compSt(el.id.slice(6)); st.note = el.value.slice(0, 300); commit(); return; } else return;
+  if (el.id === 'str-subj') U.subj = el.value; else if (el.id === 'str-skill') U.skill = el.value; else if (el.id === 'str-mine') U.mine = el.checked; else if (el.id === 'str-calall') U.calAll = el.checked; else if (el.id === 'str-free') U.free = el.checked; else if (el.id === 'str-can') U.can = el.checked; else if (el.id === 'str-sort') U.sort = el.value; else if (el.id === 'str-budshare'){ state.buddy = state.buddy || {}; state.buddy.comps = el.checked; commit(); BUD.sent = ''; buddySchedule(); } else if (el.id.startsWith('cstep-')){ const m = /^cstep-(.+)-(\d+)$/.exec(el.id); if (m){ const st = compSt(m[1]); st.steps = st.steps || {}; if (el.checked) st.steps[m[2]] = 1; else delete st.steps[m[2]]; commit(); } } else if (el.id.startsWith('cst-')){ compSetStatus(el.id.slice(4), el.value); } else if (el.id.startsWith('cnote-')){ const st = compSt(el.id.slice(6)); st.note = el.value.slice(0, 300); commit(); return; } else return;
   render(); });
 document.addEventListener('change', e => { const el = e.target; if (!el || el.dataset.act !== 'wk-opt') return; const W = wkPrefs(); W[el.dataset.v] = !!el.checked; commit(); render(); });
 document.addEventListener('click', e => {
@@ -6785,10 +6843,12 @@ document.addEventListener('click', e => {
     case 'str-where': strUi().where = v; strUi().lims = {}; render(); break;
     case 'str-view': strUi().view = v === 'list' ? 'list' : 'cards'; try { localStorage.setItem('ial-cc-view', strUi().view); } catch(err){} render(); break;
     case 'comp-more': { const U = strUi(); U.lims = U.lims || {}; U.lims[v] = (U.lims[v] || U.limit || 15) + 15; render(); break; }
+    case 'comp-prep-add': { const c = COMPS.find(x => x.id === v); if (c){ const n = compPrepAdd(c); if (n) toast('Added ' + n + ' practice session' + (n === 1 ? '' : 's') + ' to your Plan.'); else if (compPrepTarget(c) && daysBetween(todayStr(), compPrepTarget(c).d) >= 4) toast('No free Saturdays left before it. Try adding a session by hand in Plan.'); render(); } break; }
+    case 'comp-prep-del': compPrepRemove(v); commit(); toast('Removed the practice sessions from your Plan.'); render(); break;
     case 'comp-row': { const U = strUi(); U.open[v] = !U.open[v]; render(); break; }
     case 'str-fits-hide': strUi().fitsHide = true; render(); break;
     case 'comp-copy': { const txt = compRecordText(); try { navigator.clipboard.writeText(txt).then(() => toast('Copied your competition record.'), () => toast('Couldn’t copy. Select the list and copy it yourself.')); } catch(err){ toast('Couldn’t copy. Select the list and copy it yourself.'); } break; }
-    case 'comp-follow': { state.follow = state.follow || {}; const c = COMPS.find(x => x.id === v); if (state.follow[v]) delete state.follow[v]; else { state.follow[v] = todayStr(); compSt(v); } commit(); if (buddyOn && state.buddy && state.buddy.comps){ BUD.sent = ''; buddySchedule(); } render(); toast(state.follow[v] ? 'Following ' + c.n + '. Its dates are in your competition calendar.' : 'Stopped following ' + c.n + '.'); break; }
+    case 'comp-follow': { state.follow = state.follow || {}; const c = COMPS.find(x => x.id === v); if (state.follow[v]){ delete state.follow[v]; compPrepRemove(v); } else { state.follow[v] = todayStr(); compSt(v); } commit(); if (buddyOn && state.buddy && state.buddy.comps){ BUD.sent = ''; buddySchedule(); } render(); toast(state.follow[v] ? 'Following ' + c.n + '. Its dates are in your competition calendar.' : 'Stopped following ' + c.n + '.'); break; }
     case 'su-pure': { setPure(true); commit(); MATH_APPLIED.forEach(c => ui.setup.units.delete(c)); ['WMA11','WMA12','WMA13','WMA14','WFM01','WFM02'].forEach(c => ui.setup.units.add(c)); render(); toast('Pure Maths on: P1–P4, FP1 and FP2 ticked. Swap FP2 for FP3 if that’s your choice.'); break; }
     case 'su-all': { const sub = SUBJ[v], all = sub.units.every(u => ui.setup.units.has(u.c)); sub.units.forEach(u => all ? ui.setup.units.delete(u.c) : ui.setup.units.add(u.c)); render(); break; }
     case 'su-apply': { const d = $('#su-def'); if (d) ui.setup.def = d.value; ui.setup.units.forEach(c => { if (ttDate(c, ui.setup.def)) ui.setup.series[c] = ui.setup.def; }); render(); break; }
