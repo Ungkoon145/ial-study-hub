@@ -218,5 +218,5 @@ const COMP_PREP = {
 };
 /* Day each competition's dates were last checked on its own website. */
 const COMP_CK = {};
-'hmmt purple pico vex earth genius diamond nyt ocean bennington hir hmun himcm wdsc blueocean lsesu trinity sthughs wtw immerse visionaries cmkl euth timo sft munth asc pbowl acsl ccc uwchem c3l6 ino minds cefc hcbc yis'.split(' ').forEach(id => COMP_CK[id] = '2026-11-25');
+'hmmt purple pico vex earth genius diamond nyt ocean bennington hir hmun himcm wdsc blueocean lsesu trinity sthughs wtw immerse visionaries cmkl euth timo sft munth asc pbowl acsl ccc uwchem c3l6 ino minds cefc hcbc yis bpho rsi amc ukmt cemc posn ukcho bbo usaco spaceapps'.split(' ').forEach(id => COMP_CK[id] = '2026-11-25');
 COMPS.forEach(c => { c.how = Object.keys(COMP_HOW).find(k => COMP_HOW[k].split(' ').includes(c.id)) || 'self'; c.can = COMP_CAN[c.id] || 'yes'; c.prep = COMP_PREP[c.id] || []; c.ck = COMP_CK[c.id] || ''; c.free = /^(free|no entry fee)/i.test(c.cost); });
