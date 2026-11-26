@@ -308,6 +308,311 @@ var TQ_EXAM = (function(){
 "(b) Substitutes $(4,10)$: $\\dfrac{64}{3}-48+36+c=10$",
 "(b) $c=\\dfrac{2}{3}$, so $y=\\dfrac{8}{3}x^{\\frac{3}{2}}-12x+18\\sqrt{x}+\\dfrac{2}{3}$"
 ]
+],
+[
+"w",
+"WMA12",
+0,
+4,
+"$f(x)=2x^{3}-3x^{2}-11x+6$\n(a) Use the factor theorem to show that $(x-3)$ is a factor of $f(x)$. [2]\n(b) Factorise $f(x)$ completely. [3]\n(c) Hence solve $2\\left(3^{t}\\right)^{3}-3\\left(3^{t}\\right)^{2}-11\\left(3^{t}\\right)+6=0$, giving any non-exact answer to 3 significant figures. [3] [8 marks]",
+[
+"(a) $f(3)=54-27-33+6$",
+"(a) $f(3)=0$, so $(x-3)$ is a factor",
+"(b) Divides: $f(x)=(x-3)(2x^{2}+3x-2)$",
+"(b) Attempts to factorise the quadratic",
+"(b) $(x-3)(2x-1)(x+2)$",
+"(c) $3^{t}=3$ gives $t=1$",
+"(c) $3^{t}=\\dfrac{1}{2}$ gives $t=\\log_{3}\\dfrac{1}{2}=-0.631$",
+"(c) $3^{t}=-2$ has no solution (because $3^{t}>0$)"
+]
+],
+[
+"w",
+"WMA12",
+0,
+4,
+"$f(x)=x^{3}+px^{2}+qx-6$, where $p$ and $q$ are constants. $(x+1)$ is a factor of $f(x)$, and when $f(x)$ is divided by $(x-2)$ the remainder is $12$.\n(a) Find the values of $p$ and $q$. [5]\n(b) Hence write $f(x)$ as a product of a linear factor and a quadratic factor. [2]\n(c) Find the exact roots of $f(x)=0$. [1] [8 marks]",
+[
+"(a) $f(-1)=0$: $-1+p-q-6=0$, so $p-q=7$",
+"(a) $f(2)=12$: $8+4p+2q-6=12$, so $2p+q=5$",
+"(a) Solves the simultaneous equations",
+"(a) $p=4$",
+"(a) $q=-3$",
+"(b) Divides $x^{3}+4x^{2}-3x-6$ by $(x+1)$",
+"(b) $(x+1)(x^{2}+3x-6)$",
+"(c) $x=-1$, $x=\\dfrac{-3\\pm\\sqrt{33}}{2}$"
+]
+],
+[
+"w",
+"WMA12",
+1,
+4,
+"(a) Find the first four terms, in ascending powers of $x$, of the binomial expansion of $(1-2x)^{6}$. Give each term in its simplest form. [4]\n(b) Hence find the coefficient of $x^{2}$ in the expansion of $(3+x)(1-2x)^{6}$. [3]\n(c) Use your expansion with a suitable value of $x$ to estimate $0.98^{6}$, giving your answer to 5 decimal places. [2] [9 marks]",
+[
+"(a) $1$",
+"(a) $-12x$",
+"(a) $+60x^{2}$",
+"(a) $-160x^{3}$",
+"(b) Identifies the two contributions: $3\\times60x^{2}$ and $x\\times(-12x)$",
+"(b) $180-12$",
+"(b) $168$",
+"(c) Uses $x=0.01$",
+"(c) $1-0.12+0.006-0.00016=0.88584$"
+]
+],
+[
+"w",
+"WMA12",
+1,
+4,
+"In the binomial expansion of $(2+kx)^{5}$, where $k$ is a non-zero constant, the coefficient of $x^{2}$ is three times the coefficient of $x$.\n(a) Find the value of $k$. [4]\n(b) Find the coefficient of $x^{3}$. [2]\n(c) Find the term independent of $x$ in the expansion of $(2+kx)^{5}\\left(1-\\dfrac{1}{x}\\right)$. [2] [8 marks]",
+[
+"(a) Coefficient of $x$: $\\binom{5}{1}2^{4}k=80k$",
+"(a) Coefficient of $x^{2}$: $\\binom{5}{2}2^{3}k^{2}=80k^{2}$",
+"(a) $80k^{2}=3\\times80k$",
+"(a) $k=3$",
+"(b) $\\binom{5}{3}2^{2}k^{3}=40\\times27$",
+"(b) $1080$",
+"(c) Constant term $=2^{5}\\times1+240x\\times\\left(-\\dfrac{1}{x}\\right)$",
+"(c) $32-240=-208$"
+]
+],
+[
+"w",
+"WMA12",
+2,
+4,
+"The circle $C$ has equation $x^{2}+y^{2}-6x+4y-12=0$.\n(a) Find the centre and the radius of $C$. [3]\n(b) Show that $P(6,2)$ lies on $C$, and find an equation of the tangent to $C$ at $P$ in the form $ax+by+c=0$. [4]\n(c) Find the exact length of the chord that $C$ cuts off on the $x$-axis. [2] [9 marks]",
+[
+"(a) Completes the square: $(x-3)^{2}+(y+2)^{2}=12+9+4$",
+"(a) Centre $(3,-2)$",
+"(a) Radius $5$",
+"(b) $36+4-36+8-12=0$, so $P$ lies on $C$",
+"(b) Gradient of radius to $P$: $\\dfrac{2-(-2)}{6-3}=\\dfrac{4}{3}$",
+"(b) Tangent gradient $-\\dfrac{3}{4}$: $y-2=-\\dfrac{3}{4}(x-6)$",
+"(b) $3x+4y-26=0$",
+"(c) $y=0$: $x^{2}-6x-12=0$, so $x=3\\pm\\sqrt{21}$",
+"(c) Length $2\\sqrt{21}$"
+]
+],
+[
+"w",
+"WMA12",
+2,
+4,
+"The points $A(-2,1)$ and $B(4,9)$ are the ends of a diameter of a circle $C$.\n(a) Find an equation of $C$. [4]\n(b) Show that the point $(5,2)$ lies on $C$. [1]\n(c) The line $y=x+k$ is a tangent to $C$. Find the exact possible values of $k$. [4] [9 marks]",
+[
+"(a) Centre is the midpoint: $(1,5)$",
+"(a) Radius $=\\dfrac{1}{2}\\sqrt{6^{2}+8^{2}}$",
+"(a) $=5$",
+"(a) $(x-1)^{2}+(y-5)^{2}=25$",
+"(b) $(5-1)^{2}+(2-5)^{2}=16+9=25$ ✓",
+"(c) Uses distance from centre to line $=$ radius, or substitutes and uses $b^{2}-4ac=0$",
+"(c) $\\dfrac{|1-5+k|}{\\sqrt{2}}=5$ (or $2x^{2}+(2k-10)x+(k^{2}-10k)=0$ with discriminant $0$)",
+"(c) $k-4=\\pm5\\sqrt{2}$",
+"(c) $k=4\\pm5\\sqrt{2}$"
+]
+],
+[
+"w",
+"WMA12",
+3,
+4,
+"The third term of an arithmetic series is $11$ and the sum of the first $10$ terms is $185$.\n(a) Find the first term $a$ and the common difference $d$. [4]\n(b) Find the least value of $n$ for which the sum of the first $n$ terms exceeds $1000$. [3] [7 marks]",
+[
+"(a) $a+2d=11$",
+"(a) $\\dfrac{10}{2}(2a+9d)=185$, so $2a+9d=37$",
+"(a) Solves simultaneously",
+"(a) $a=5$, $d=3$",
+"(b) $\\dfrac{n}{2}\\left(10+3(n-1)\\right)>1000$, so $3n^{2}+7n-2000>0$",
+"(b) Critical value $n=24.7\\ldots$ (or checks $S_{24}=948$ and $S_{25}=1025$)",
+"(b) $n=25$"
+]
+],
+[
+"w",
+"WMA12",
+3,
+4,
+"The second term of a geometric series is $12$ and the fifth term is $\\dfrac{3}{2}$.\n(a) Find the common ratio and the first term. [3]\n(b) Find the sum to infinity. [1]\n(c) Find the least value of $n$ for which the sum to infinity exceeds the sum of the first $n$ terms by less than $0.01$. [4] [8 marks]",
+[
+"(a) $ar=12$ and $ar^{4}=\\dfrac{3}{2}$",
+"(a) $r^{3}=\\dfrac{1}{8}$, so $r=\\dfrac{1}{2}$",
+"(a) $a=24$",
+"(b) $\\dfrac{24}{1-\\frac{1}{2}}=48$",
+"(c) $S_{\\infty}-S_{n}=48\\left(\\dfrac{1}{2}\\right)^{n}$",
+"(c) $48\\left(\\dfrac{1}{2}\\right)^{n}<0.01$, so $2^{n}>4800$",
+"(c) Uses logs: $n>\\dfrac{\\log4800}{\\log2}=12.2\\ldots$",
+"(c) $n=13$"
+]
+],
+[
+"w",
+"WMA12",
+4,
+4,
+"(a) Solve $3^{2x}-4\\left(3^{x}\\right)+3=0$. [4]\n(b) Solve $\\log_{2}(x+1)-\\log_{2}(x-2)=2$. [4] [8 marks]",
+[
+"(a) Lets $y=3^{x}$: $y^{2}-4y+3=0$",
+"(a) $(y-1)(y-3)=0$",
+"(a) $3^{x}=1$ gives $x=0$",
+"(a) $3^{x}=3$ gives $x=1$",
+"(b) Uses the subtraction law: $\\log_{2}\\dfrac{x+1}{x-2}=2$",
+"(b) $\\dfrac{x+1}{x-2}=4$",
+"(b) $x+1=4x-8$",
+"(b) $x=3$ (valid, because $x-2>0$)"
+]
+],
+[
+"w",
+"WMA12",
+4,
+4,
+"Given that $\\log_{a}3=p$ and $\\log_{a}5=q$,\n(a) write $\\log_{a}45$ and $\\log_{a}\\left(\\dfrac{25}{\\sqrt{3}}\\right)$ in terms of $p$ and $q$. [4]\n(b) Solve $5^{x}=2^{x+3}$, giving your answer to 3 significant figures. [3] [7 marks]",
+[
+"(a) $\\log_{a}45=\\log_{a}9+\\log_{a}5$",
+"(a) $=2p+q$",
+"(a) $\\log_{a}25-\\log_{a}3^{\\frac{1}{2}}$",
+"(a) $=2q-\\dfrac{1}{2}p$",
+"(b) Takes logs: $x\\log5=(x+3)\\log2$",
+"(b) $x=\\dfrac{3\\log2}{\\log5-\\log2}$",
+"(b) $x=2.27$"
+]
+],
+[
+"w",
+"WMA12",
+5,
+4,
+"(a) Solve, for $0\\le\\theta<360^{\\circ}$, $2\\sin^{2}\\theta=3\\cos\\theta$. [5]\n(b) Solve, for $0\\le x<180^{\\circ}$, $\\tan(2x-30^{\\circ})=\\sqrt{3}$. [3] [8 marks]",
+[
+"(a) Uses $\\sin^{2}\\theta=1-\\cos^{2}\\theta$",
+"(a) $2\\cos^{2}\\theta+3\\cos\\theta-2=0$",
+"(a) $(2\\cos\\theta-1)(\\cos\\theta+2)=0$",
+"(a) $\\cos\\theta=\\dfrac{1}{2}$ ($\\cos\\theta=-2$ is impossible)",
+"(a) $\\theta=60^{\\circ},\\ 300^{\\circ}$",
+"(b) $2x-30^{\\circ}=60^{\\circ}$",
+"(b) or $240^{\\circ}$",
+"(b) $x=45^{\\circ},\\ 135^{\\circ}$"
+]
+],
+[
+"w",
+"WMA12",
+5,
+4,
+"(a) Show that $\\dfrac{1-\\cos^{2}\\theta}{\\sin\\theta\\cos\\theta}\\equiv\\tan\\theta$. [2]\n(b) Solve, for $0\\le\\theta<360^{\\circ}$, $4\\sin\\theta=3\\tan\\theta$, giving your answers to one decimal place where appropriate. [5] [7 marks]",
+[
+"(a) $1-\\cos^{2}\\theta=\\sin^{2}\\theta$",
+"(a) $\\dfrac{\\sin^{2}\\theta}{\\sin\\theta\\cos\\theta}=\\dfrac{\\sin\\theta}{\\cos\\theta}=\\tan\\theta$",
+"(b) $4\\sin\\theta\\cos\\theta=3\\sin\\theta$",
+"(b) $\\sin\\theta(4\\cos\\theta-3)=0$ (does not divide by $\\sin\\theta$)",
+"(b) $\\sin\\theta=0$: $\\theta=0^{\\circ},\\ 180^{\\circ}$",
+"(b) $\\cos\\theta=\\dfrac{3}{4}$: $\\theta=41.4^{\\circ}$",
+"(b) and $318.6^{\\circ}$"
+]
+],
+[
+"w",
+"WMA12",
+6,
+4,
+"The curve $C$ has equation $y=x^{3}-6x^{2}+9x+2$.\n(a) Find the coordinates of the stationary points of $C$. [4]\n(b) Use $\\dfrac{d^{2}y}{dx^{2}}$ to determine the nature of each stationary point. [3]\n(c) State the set of values of $x$ for which $y$ is increasing. [1] [8 marks]",
+[
+"(a) $\\dfrac{dy}{dx}=3x^{2}-12x+9$",
+"(a) $3(x-1)(x-3)=0$",
+"(a) $(1,6)$",
+"(a) $(3,2)$",
+"(b) $\\dfrac{d^{2}y}{dx^{2}}=6x-12$",
+"(b) At $x=1$: $-6<0$, so maximum",
+"(b) At $x=3$: $6>0$, so minimum",
+"(c) $x<1$ or $x>3$"
+]
+],
+[
+"w",
+"WMA12",
+6,
+4,
+"An open box (no lid) has a square base of side $x\\text{ cm}$ and a volume of $500\\text{ cm}^{3}$.\n(a) Show that the external surface area $A\\text{ cm}^{2}$ is given by $A=x^{2}+\\dfrac{2000}{x}$. [3]\n(b) Find the minimum value of $A$. [4]\n(c) Justify that this value is a minimum. [2] [9 marks]",
+[
+"(a) Height $h=\\dfrac{500}{x^{2}}$",
+"(a) $A=x^{2}+4xh$",
+"(a) $A=x^{2}+4x\\times\\dfrac{500}{x^{2}}=x^{2}+\\dfrac{2000}{x}$",
+"(b) $\\dfrac{dA}{dx}=2x-\\dfrac{2000}{x^{2}}$",
+"(b) Sets $\\dfrac{dA}{dx}=0$: $x^{3}=1000$",
+"(b) $x=10$",
+"(b) $A=100+200=300\\text{ cm}^{2}$",
+"(c) $\\dfrac{d^{2}A}{dx^{2}}=2+\\dfrac{4000}{x^{3}}$",
+"(c) $=6>0$ at $x=10$, so minimum"
+]
+],
+[
+"w",
+"WMA12",
+7,
+4,
+"The curve $y=4x-x^{2}$ and the line $y=x$ meet at the origin $O$ and at the point $P$.\n(a) Find the coordinates of $P$. [2]\n(b) Find the area of the finite region bounded by the curve and the line. [5] [7 marks]",
+[
+"(a) $4x-x^{2}=x$, so $x(3-x)=0$",
+"(a) $P(3,3)$",
+"(b) Area $=\\displaystyle\\int_{0}^{3}\\left(4x-x^{2}-x\\right)dx$ (or area under curve minus triangle)",
+"(b) $=\\left[\\dfrac{3x^{2}}{2}-\\dfrac{x^{3}}{3}\\right]_{0}^{3}$",
+"(b) Uses limits $0$ and $3$",
+"(b) $\\dfrac{27}{2}-9$",
+"(b) $=\\dfrac{9}{2}$"
+]
+],
+[
+"w",
+"WMA12",
+7,
+4,
+"(a) Find the exact value of $\\displaystyle\\int_{1}^{4}\\left(3\\sqrt{x}-\\frac{2}{x^{2}}\\right)dx$. [4]\n(b) The curve $y=(x-1)(x-3)$ meets the $x$-axis at $A$ and $B$. Find the area of the region between the curve and the $x$-axis from $A$ to $B$. [4] [8 marks]",
+[
+"(a) $2x^{\\frac{3}{2}}$",
+"(a) $+\\dfrac{2}{x}$",
+"(a) $\\left(16+\\dfrac{1}{2}\\right)-(2+2)$",
+"(a) $=\\dfrac{25}{2}$",
+"(b) $A(1,0)$ and $B(3,0)$; integrates $x^{2}-4x+3$",
+"(b) $\\left[\\dfrac{x^{3}}{3}-2x^{2}+3x\\right]_{1}^{3}$",
+"(b) $=0-\\dfrac{4}{3}=-\\dfrac{4}{3}$",
+"(b) Area $=\\dfrac{4}{3}$ (the region is below the $x$-axis)"
+]
+],
+[
+"w",
+"WMA12",
+8,
+4,
+"$y=\\sqrt{1+x^{3}}$\n(a) Find the values of $y$ at $x=0.5$, $1$ and $1.5$, to 4 decimal places. [2]\n(b) Use the trapezium rule with $4$ strips to estimate $\\displaystyle\\int_{0}^{2}\\sqrt{1+x^{3}}\\,dx$, to 3 decimal places. [3]\n(c) The true value is $3.241$ to 3 d.p. Explain why the trapezium rule gives an overestimate here. [2]\n(d) Use your answer to (b) to estimate $\\displaystyle\\int_{0}^{2}\\left(2+\\sqrt{1+x^{3}}\\right)dx$. [1] [8 marks]",
+[
+"(a) $1.0607$ and $1.4142$",
+"(a) $2.0917$ (and $y(0)=1$, $y(2)=3$)",
+"(b) $h=0.5$",
+"(b) $\\dfrac{0.5}{2}\\left[1+3+2(1.0607+1.4142+2.0917)\\right]$",
+"(b) $3.283$",
+"(c) The curve bends upwards (it is convex) on $0\\le x\\le2$",
+"(c) so each trapezium lies above the curve",
+"(d) $2\\times2+3.283=7.283$"
+]
+],
+[
+"w",
+"WMA12",
+8,
+4,
+"(a) Use the trapezium rule with $4$ strips of equal width to estimate $\\displaystyle\\int_{0}^{2}2^{x}\\,dx$, to 3 decimal places. [4]\n(b) Given that the exact value is $\\dfrac{3}{\\ln2}$, find the percentage error in your estimate, to 2 significant figures. [2]\n(c) State how the estimate could be made more accurate. [1] [7 marks]",
+[
+"(a) $h=0.5$",
+"(a) $y$-values $1,\\ 1.4142,\\ 2,\\ 2.8284,\\ 4$",
+"(a) $\\dfrac{0.5}{2}\\left[1+4+2(1.4142+2+2.8284)\\right]$",
+"(a) $4.371$",
+"(b) $\\dfrac{3}{\\ln2}=4.328$; error $=\\dfrac{4.371-4.328}{4.328}\\times100$",
+"(b) $1.0\\%$",
+"(c) Use more strips (smaller $h$)"
+]
 ]
 ];
   D.forEach(r => out.push({ id: id(r[1], r[2]), u: r[1], t: r[2], d: r[3], type: "w", q: r[4], ms: r[5], m: r[5].length }));
