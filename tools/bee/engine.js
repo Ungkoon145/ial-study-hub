@@ -23,6 +23,7 @@ function beeTok(s){
     if (/[a-z]/.test(c)){ let j = i; while (j < s.length && /[a-z]/.test(s[j])) j++; let w = s.slice(i, j); i = j;
       while (w){ const m = NAMES.find(n => w.startsWith(n)); if (!m) throw L('I don’t know “' + w + '”. Use x, pi, e and functions like sin, ln, sqrt.', 'ไม่รู้จัก “' + w + '” ใช้ x, pi, e และฟังก์ชันเช่น sin, ln, sqrt'); out.push(m === 'pi' || m === 'e' ? { k:'c', v:m } : m === 'x' ? { k:'x' } : { k:'f', v:m }); w = w.slice(m.length); }
       continue; }
+    if (c === '?'){ out.push({ k:'c', v:'box' }); i++; continue; }
     if ('+-*/^()|'.includes(c)){ out.push({ k:c }); i++; continue; }
     if (c === '[' || c === '{'){ out.push({ k:'(' }); i++; continue; }
     if (c === ']' || c === '}'){ out.push({ k:')' }); i++; continue; }
@@ -57,7 +58,7 @@ function beeParse(src){
 }
 function beeEval(n, x){
   switch (n.o){
-    case 'n': return n.v; case 'c': return n.v === 'pi' ? Math.PI : Math.E; case 'x': return x; case '()': return beeEval(n.a, x);
+    case 'n': return n.v; case 'c': return n.v === 'pi' ? Math.PI : n.v === 'box' ? NaN : Math.E; case 'x': return x; case '()': return beeEval(n.a, x);
     case 'neg': return -beeEval(n.a, x); case '+': return beeEval(n.a, x) + beeEval(n.b, x); case '-': return beeEval(n.a, x) - beeEval(n.b, x);
     case '*': return beeEval(n.a, x) * beeEval(n.b, x); case '/': return beeEval(n.a, x) / beeEval(n.b, x); case '^': return Math.pow(beeEval(n.a, x), beeEval(n.b, x));
     case 'f': return FN[n.f](beeEval(n.a, x));
@@ -68,7 +69,7 @@ function hasDec(n){ return !!n && ((n.o === 'n' && n.t.includes('.')) || hasDec(
 function beeTex(n){
   const g = m => m.o === '()' ? beeTex(m) : (m.o === '+' || m.o === '-' || m.o === 'neg') ? '\\left(' + beeTex(m) + '\\right)' : beeTex(m);
   switch (n.o){
-    case 'n': return n.t; case 'c': return n.v === 'pi' ? '\\pi' : 'e'; case 'x': return 'x'; case '()': return '\\left(' + beeTex(n.a) + '\\right)';
+    case 'n': return n.t; case 'c': return n.v === 'pi' ? '\\pi' : n.v === 'box' ? '\\square' : 'e'; case 'x': return 'x'; case '()': return '\\left(' + beeTex(n.a) + '\\right)';
     case 'neg': return '-' + g(n.a); case '+': return beeTex(n.a) + '+' + beeTex(n.b); case '-': return beeTex(n.a) + '-' + ((n.b.o === '+' || n.b.o === '-') ? '\\left(' + beeTex(n.b) + '\\right)' : beeTex(n.b));
     case '*': { const a = g(n.a), b = g(n.b); return a + (/^[0-9.]/.test(b) || /[0-9.]$/.test(a) && /^[0-9.]/.test(b) ? '\\times ' : n.im ? '\\,' : '\\times ') + b; }
     case '/': return '\\dfrac{' + beeTex(n.a.o === '()' ? n.a.a : n.a) + '}{' + beeTex(n.b.o === '()' ? n.b.a : n.b) + '}';
@@ -143,8 +144,8 @@ function viewPlay(){
   if (u.st === 'ask'){
     return head + qbox +
       '<form id="bee-form" class="card stack bee-ans" autocomplete="off"><label for="bee-in" class="small"><b>' + L(q.c ? 'Your answer $F(x)$' : 'Your answer', q.c ? 'คำตอบของคุณ $F(x)$' : 'คำตอบของคุณ') + '</b></label>' +
-      '<input id="bee-in" class="bee-in" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" value="' + esc(u.typed) + '" placeholder="' + (q.c ? 'e.g. x^2 ln(x)' : 'e.g. pi/4') + '">' +
-      '<div class="bee-prev notr small" id="bee-prev" aria-live="polite">' + prevHtml(u.typed) + '</div>' +
+      '<input id="bee-in" class="bee-in" inputmode="' + (kbOn() ? 'none' : 'text') + '" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" value="' + esc(u.typed) + '" placeholder="' + (q.c ? 'e.g. x^2 ln(x)' : 'e.g. pi/4') + '">' +
+      '<div class="bee-prev" id="bee-prev" aria-live="polite">' + prevHtml(u.typed) + '</div>' + kbHtml() +
       (u.msg ? '<div class="bee-msg bad" role="alert">' + esc(u.msg) + '</div>' : '') +
       (u.hint ? '<div class="small bee-hint">' + L('Technique: ', 'เทคนิค: ') + '<b>' + esc(q.h) + '</b></div>' : '') +
       '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit">' + L('Check', 'ตรวจ') + '</button>' + (u.hint ? '' : '<button class="btn" type="button" data-bee="hint">' + L('Hint', 'คำใบ้') + '</button>') + '<button class="btn" type="button" data-bee="give">' + L('Show solution', 'ดูเฉลย') + '</button></div></form>';
@@ -156,10 +157,47 @@ function viewPlay(){
     '<div class="row"><button class="btn primary" data-bee="next">' + (u.k + 1 < u.list.length ? L('Next integral', 'ข้อต่อไป') : L('See my round', 'ดูผลรอบนี้')) + '</button></div></div>';
 }
 function prevHtml(s){
-  if (!String(s || '').trim()) return '<span class="muted">' + L('Your answer will show here as maths.', 'คำตอบจะแสดงเป็นสูตรตรงนี้') + '</span>';
-  try { const t = beeTex(beeParse(s)); return '<span class="muted">' + L('Reads as ', 'อ่านว่า ') + '</span>' + (window.katex ? katex.renderToString(t, { throwOnError:false, output:window.KATEX_MML ? 'mathml' : 'htmlAndMathml' }) : esc(s)); }
-  catch(err){ return '<span class="muted">' + esc(String(err)) + '</span>'; }
+  s = String(s || '');
+  if (!s.trim()) return '<span class="muted">' + L('Your answer will show here as maths.', 'คำตอบจะแสดงเป็นสูตรตรงนี้') + '</span>';
+  const tryTex = x => { try { return beeTex(beeParse(x)); } catch(err){ return null; } };
+  const draft = x => { x = x.replace(/\(\)/g, '(?)').replace(/\|\|/g, '|?|').replace(/[-+*/^(]\s*$/, m => m + '?'); const n = (x.match(/\(/g) || []).length - (x.match(/\)/g) || []).length; return n > 0 ? x + ')'.repeat(n) : x; };
+  let t = tryTex(s), part = false;
+  if (t == null){ t = tryTex(draft(s)); part = t != null; }
+  if (t == null){ try { beeParse(s); } catch(err){ return '<span class="muted">' + esc(String(err)) + '</span>'; } }
+  const k = window.katex ? katex.renderToString('\\displaystyle ' + t, { throwOnError:false, output:window.KATEX_MML ? 'mathml' : 'htmlAndMathml' }) : esc(s);
+  return '<div class="bee-pv-m">' + k + '</div>' + (part ? '<div class="small muted">' + L('Still typing: unfinished parts show as boxes.', 'กำลังพิมพ์: ส่วนที่ยังไม่ครบแสดงเป็นกล่อง') + '</div>' : '');
 }
+/* on-screen maths keyboard: [label (LaTeX or text), text to insert, caret position inside it] */
+const KB = [
+  ['7','7'],['8','8'],['9','9'],['$\\div$','/'],['(','('],[')',')'],
+  ['4','4'],['5','5'],['6','6'],['$\\times$','*'],['$\\frac{\\square}{\\square}$','()/()',1],['⌫','',0,'bs'],
+  ['1','1'],['2','2'],['3','3'],['$-$','-'],['$x^{2}$','^2'],['$x^{\\square}$','^()',2],
+  ['0','0'],['.','.'],['$x$','x'],['$+$','+'],['$\\pi$','pi'],['$e$','e'],
+  ['$\\sqrt{\\square}$','sqrt()',5],['$\\ln$','ln()',3],['$\\sin$','sin()',4],['$\\cos$','cos()',4],['$\\tan$','tan()',4],['$|\\square|$','abs()',4],
+  ['$\\arctan$','arctan()',7],['$\\arcsin$','arcsin()',7],['$\\sec$','sec()',4],['$\\sinh$','sinh()',5],['$\\cosh$','cosh()',5],['$\\operatorname{arsinh}$','arsinh()',7],
+  ['←','',0,'l'],['→','',0,'r'],['CLR','',0,'clr']
+];
+function kbOn(){ try { const v = localStorage.getItem('ial-beekb'); if (v) return v === '1'; } catch(e){} return !!((window.matchMedia && matchMedia('(pointer:coarse)').matches) || (navigator.maxTouchPoints > 0 && innerWidth < 900)); }
+function kbHtml(){
+  const on = kbOn();
+  return '<div class="row" style="justify-content:flex-end"><button type="button" class="linkbtn small" data-kbt="1" aria-pressed="' + on + '">' + (on ? L('Hide maths keyboard', 'ซ่อนแป้นพิมพ์คณิต') : L('Show maths keyboard', 'แสดงแป้นพิมพ์คณิต')) + '</button></div>' +
+    (on ? '<div class="bee-kb" role="group" aria-label="' + L('Maths keyboard', 'แป้นพิมพ์คณิต') + '">' + KB.map((k, n) => '<button type="button" class="kb-k' + (k[3] ? ' kb-f' : /^\d$|^\.$/.test(k[0]) ? ' kb-d' : '') + (k[3] === 'clr' ? ' kb-w' : '') + (k[1].length > 7 ? ' kb-s' : '') + '" data-kb="' + n + '" aria-label="' + esc(k[3] === 'clr' ? L('Clear', 'ล้าง') : k[3] === 'bs' ? L('Delete', 'ลบ') : k[3] === 'l' ? L('Move left', 'เลื่อนซ้าย') : k[3] === 'r' ? L('Move right', 'เลื่อนขวา') : k[1]) + '">' + (k[3] === 'clr' ? esc(L('Clear', 'ล้าง')) : k[0].startsWith('$') ? k[0] : esc(k[0])) + '</button>').join('') + '</div>' : '');
+}
+function kbPress(n){
+  const el = document.getElementById('bee-in'); if (!el) return; const k = KB[n]; let v = el.value, a = el.selectionStart ?? v.length, b = el.selectionEnd ?? a;
+  if (k[3] === 'bs'){ if (a === b && a > 0) a--; v = v.slice(0, a) + v.slice(b); b = a; }
+  else if (k[3] === 'l'){ a = b = Math.max(0, a - 1); }
+  else if (k[3] === 'r'){ a = b = Math.min(v.length, b + 1); }
+  else if (k[3] === 'clr'){ v = ''; a = b = 0; }
+  else { v = v.slice(0, a) + k[1] + v.slice(b); a = b = a + (k[2] != null ? k[2] : k[1].length); }
+  el.value = v; try { el.setSelectionRange(a, b); } catch(e){}
+  el.dispatchEvent(new Event('input', { bubbles:true }));
+}
+document.addEventListener('pointerdown', e => { const k = e.target.closest && e.target.closest('[data-kb]'); if (!k) return; e.preventDefault(); kbPress(+k.dataset.kb); });
+document.addEventListener('click', e => { const k = e.target.closest && e.target.closest('[data-kb]'); if (k && e.detail === 0){ kbPress(+k.dataset.kb); return; }
+  const t = e.target.closest && e.target.closest('[data-kbt]'); if (!t) return; const el = document.getElementById('bee-in'); const u = U(); const val = el ? el.value : '';
+  try { localStorage.setItem('ial-beekb', kbOn() ? '0' : '1'); } catch(err){}
+  if (u.part === 'learn' && u.learn && u.learn.pr) u.learn.pr.typed = val; else u.typed = val; render(); focusIn(); });
 function viewDone(){
   const u = U(), b = bs(), ok = u.res.filter(r => r.ok).length, nb = u.newBest;
   return '<div class="card stack bee-done"><h1>' + L('Round complete', 'จบรอบแล้ว') + '</h1><div class="bee-pts">' + u.score + ' <span class="small muted">' + L('points', 'คะแนน') + '</span></div><p>' + ok + ' / ' + u.res.length + ' ' + L('correct in ', 'ข้อถูกใน ') + esc(lvName(u.lv)) + (nb ? ' · <b>' + L('New best round!', 'สถิติใหม่!') + '</b>' : '') + '</p>' +
@@ -271,8 +309,8 @@ function viewPrac(l){
   const qbox = '<div class="card bee-q"><div class="small muted">' + L('Question ', 'ข้อ ') + (p.k + 1) + ' / 5</div><div class="bee-int sm">' + D(q.q) + '</div></div>';
   if (p.st === 'ask') return dots + qbox +
     '<form id="les-form" class="card stack bee-ans" autocomplete="off"><label for="bee-in" class="small"><b>' + (q.c ? L('Your answer $F(x)$', 'คำตอบของคุณ $F(x)$') : L('Your answer', 'คำตอบของคุณ')) + '</b></label>' +
-    '<input id="bee-in" class="bee-in" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" value="' + esc(p.typed) + '" placeholder="' + (q.c ? 'e.g. x^2 ln(x)' : q.tol ? 'e.g. 6.5216' : 'e.g. pi/4') + '">' +
-    '<div class="bee-prev small" id="bee-prev" aria-live="polite">' + prevHtml(p.typed) + '</div>' +
+    '<input id="bee-in" class="bee-in" inputmode="' + (kbOn() ? 'none' : 'text') + '" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" value="' + esc(p.typed) + '" placeholder="' + (q.c ? 'e.g. x^2 ln(x)' : q.tol ? 'e.g. 6.5216' : 'e.g. pi/4') + '">' +
+    '<div class="bee-prev" id="bee-prev" aria-live="polite">' + prevHtml(p.typed) + '</div>' + kbHtml() +
     (p.msg ? '<div class="bee-msg bad" role="alert">' + p.msg + '</div>' : '') +
     (p.tries ? '<div class="small bee-hint"><b>' + L('Hint: ', 'คำใบ้: ') + '</b>' + (th() ? q.ht : q.h) + '</div>' : '') +
     '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit">' + L('Check', 'ตรวจ') + '</button><button class="btn" type="button" data-bee="prgive">' + L('Show solution', 'ดูเฉลย') + '</button></div>' +
