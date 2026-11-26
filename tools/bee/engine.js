@@ -81,10 +81,10 @@ function beeCheck(q, typed){
   let tree; try { tree = beeParse(typed); } catch(err){ return { ok:false, msg:String(err) }; }
   const close = (a, b) => isFinite(a) && Math.abs(a - b) <= 1e-7 * Math.max(1, Math.abs(b));
   if (q.v != null){
-    if (hasX(tree)) return { ok:false, msg:L('This is a definite integral, so the answer is a number: there should be no x in it.', 'นี่คืออินทิกรัลจำกัดเขต คำตอบเป็นตัวเลข ไม่ควรมี x') };
+    if (hasX(tree)) return { ok:false, msg:L('This is a definite integral, so the answer is a number: there should be no $x$ in it.', 'นี่คืออินทิกรัลจำกัดเขต คำตอบเป็นตัวเลข ไม่ควรมี x') };
     return { ok:close(beeEval(tree, 0), q.v), dec:hasDec(tree) };
   }
-  if (!hasX(tree)) return { ok:false, msg:L('This is an indefinite integral, so the answer is a function of x.', 'นี่คืออินทิกรัลไม่จำกัดเขต คำตอบเป็นฟังก์ชันของ x') };
+  if (!hasX(tree)) return { ok:false, msg:L('This is an indefinite integral, so the answer is a function of $x$.', 'นี่คืออินทิกรัลไม่จำกัดเขต คำตอบเป็นฟังก์ชันของ x') };
   return { ok:q.p.every(([a, b, v]) => close(beeEval(tree, b) - beeEval(tree, a), v)), dec:hasDec(tree) };
 }
 window.beeParse = beeParse; window.beeCheck = beeCheck; window.beeTex = beeTex; window.beeEval = beeEval;
@@ -99,6 +99,7 @@ function unlocked(lv){ return lv === 1 || bs().all || solvedIn(lv - 1) >= 5; }
 function U(){ if (!ui.bee) ui.bee = { mode:'ladder' }; return ui.bee; }
 const fmtT = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 const D = t => '$\\displaystyle ' + t + '$';
+const K = (c, t) => '<code>' + c + '</code> → $' + t + '$';
 function lvName(lv){ const v = BEE_LV[lv - 1]; return th() && v.nt ? v.nt : v.n; }
 function techCard(lv){ const v = BEE_LV[lv - 1], c = th() && v.ct ? v.ct : v.card; return '<ul class="bee-card">' + c.map(x => '<li>' + x + '</li>').join('') + '</ul>'; }
 
@@ -115,10 +116,11 @@ function viewLadder(){
         '<details class="bee-tech"><summary>' + L('Technique card', 'การ์ดเทคนิค') + '</summary>' + techCard(lv) + '</details></li>'; }).join('') + '</ol>' +
     (BEE_LV.some((v, k) => !unlocked(k + 1)) ? '<p class="small"><button class="linkbtn" data-bee="all">' + L('Open every level now', 'เปิดทุกระดับเลย') + '</button></p>' : '') +
     '<details class="card bee-help"><summary><b>' + L('How to type answers', 'วิธีพิมพ์คำตอบ') + '</b></summary><ul class="small">' +
-      '<li>' + L('Fractions and powers: <code>3/4</code>, <code>x^6</code>, <code>(e^2-1)/2</code>', 'เศษส่วนและเลขยกกำลัง: <code>3/4</code>, <code>x^6</code>, <code>(e^2-1)/2</code>') + '</li>' +
-      '<li>' + L('Constants: <code>pi</code> (or π), <code>e</code>. Roots: <code>sqrt(2)</code>', 'ค่าคงที่: <code>pi</code> (หรือ π), <code>e</code> รากที่สอง: <code>sqrt(2)</code>') + '</li>' +
-      '<li>' + L('Functions: <code>ln(2)</code>, <code>sin(x)</code>, <code>arctan(x)</code>, <code>arsinh(1)</code>. You can skip × : <code>2pi</code>, <code>pi ln2/8</code>', 'ฟังก์ชัน: <code>ln(2)</code>, <code>sin(x)</code>, <code>arctan(x)</code>, <code>arsinh(1)</code> ไม่ต้องใส่ × ก็ได้: <code>2pi</code>, <code>pi ln2/8</code>') + '</li>' +
-      '<li>' + L('Indefinite integrals: give F(x); <code>+C</code> is optional. Any equivalent form is marked right.', 'อินทิกรัลไม่จำกัดเขต: ตอบ F(x) จะใส่ <code>+C</code> หรือไม่ก็ได้ รูปที่เท่ากันแบบใดก็ถูก') + '</li>' +
+      '<li>' + L('Fractions and powers: ', 'เศษส่วนและเลขยกกำลัง: ') + K('3/4', '\\dfrac{3}{4}') + ', ' + K('x^6', 'x^{6}') + ', ' + K('(e^2-1)/2', '\\dfrac{e^{2}-1}{2}') + '</li>' +
+      '<li>' + L('Constants and roots: ', 'ค่าคงที่และรากที่สอง: ') + K('pi', '\\pi') + L(' (or π), ', ' (หรือ π), ') + K('e', 'e') + ', ' + K('sqrt(2)', '\\sqrt{2}') + '</li>' +
+      '<li>' + L('Functions: ', 'ฟังก์ชัน: ') + K('ln(2)', '\\ln 2') + ', ' + K('sin(x)', '\\sin x') + ', ' + K('arctan(x)', '\\arctan x') + ', ' + K('arsinh(1)', '\\operatorname{arsinh} 1') + '</li>' +
+      '<li>' + L('You can leave out the × sign: ', 'ไม่ต้องใส่เครื่องหมาย × ก็ได้: ') + K('2pi', '2\\pi') + ', ' + K('pi ln2/8', '\\dfrac{\\pi\\ln 2}{8}') + '</li>' +
+      '<li>' + L('Indefinite integrals: give $F(x)$; writing $+C$ is optional. Any equivalent form is marked right.', 'อินทิกรัลไม่จำกัดเขต: ตอบ $F(x)$ จะใส่ $+C$ หรือไม่ก็ได้ รูปที่เท่ากันแบบใดก็ถูก') + '</li>' +
       '<li>' + L('Give exact answers. A decimal that is right scores half points.', 'ให้คำตอบแบบค่าแม่นตรง ทศนิยมที่ถูกได้ครึ่งคะแนน') + '</li></ul></details>' +
     '<p class="small muted">' + L('All integrals and solutions were written for IAL Revise. For real past Bee rounds, see ', 'โจทย์และเฉลยทั้งหมดเขียนขึ้นสำหรับ IAL Revise ดูโจทย์จริงจากการแข่งที่ผ่านมาได้ที่ ') + '<a href="https://math.mit.edu/~yyao1/integrationbee.html" target="_blank" rel="noopener">MIT Integration Bee ↗</a>. ' + L('Your scores stay private.', 'คะแนนของคุณเป็นความลับ') + '</p>';
 }
@@ -136,7 +138,7 @@ function viewPlay(){
   const qbox = '<div class="card bee-q notr"><div class="bee-int">' + D(q.q) + '</div>' + (u.st === 'ask' ? '<div class="bee-clock' + (left < 15000 ? ' low' : '') + '" id="bee-clock" aria-live="off">' + fmtT(left) + '</div>' : '') + '</div>';
   if (u.st === 'ask'){
     return head + qbox +
-      '<form id="bee-form" class="card stack bee-ans" autocomplete="off"><label for="bee-in" class="small"><b>' + L(q.c ? 'Your answer F(x)' : 'Your answer', q.c ? 'คำตอบของคุณ F(x)' : 'คำตอบของคุณ') + '</b></label>' +
+      '<form id="bee-form" class="card stack bee-ans" autocomplete="off"><label for="bee-in" class="small"><b>' + L(q.c ? 'Your answer $F(x)$' : 'Your answer', q.c ? 'คำตอบของคุณ $F(x)$' : 'คำตอบของคุณ') + '</b></label>' +
       '<input id="bee-in" class="bee-in" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" value="' + esc(u.typed) + '" placeholder="' + (q.c ? 'e.g. x^2 ln(x)' : 'e.g. pi/4') + '">' +
       '<div class="bee-prev notr small" id="bee-prev" aria-live="polite">' + prevHtml(u.typed) + '</div>' +
       (u.msg ? '<div class="bee-msg bad" role="alert">' + esc(u.msg) + '</div>' : '') +

@@ -3,7 +3,7 @@
 #   check: None for a definite integral (the answer is a number), or (a, b) for an indefinite one:
 #   the typed F(x) is checked by comparing F(x2) - F(x1) with the true integral at points inside (a, b).
 LEVELS = [
- {"n": "Warm-up", "t": 60, "d": "Powers, $e^{x}$, $\\dfrac{1}{x}$, sine and cosine: the basics, fast.",
+ {"n": "Warm-up", "t": 60, "d": "Powers, $e^{x}$, $\\dfrac{1}{x}$, $\\sin x$ and $\\cos x$: the basics, fast.",
   "card": ["Reverse the power rule: $\\displaystyle\\int x^{n}dx=\\frac{x^{n+1}}{n+1}+C$ for $n\\neq-1$, and $\\displaystyle\\int\\frac{1}{x}dx=\\ln|x|+C$.",
            "For $(ax+b)^{n}$, $e^{ax}$, $\\sin(ax)$: integrate as usual, then divide by $a$.",
            "Definite integrals: find $F$, then work out $F(b)-F(a)$. No $+C$ needed."]},

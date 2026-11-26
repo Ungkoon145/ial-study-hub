@@ -3,7 +3,7 @@ sys.path.insert(0, '/home/claude/build/bee')
 from bee import Q, LEVELS
 V = json.load(open('/tmp/beevals.json'))
 TH = [
- {"nt": "อุ่นเครื่อง", "dt": "เลขยกกำลัง $e^{x}$, $\\dfrac{1}{x}$, sin และ cos: พื้นฐานแบบเร็ว",
+ {"nt": "อุ่นเครื่อง", "dt": "เลขยกกำลัง $e^{x}$, $\\dfrac{1}{x}$, $\\sin x$ และ $\\cos x$: พื้นฐานแบบเร็ว",
   "ct": ["กลับกฎเลขยกกำลัง: $\\displaystyle\\int x^{n}dx=\\frac{x^{n+1}}{n+1}+C$ เมื่อ $n\\neq-1$ และ $\\displaystyle\\int\\frac{1}{x}dx=\\ln|x|+C$",
          "สำหรับ $(ax+b)^{n}$, $e^{ax}$, $\\sin(ax)$: อินทิเกรตตามปกติแล้วหารด้วย $a$",
          "อินทิกรัลจำกัดเขต: หา $F$ แล้วคำนวณ $F(b)-F(a)$ ไม่ต้องมี $+C$"]},
