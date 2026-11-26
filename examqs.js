@@ -889,6 +889,252 @@ var TQ_EXAM = (function(){
 "(c) $\\dfrac{243-1}{10}$",
 "(c) $=24.2$"
 ]
+],
+[
+"w",
+"WMA14",
+0,
+4,
+"(a) Express $\\dfrac{7x+1}{(x+1)(2x-1)}$ in partial fractions. [3]\n(b) Hence find the exact value of $\\displaystyle\\int_{1}^{2}\\frac{7x+1}{(x+1)(2x-1)}\\,dx$, giving your answer in the form $a\\ln3+b\\ln2$. [4] [7 marks]",
+[
+"(a) $7x+1\\equiv A(2x-1)+B(x+1)$",
+"(a) $x=-1$: $A=2$",
+"(a) $x=\\dfrac{1}{2}$: $B=3$, so $\\dfrac{2}{x+1}+\\dfrac{3}{2x-1}$",
+"(b) $2\\ln|x+1|$",
+"(b) $+\\dfrac{3}{2}\\ln|2x-1|$",
+"(b) $\\left(2\\ln3+\\dfrac{3}{2}\\ln3\\right)-\\left(2\\ln2+0\\right)$",
+"(b) $\\dfrac{7}{2}\\ln3-2\\ln2$"
+]
+],
+[
+"w",
+"WMA14",
+0,
+4,
+"(a) Express $\\dfrac{3x^{2}+9x+7}{(x+1)(x+2)^{2}}$ in partial fractions. [4]\n(b) Hence find the exact value of $\\displaystyle\\int_{0}^{1}\\frac{3x^{2}+9x+7}{(x+1)(x+2)^{2}}\\,dx$. [4] [8 marks]",
+[
+"(a) $\\dfrac{A}{x+1}+\\dfrac{B}{x+2}+\\dfrac{C}{(x+2)^{2}}$",
+"(a) $A=1$",
+"(a) $C=-1$",
+"(a) $B=2$",
+"(b) $\\ln|x+1|+2\\ln|x+2|$",
+"(b) $+\\dfrac{1}{x+2}$",
+"(b) $\\left(\\ln2+2\\ln3+\\dfrac{1}{3}\\right)-\\left(2\\ln2+\\dfrac{1}{2}\\right)$",
+"(b) $2\\ln3-\\ln2-\\dfrac{1}{6}$"
+]
+],
+[
+"w",
+"WMA14",
+1,
+4,
+"(a) Find the binomial expansion of $\\sqrt{1+4x}$, in ascending powers of $x$, up to and including the term in $x^{3}$. State the values of $x$ for which it is valid. [5]\n(b) Use your expansion with $x=0.01$ to estimate $\\sqrt{1.04}$, and hence estimate $\\sqrt{26}$ to 5 decimal places. [4] [9 marks]",
+[
+"(a) $1+\\dfrac{1}{2}(4x)$",
+"(a) $+\\dfrac{\\frac{1}{2}\\left(-\\frac{1}{2}\\right)}{2!}(4x)^{2}$",
+"(a) $=1+2x-2x^{2}$",
+"(a) $+4x^{3}$",
+"(a) Valid for $|x|<\\dfrac{1}{4}$",
+"(b) $1+0.02-0.0002+0.000004$",
+"(b) $=1.019804$",
+"(b) $\\sqrt{1.04}=\\dfrac{\\sqrt{26}}{5}$",
+"(b) $\\sqrt{26}\\approx5.09902$"
+]
+],
+[
+"w",
+"WMA14",
+1,
+4,
+"(a) Find the binomial expansion of $\\dfrac{1}{(2-x)^{2}}$, in ascending powers of $x$, up to and including the term in $x^{3}$. State the values of $x$ for which it is valid. [6]\n(b) Find the coefficient of $x^{2}$ in the expansion of $\\dfrac{1+3x}{(2-x)^{2}}$. [2] [8 marks]",
+[
+"(a) Takes out the factor: $2^{-2}\\left(1-\\dfrac{x}{2}\\right)^{-2}$",
+"(a) $\\dfrac{1}{4}\\left(1+x+\\ldots\\right)$",
+"(a) $\\dfrac{1}{4}$",
+"(a) $+\\dfrac{1}{4}x+\\dfrac{3}{16}x^{2}$",
+"(a) $+\\dfrac{1}{8}x^{3}$",
+"(a) Valid for $|x|<2$",
+"(b) $\\dfrac{3}{16}+3\\times\\dfrac{1}{4}$",
+"(b) $=\\dfrac{15}{16}$"
+]
+],
+[
+"w",
+"WMA14",
+2,
+4,
+"A curve has parametric equations $x=t-1$, $y=t^{2}+2t$.\n(a) Find a Cartesian equation of the curve in the form $y=f(x)$. [2]\n(b) Find $\\dfrac{dy}{dx}$ in terms of $t$. [2]\n(c) Find an equation of the normal to the curve at the point where $t=1$, in the form $ax+by+c=0$. [3]\n(d) Find the coordinates of the point where this normal meets the curve again. [3] [10 marks]",
+[
+"(a) $t=x+1$",
+"(a) $y=(x+1)^{2}+2(x+1)=x^{2}+4x+3$",
+"(b) $\\dfrac{dx}{dt}=1$, $\\dfrac{dy}{dt}=2t+2$",
+"(b) $\\dfrac{dy}{dx}=2t+2$",
+"(c) At $t=1$: point $(0,3)$, gradient $4$",
+"(c) Normal gradient $-\\dfrac{1}{4}$",
+"(c) $x+4y-12=0$",
+"(d) $x^{2}+4x+3=3-\\dfrac{x}{4}$",
+"(d) $x\\left(x+\\dfrac{17}{4}\\right)=0$",
+"(d) $\\left(-\\dfrac{17}{4},\\ \\dfrac{65}{16}\\right)$"
+]
+],
+[
+"w",
+"WMA14",
+2,
+4,
+"A curve has parametric equations $x=3\\cos t$, $y=2\\sin t$, $0\\le t<2\\pi$.\n(a) Find a Cartesian equation of the curve. [2]\n(b) Find $\\dfrac{dy}{dx}$ in terms of $t$. [2]\n(c) Show that the tangent at the point where $t=\\dfrac{\\pi}{4}$ has equation $2x+3y=6\\sqrt{2}$. [3]\n(d) Using integration, show that the area enclosed by the curve is $6\\pi$. [3] [10 marks]",
+[
+"(a) Uses $\\cos^{2}t+\\sin^{2}t=1$",
+"(a) $\\dfrac{x^{2}}{9}+\\dfrac{y^{2}}{4}=1$",
+"(b) $\\dfrac{dx}{dt}=-3\\sin t$, $\\dfrac{dy}{dt}=2\\cos t$",
+"(b) $\\dfrac{dy}{dx}=-\\dfrac{2\\cos t}{3\\sin t}$",
+"(c) Point $\\left(\\dfrac{3}{\\sqrt{2}},\\ \\sqrt{2}\\right)$, gradient $-\\dfrac{2}{3}$",
+"(c) $y-\\sqrt{2}=-\\dfrac{2}{3}\\left(x-\\dfrac{3}{\\sqrt{2}}\\right)$",
+"(c) Rearranges to $2x+3y=6\\sqrt{2}$",
+"(d) Area $=4\\displaystyle\\int_{0}^{\\frac{\\pi}{2}}2\\sin t\\times3\\sin t\\,dt$ (quarter by symmetry)",
+"(d) Uses $\\sin^{2}t=\\dfrac{1}{2}(1-\\cos2t)$: $12\\left[t-\\dfrac{1}{2}\\sin2t\\right]_{0}^{\\frac{\\pi}{2}}$",
+"(d) $=6\\pi$"
+]
+],
+[
+"w",
+"WMA14",
+3,
+4,
+"The curve $C$ has equation $x^{2}+3xy+y^{2}=11$.\n(a) Find $\\dfrac{dy}{dx}$ in terms of $x$ and $y$. [4]\n(b) Show that $(1,2)$ lies on $C$ and find an equation of the tangent there, in the form $ax+by+c=0$. [3]\n(c) Show that $C$ has no stationary points. [2] [9 marks]",
+[
+"(a) $2x+2y\\dfrac{dy}{dx}$",
+"(a) Product rule: $3y+3x\\dfrac{dy}{dx}$",
+"(a) Collects terms",
+"(a) $\\dfrac{dy}{dx}=-\\dfrac{2x+3y}{3x+2y}$",
+"(b) $1+6+4=11$ ✓",
+"(b) Gradient $-\\dfrac{8}{7}$",
+"(b) $8x+7y-22=0$",
+"(c) $\\dfrac{dy}{dx}=0$ needs $2x+3y=0$; substitutes $x=-\\dfrac{3}{2}y$",
+"(c) Gets $-\\dfrac{5}{4}y^{2}=11$, which has no real solution"
+]
+],
+[
+"w",
+"WMA14",
+3,
+4,
+"(a) Given $y=3^{x}$, show that $\\dfrac{dy}{dx}=3^{x}\\ln3$. [3]\n(b) The curve $x^{3}+y^{3}=9xy$ passes through $P(2,4)$. Find $\\dfrac{dy}{dx}$ in terms of $x$ and $y$. [4]\n(c) Find an equation of the normal to the curve at $P$, in the form $ax+by+c=0$. [3] [10 marks]",
+[
+"(a) $\\ln y=x\\ln3$",
+"(a) $\\dfrac{1}{y}\\dfrac{dy}{dx}=\\ln3$",
+"(a) $\\dfrac{dy}{dx}=y\\ln3=3^{x}\\ln3$",
+"(b) $3x^{2}+3y^{2}\\dfrac{dy}{dx}$",
+"(b) $=9y+9x\\dfrac{dy}{dx}$",
+"(b) Collects terms",
+"(b) $\\dfrac{dy}{dx}=\\dfrac{3y-x^{2}}{y^{2}-3x}$",
+"(c) At $P$: $\\dfrac{12-4}{16-6}=\\dfrac{4}{5}$",
+"(c) Normal gradient $-\\dfrac{5}{4}$",
+"(c) $5x+4y-26=0$"
+]
+],
+[
+"w",
+"WMA14",
+4,
+4,
+"(a) Find $\\displaystyle\\int xe^{2x}\\,dx$. [3]\n(b) Find the exact value of $\\displaystyle\\int_{1}^{e}x^{2}\\ln x\\,dx$. [4] [7 marks]",
+[
+"(a) Parts with $u=x$, $\\dfrac{dv}{dx}=e^{2x}$",
+"(a) $\\dfrac{1}{2}xe^{2x}-\\displaystyle\\int\\frac{1}{2}e^{2x}dx$",
+"(a) $\\dfrac{1}{2}xe^{2x}-\\dfrac{1}{4}e^{2x}+c$",
+"(b) Parts with $u=\\ln x$, $\\dfrac{dv}{dx}=x^{2}$",
+"(b) $\\dfrac{x^{3}}{3}\\ln x-\\displaystyle\\int\\frac{x^{2}}{3}dx$",
+"(b) $\\left[\\dfrac{x^{3}}{3}\\ln x-\\dfrac{x^{3}}{9}\\right]_{1}^{e}$",
+"(b) $=\\dfrac{2e^{3}+1}{9}$"
+]
+],
+[
+"w",
+"WMA14",
+4,
+4,
+"(a) Use the substitution $u=x+1$ to find the exact value of $\\displaystyle\\int_{0}^{3}x\\sqrt{x+1}\\,dx$. [5]\n(b) Find $\\displaystyle\\int\\sin x\\cos^{3}x\\,dx$. [2]\n(c) Find the exact value of $\\displaystyle\\int_{0}^{\\frac{\\pi}{2}}\\sin^{2}x\\,dx$. [2] [9 marks]",
+[
+"(a) $\\displaystyle\\int_{1}^{4}(u-1)\\sqrt{u}\\,du$ (with new limits)",
+"(a) $=\\displaystyle\\int_{1}^{4}\\left(u^{\\frac{3}{2}}-u^{\\frac{1}{2}}\\right)du$",
+"(a) $\\left[\\dfrac{2}{5}u^{\\frac{5}{2}}-\\dfrac{2}{3}u^{\\frac{3}{2}}\\right]_{1}^{4}$",
+"(a) $\\left(\\dfrac{64}{5}-\\dfrac{16}{3}\\right)-\\left(\\dfrac{2}{5}-\\dfrac{2}{3}\\right)$",
+"(a) $=\\dfrac{116}{15}$",
+"(b) Recognises the form $f'(x)\\left[f(x)\\right]^{3}$ with $f(x)=\\cos x$",
+"(b) $-\\dfrac{1}{4}\\cos^{4}x+c$",
+"(c) $\\dfrac{1}{2}\\displaystyle\\int_{0}^{\\frac{\\pi}{2}}(1-\\cos2x)\\,dx$",
+"(c) $=\\dfrac{\\pi}{4}$"
+]
+],
+[
+"w",
+"WMA14",
+5,
+4,
+"(a) Solve the differential equation $\\dfrac{dy}{dx}=2xy^{2}$, given that $y=1$ when $x=0$. Give $y$ in terms of $x$. [6]\n(b) Find $y$ when $x=\\dfrac{1}{2}$. [1] [7 marks]",
+[
+"(a) Separates: $\\displaystyle\\int\\frac{1}{y^{2}}dy=\\int2x\\,dx$",
+"(a) $-\\dfrac{1}{y}$",
+"(a) $=x^{2}+c$",
+"(a) Uses $x=0$, $y=1$: $c=-1$",
+"(a) $-\\dfrac{1}{y}=x^{2}-1$",
+"(a) $y=\\dfrac{1}{1-x^{2}}$",
+"(b) $y=\\dfrac{4}{3}$"
+]
+],
+[
+"w",
+"WMA14",
+5,
+4,
+"A cup of tea cools in a room at $20^{\\circ}\\mathrm{C}$. Its temperature $\\theta^{\\circ}\\mathrm{C}$ after $t$ minutes satisfies $\\dfrac{d\\theta}{dt}=-k(\\theta-20)$, where $k$ is a positive constant. Initially $\\theta=90$.\n(a) Show that $\\theta=20+70e^{-kt}$. [4]\n(b) After $10$ minutes the temperature is $55^{\\circ}\\mathrm{C}$. Find the exact value of $k$. [2]\n(c) Find the time taken for the tea to cool to $30^{\\circ}\\mathrm{C}$, to the nearest tenth of a minute. [3] [9 marks]",
+[
+"(a) $\\displaystyle\\int\\frac{1}{\\theta-20}d\\theta=\\int-k\\,dt$",
+"(a) $\\ln(\\theta-20)=-kt+c$",
+"(a) $t=0$, $\\theta=90$: $c=\\ln70$",
+"(a) $\\theta-20=70e^{-kt}$, so $\\theta=20+70e^{-kt}$",
+"(b) $35=70e^{-10k}$",
+"(b) $k=\\dfrac{\\ln2}{10}$",
+"(c) $10=70e^{-kt}$",
+"(c) $t=\\dfrac{\\ln7}{k}=\\dfrac{10\\ln7}{\\ln2}$",
+"(c) $t=28.1$ minutes"
+]
+],
+[
+"w",
+"WMA14",
+6,
+4,
+"The lines $l_{1}$ and $l_{2}$ have equations\n$l_{1}:\\ \\mathbf{r}=(\\mathbf{i}+2\\mathbf{j}-\\mathbf{k})+\\lambda(2\\mathbf{i}-\\mathbf{j}+3\\mathbf{k})$\n$l_{2}:\\ \\mathbf{r}=(2\\mathbf{i}-\\mathbf{j}+3\\mathbf{k})+\\mu(\\mathbf{i}+2\\mathbf{j}-\\mathbf{k})$\n(a) Show that $l_{1}$ and $l_{2}$ meet, and find the position vector of their point of intersection. [5]\n(b) Find the acute angle between $l_{1}$ and $l_{2}$, to one decimal place. [3] [8 marks]",
+[
+"(a) $1+2\\lambda=2+\\mu$ and $2-\\lambda=-1+2\\mu$",
+"(a) Solves: $\\lambda=1$",
+"(a) $\\mu=1$",
+"(a) Checks the $\\mathbf{k}$ components: $-1+3=2$ and $3-1=2$ ✓",
+"(a) $3\\mathbf{i}+\\mathbf{j}+2\\mathbf{k}$",
+"(b) $(2,-1,3)\\cdot(1,2,-1)=2-2-3=-3$",
+"(b) $\\cos\\theta=\\dfrac{3}{\\sqrt{14}\\sqrt{6}}$",
+"(b) $70.9^{\\circ}$"
+]
+],
+[
+"w",
+"WMA14",
+6,
+4,
+"The points $A$ and $B$ have position vectors $\\mathbf{i}+2\\mathbf{k}$ and $3\\mathbf{i}+4\\mathbf{j}-2\\mathbf{k}$. The point $C$ has position vector $5\\mathbf{i}+\\mathbf{j}$.\n(a) Find $\\overrightarrow{AB}$ and $|\\overrightarrow{AB}|$. [2]\n(b) Write down a vector equation of the line $AB$. [1]\n(c) The point $P$ on line $AB$ is such that $CP$ is perpendicular to $AB$. Find the position vector of $P$. [4]\n(d) Hence find the shortest distance from $C$ to the line $AB$, to 3 significant figures. [2] [9 marks]",
+[
+"(a) $\\overrightarrow{AB}=2\\mathbf{i}+4\\mathbf{j}-4\\mathbf{k}$",
+"(a) $|\\overrightarrow{AB}|=6$",
+"(b) $\\mathbf{r}=(\\mathbf{i}+2\\mathbf{k})+t(2\\mathbf{i}+4\\mathbf{j}-4\\mathbf{k})$",
+"(c) $\\overrightarrow{CP}=(2t-4)\\mathbf{i}+(4t-1)\\mathbf{j}+(2-4t)\\mathbf{k}$",
+"(c) $\\overrightarrow{CP}\\cdot(2,4,-4)=0$",
+"(c) $36t-20=0$, so $t=\\dfrac{5}{9}$",
+"(c) $\\dfrac{19}{9}\\mathbf{i}+\\dfrac{20}{9}\\mathbf{j}-\\dfrac{2}{9}\\mathbf{k}$",
+"(d) $|\\overrightarrow{CP}|=\\dfrac{\\sqrt{801}}{9}$",
+"(d) $=3.14$"
+]
 ]
 ];
   D.forEach(r => out.push({ id: id(r[1], r[2]), u: r[1], t: r[2], d: r[3], type: "w", q: r[4], ms: r[5], m: r[5].length }));
