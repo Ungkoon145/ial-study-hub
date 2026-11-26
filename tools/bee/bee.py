@@ -10,7 +10,7 @@ LEVELS = [
  {"n": "Exam", "t": 90, "d": "IAL P4 and FP3 methods: parts, substitution, partial fractions, inverse trig.",
   "card": ["By parts: $\\displaystyle\\int u\\,v'\\,dx=uv-\\int u'\\,v\\,dx$. Choose $u$ to get simpler when differentiated ($x$, $\\ln x$).",
            "Spot $\\dfrac{f'(x)}{f(x)}$: the answer is $\\ln|f(x)|$.",
-           "Standard forms: $\\displaystyle\\int\\frac{dx}{1+x^{2}}=\\arctan x$, $\\displaystyle\\int\\frac{dx}{\\sqrt{1+x^{2}}}=\\operatorname{arsinh}x$."]},
+           "Standard forms: $\\displaystyle\\int\\frac{dx}{1+x^{2}}=\\arctan x$, $\\displaystyle\\int\\frac{dx}{\\sqrt{1+x^{2}}}=\\operatorname{arcsinh}x$."]},
  {"n": "Tricks", "t": 120, "d": "King's rule and symmetry: the shortcuts Bee champions spot in seconds.",
   "card": ["<b>King's rule:</b> $\\displaystyle\\int_{a}^{b}f(x)\\,dx=\\int_{a}^{b}f(a+b-x)\\,dx$. Replace $x$ by $a+b-x$, add the two versions of $I$, and often everything cancels to $2I=\\int_{a}^{b}1\\,dx$.",
            "Example: $I=\\displaystyle\\int_{0}^{\\pi/2}\\frac{\\sin x}{\\sin x+\\cos x}dx$. King's rule swaps $\\sin$ and $\\cos$, so $2I=\\displaystyle\\int_{0}^{\\pi/2}1\\,dx=\\frac{\\pi}{2}$ and $I=\\dfrac{\\pi}{4}$.",
@@ -48,7 +48,7 @@ Q = [
  (2, r"\int_{2}^{3}\frac{1}{x^{2}-1}\,dx", "ln(3/2)/2", r"\frac{1}{2}\ln\frac{3}{2}", "Partial fractions", [r"\frac{1}{x^{2}-1}=\frac{1}{2}\left(\frac{1}{x-1}-\frac{1}{x+1}\right)", r"\left[\tfrac{1}{2}\ln\frac{x-1}{x+1}\right]_{2}^{3}", r"=\tfrac{1}{2}\left(\ln\tfrac{1}{2}-\ln\tfrac{1}{3}\right)=\tfrac{1}{2}\ln\tfrac{3}{2}"], None),
  (2, r"\int_{0}^{\frac{\pi}{2}}\sin^{2}x\,dx", "pi/4", r"\frac{\pi}{4}", "Double angle", [r"\sin^{2}x=\tfrac{1}{2}(1-\cos2x)", r"\left[\tfrac{x}{2}-\tfrac{\sin2x}{4}\right]_{0}^{\frac{\pi}{2}}=\frac{\pi}{4}"], None),
  (2, r"\int_{0}^{\frac{\pi}{2}}\sin x\cos^{2}x\,dx", "1/3", r"\frac{1}{3}", "Reverse chain rule", [r"\int\sin x\cos^{2}x\,dx=-\tfrac{1}{3}\cos^{3}x", r"0-\left(-\tfrac{1}{3}\right)=\frac{1}{3}"], None),
- (2, r"\int_{0}^{1}\frac{1}{\sqrt{1+x^{2}}}\,dx", "ln(1+sqrt(2))", r"\ln\left(1+\sqrt{2}\right)", "Standard form", [r"\left[\operatorname{arsinh}x\right]_{0}^{1}=\operatorname{arsinh}1", r"=\ln\left(1+\sqrt{2}\right)"], None),
+ (2, r"\int_{0}^{1}\frac{1}{\sqrt{1+x^{2}}}\,dx", "ln(1+sqrt(2))", r"\ln\left(1+\sqrt{2}\right)", "Standard form", [r"\left[\operatorname{arcsinh}x\right]_{0}^{1}=\operatorname{arcsinh}1", r"=\ln\left(1+\sqrt{2}\right)"], None),
  (2, r"\int_{0}^{\pi}x\sin x\,dx", "pi", r"\pi", "By parts", [r"u=x,\ v'=\sin x", r"\left[-x\cos x\right]_{0}^{\pi}+\int_{0}^{\pi}\cos x\,dx", r"=\pi+0=\pi"], None),
  (2, r"\int_{0}^{\ln2}\frac{e^{x}}{1+e^{x}}\,dx", "ln(3/2)", r"\ln\frac{3}{2}", "f'/f", [r"\left[\ln(1+e^{x})\right]_{0}^{\ln2}", r"=\ln3-\ln2=\ln\frac{3}{2}"], None),
  # ---------- Level 3: Tricks ----------

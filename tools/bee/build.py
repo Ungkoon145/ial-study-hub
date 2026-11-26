@@ -10,7 +10,7 @@ TH = [
  {"nt": "ข้อสอบ", "dt": "วิธีใน IAL P4 และ FP3: by parts, การแทนค่า, เศษส่วนย่อย, ฟังก์ชันตรีโกณผกผัน",
   "ct": ["By parts: $\\displaystyle\\int u\\,v'\\,dx=uv-\\int u'\\,v\\,dx$ เลือก $u$ ที่ดิฟแล้วง่ายลง ($x$, $\\ln x$)",
          "สังเกตรูป $\\dfrac{f'(x)}{f(x)}$: คำตอบคือ $\\ln|f(x)|$",
-         "รูปมาตรฐาน: $\\displaystyle\\int\\frac{dx}{1+x^{2}}=\\arctan x$, $\\displaystyle\\int\\frac{dx}{\\sqrt{1+x^{2}}}=\\operatorname{arsinh}x$"]},
+         "รูปมาตรฐาน: $\\displaystyle\\int\\frac{dx}{1+x^{2}}=\\arctan x$, $\\displaystyle\\int\\frac{dx}{\\sqrt{1+x^{2}}}=\\operatorname{arcsinh}x$"]},
  {"nt": "ทริค", "dt": "King's rule และความสมมาตร: ทางลัดที่แชมป์ Bee มองออกในไม่กี่วินาที",
   "ct": ["<b>King's rule:</b> $\\displaystyle\\int_{a}^{b}f(x)\\,dx=\\int_{a}^{b}f(a+b-x)\\,dx$ แทน $x$ ด้วย $a+b-x$ แล้วบวก $I$ ทั้งสองแบบ บ่อยครั้งจะตัดกันเหลือ $2I=\\int_{a}^{b}1\\,dx$",
          "ตัวอย่าง: $I=\\displaystyle\\int_{0}^{\\pi/2}\\frac{\\sin x}{\\sin x+\\cos x}dx$ King's rule สลับ $\\sin$ กับ $\\cos$ จึงได้ $2I=\\displaystyle\\int_{0}^{\\pi/2}1\\,dx=\\frac{\\pi}{2}$ และ $I=\\dfrac{\\pi}{4}$",

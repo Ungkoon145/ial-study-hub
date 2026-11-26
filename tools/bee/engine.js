@@ -11,7 +11,7 @@ const FN = { sin:Math.sin, cos:Math.cos, tan:Math.tan, sec:x => 1 / Math.cos(x),
   sinh:Math.sinh, cosh:Math.cosh, tanh:Math.tanh, arsinh:Math.asinh, arcsinh:Math.asinh, asinh:Math.asinh, arcosh:Math.acosh, arccosh:Math.acosh, acosh:Math.acosh, artanh:Math.atanh, arctanh:Math.atanh, atanh:Math.atanh,
   ln:Math.log, log:Math.log, exp:Math.exp, sqrt:Math.sqrt, abs:Math.abs };
 const TEXF = { sin:'\\sin', cos:'\\cos', tan:'\\tan', sec:'\\sec', csc:'\\csc', cosec:'\\operatorname{cosec}', cot:'\\cot', arcsin:'\\arcsin', asin:'\\arcsin', arccos:'\\arccos', acos:'\\arccos', arctan:'\\arctan', atan:'\\arctan',
-  sinh:'\\sinh', cosh:'\\cosh', tanh:'\\tanh', arsinh:'\\operatorname{arsinh}', arcsinh:'\\operatorname{arsinh}', asinh:'\\operatorname{arsinh}', arcosh:'\\operatorname{arcosh}', arccosh:'\\operatorname{arcosh}', acosh:'\\operatorname{arcosh}', artanh:'\\operatorname{artanh}', arctanh:'\\operatorname{artanh}', atanh:'\\operatorname{artanh}', ln:'\\ln', log:'\\ln', exp:'\\exp' };
+  sinh:'\\sinh', cosh:'\\cosh', tanh:'\\tanh', arsinh:'\\operatorname{arcsinh}', arcsinh:'\\operatorname{arcsinh}', asinh:'\\operatorname{arcsinh}', arcosh:'\\operatorname{arccosh}', arccosh:'\\operatorname{arccosh}', acosh:'\\operatorname{arccosh}', artanh:'\\operatorname{arctanh}', arctanh:'\\operatorname{arctanh}', atanh:'\\operatorname{arctanh}', ln:'\\ln', log:'\\ln', exp:'\\exp' };
 const NAMES = Object.keys(FN).filter(k => k !== 'tan1').concat(['pi', 'e', 'x']).sort((a, b) => b.length - a.length);
 function beeTok(s){
   s = String(s).toLowerCase().replace(/\s+/g, '').replace(/[−–—]/g, '-').replace(/[×·∙]/g, '*').replace(/÷/g, '/').replace(/π/g, 'pi').replace(/√/g, 'sqrt').replace(/²/g, '^2').replace(/³/g, '^3').replace(/\*\*/g, '^')
@@ -123,7 +123,7 @@ function viewLadder(){
     '<details class="card bee-help"><summary><b>' + L('How to type answers', 'วิธีพิมพ์คำตอบ') + '</b></summary><ul class="small">' +
       '<li>' + L('Fractions and powers: ', 'เศษส่วนและเลขยกกำลัง: ') + K('3/4', '\\dfrac{3}{4}') + ', ' + K('x^6', 'x^{6}') + ', ' + K('(e^2-1)/2', '\\dfrac{e^{2}-1}{2}') + '</li>' +
       '<li>' + L('Constants and roots: ', 'ค่าคงที่และรากที่สอง: ') + K('pi', '\\pi') + L(' (or π), ', ' (หรือ π), ') + K('e', 'e') + ', ' + K('sqrt(2)', '\\sqrt{2}') + '</li>' +
-      '<li>' + L('Functions: ', 'ฟังก์ชัน: ') + K('ln(2)', '\\ln 2') + ', ' + K('sin(x)', '\\sin x') + ', ' + K('arctan(x)', '\\arctan x') + ', ' + K('arsinh(1)', '\\operatorname{arsinh} 1') + '</li>' +
+      '<li>' + L('Functions: ', 'ฟังก์ชัน: ') + K('ln(2)', '\\ln 2') + ', ' + K('sin(x)', '\\sin x') + ', ' + K('arctan(x)', '\\arctan x') + ', ' + K('arcsinh(1)', '\\operatorname{arcsinh} 1') + '</li>' +
       '<li>' + L('You can leave out the × sign: ', 'ไม่ต้องใส่เครื่องหมาย × ก็ได้: ') + K('2pi', '2\\pi') + ', ' + K('pi ln2/8', '\\dfrac{\\pi\\ln 2}{8}') + '</li>' +
       '<li>' + L('Indefinite integrals: give $F(x)$; writing $+C$ is optional. Any equivalent form is marked right.', 'อินทิกรัลไม่จำกัดเขต: ตอบ $F(x)$ จะใส่ $+C$ หรือไม่ก็ได้ รูปที่เท่ากันแบบใดก็ถูก') + '</li>' +
       '<li>' + L('Give exact answers. A decimal that is right scores half points.', 'ให้คำตอบแบบค่าแม่นตรง ทศนิยมที่ถูกได้ครึ่งคะแนน') + '</li></ul></details>' +
@@ -174,7 +174,7 @@ const KB = [
   ['1','1'],['2','2'],['3','3'],['$-$','-'],['$x^{2}$','^2'],['$x^{\\square}$','^()',2],
   ['0','0'],['.','.'],['$x$','x'],['$+$','+'],['$\\pi$','pi'],['$e$','e'],
   ['$\\sqrt{\\square}$','sqrt()',5],['$\\ln$','ln()',3],['$\\sin$','sin()',4],['$\\cos$','cos()',4],['$\\tan$','tan()',4],['$|\\square|$','abs()',4],
-  ['$\\arctan$','arctan()',7],['$\\arcsin$','arcsin()',7],['$\\sec$','sec()',4],['$\\sinh$','sinh()',5],['$\\cosh$','cosh()',5],['$\\operatorname{arsinh}$','arsinh()',7],
+  ['$\\arctan$','arctan()',7],['$\\arcsin$','arcsin()',7],['$\\sec$','sec()',4],['$\\sinh$','sinh()',5],['$\\cosh$','cosh()',5],['$\\operatorname{arcsinh}$','arcsinh()',8],
   ['←','',0,'l'],['→','',0,'r'],['CLR','',0,'clr']
 ];
 function kbOn(){ try { const v = localStorage.getItem('ial-beekb'); if (v) return v === '1'; } catch(e){} return !!((window.matchMedia && matchMedia('(pointer:coarse)').matches) || (navigator.maxTouchPoints > 0 && innerWidth < 900)); }
