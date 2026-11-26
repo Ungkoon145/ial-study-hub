@@ -1,7 +1,7 @@
 /* Offline support: keeps the app on the device so it opens and works with no internet.
    App files come from the saved copy first (fast on weak signal); a new version is saved whole when this file changes.
    Papers and notes are PDFs on Pearson's and PMT's own sites. Papers a student saves for offline use (PMT only) are kept in 'ial-pdf' and open through ./offline-pdf?u=<url>. */
-const CACHE = 'ial-study-hub-20261126115814';
+const CACHE = 'ial-study-hub-20261126135419';
 const IMG = 'ial-img-1';      // PMT picture flashcards, saved as they're viewed or from Settings
 const LIB = 'ial-lib';        // sign-in and sync libraries (versioned URLs, so they never go stale)
 const FILES = ['./', './index.html', './privacy.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',

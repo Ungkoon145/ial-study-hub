@@ -22,13 +22,31 @@ function rmReactHtml(m){
 }
 const RM_PUB_NAMES = ['Quiet library', 'Exam season focus', 'Past paper practice', 'Morning focus', 'Night owls', 'Weekend revision', 'Maths', 'Further Maths', 'Physics', 'Chemistry', 'Biology', 'Economics', 'Psychology', 'Computer Science', 'Geography', 'History', 'English'];
 // Direct connections first (STUN). When a network blocks those (school Wi-Fi, mobile data), video goes
-// through Metered's relay (TURN): free trial plan, 500 MB a month, which simply stops at the limit (never billed).
-// Port 443 over TCP/TLS gets through strict firewalls that only allow web traffic.
-const RM_TURN = { username: 'c47e249d6fd007ee0d1416da', credential: 't8s5yLjVB9q1DoE/' };
-const RM_ICE = [
-  { urls: ['stun:stun.l.google.com:19302', 'stun:stun.relay.metered.ca:80'] },
-  Object.assign({ urls: ['turn:global.relay.metered.ca:80', 'turn:global.relay.metered.ca:80?transport=tcp', 'turn:global.relay.metered.ca:443', 'turns:global.relay.metered.ca:443?transport=tcp'] }, RM_TURN)
-];
+// through Metered's relay (TURN). Relay passwords are never in this code: a small helper (tools/turn-worker.js,
+// a Cloudflare Worker) hands a signed-in student one that expires after 4 hours.
+const RM_TURN_URL = 'https://ial-turn.ungkoonsk145.workers.dev/';
+const RM_ICE_BASE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun.relay.metered.ca:80'] }];
+const RMI_ICE = { list: null, exp: 0, busy: null };
+function rmIce(){ return RMI_ICE.list && Date.now() < RMI_ICE.exp - 600000 ? RMI_ICE.list : RM_ICE_BASE; }
+// fetch (or refresh) a relay password; never waits more than 4 s, and the room works without one
+function rmIceLoad(){
+  if (RMI_ICE.list && Date.now() < RMI_ICE.exp - 1800000) return Promise.resolve();
+  if (RMI_ICE.busy) return RMI_ICE.busy;
+  if (/^__/.test(RM_TURN_URL) || typeof FB === 'undefined' || !FB.user || !FB.user.getIdToken) return Promise.resolve();
+  const go = (async () => {
+    try {
+      const t = await FB.user.getIdToken();
+      const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 4000);
+      const r = await fetch(RM_TURN_URL, { headers: { Authorization: 'Bearer ' + t }, signal: ctl.signal });
+      clearTimeout(to);
+      if (r.ok){ const d = await r.json(); if (Array.isArray(d.iceServers) && d.exp){ RMI_ICE.list = RM_ICE_BASE.concat(d.iceServers); RMI_ICE.exp = +d.exp; } }
+    } catch(e){}
+    RMI_ICE.busy = null;
+  })();
+  RMI_ICE.busy = Promise.race([go, new Promise(r => setTimeout(r, 4500))]);
+  return RMI_ICE.busy;
+}
+setInterval(() => { if (RM.rid && RM.room && RM.room.kind === 'cam') rmIceLoad(); }, 600000);
 const RM = { db: null, room: null, rid: null, unsub: null, sigUnsub: null, list: [], listUnsub: null, listStatus: 'idle', err: '', beat: null, cam: null, camErr: '', pcs: {}, vids: {}, hidden: {}, hello: {}, react: null, busy: false, joinErr: '', create: null, sched: null, noRules: false, leaving: false };
 
 function rmAvailable(){ return typeof ACCT !== 'undefined' && ACCT && FB.user && FB.F; }
@@ -124,6 +142,7 @@ async function rmJoin(id, stay){
     RM.rid = id; RM.room = Object.assign({ id }, room); RM.hidden = {}; RM.hello = {}; RM.tmSeen = undefined; RM.camBlocked = (room.coff || []).includes(rmUid());
     await rmDb().setMe(id, rmUid(), rmMine());
     RM.unsub = rmDb().watch(id, d => rmOnRoom(d), e => { RM.err = rmErrMsg(e); rmRefresh(); });
+    if (room.kind === 'cam'){ await rmIceLoad(); if (RM.rid !== id) return; }
     if (room.kind === 'cam') RM.sigUnsub = rmDb().sigWatch(id, rmUid(), rmOnSig, () => {});
     clearInterval(RM.beat); RM.beat = setInterval(rmBeat, RM_BEAT); RM.joinedAt = Date.now(); RM.sess = { rid: id, n: String(room.name || ''), kind: room.kind, at: Date.now(), min: 0, blocks: 0 }; RM.recap = null; RM.ppSeen = undefined;
     if (room.kind === 'cam') setTimeout(() => { if (RM.rid === id && RM.room) rmSyncPeers(); }, 6500);
@@ -235,7 +254,7 @@ function rmCamOff(quiet){
 function rmClosePc(uid){ const p = RM.pcs[uid]; if (!p) return; clearTimeout(p.reT); clearTimeout(p.dropT); try { p.pc.close(); } catch(e){} delete RM.pcs[uid]; delete RM.vids[uid]; }
 function rmNewPc(uid, sess){
   rmClosePc(uid);
-  const pc = new RTCPeerConnection({ iceServers: RM_ICE });
+  const pc = new RTCPeerConnection({ iceServers: rmIce() });
   const p = RM.pcs[uid] = { pc, sess, tx: null, state: 'connecting', made: Date.now(), tries: (RM.pcs[uid] && RM.pcs[uid].tries) || 0 };
   pc.ontrack = ev => { const v = rmVideo(uid); v.srcObject = ev.streams[0] || new MediaStream([ev.track]); v.play().catch(() => {}); RM.lastFrame[uid] = performance.now(); rmFrameWatch(uid, v); rmPlace(); };
   pc.onconnectionstatechange = () => {
