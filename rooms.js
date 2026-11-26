@@ -159,7 +159,7 @@ async function rmLeave(quiet){
   try { rmRecapMake(); } catch(e){}
   try { rmxStopAll(); } catch(e){} RM.panel = null;
   if (RM.full){ RM.full = false; try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e){} const fe = document.getElementById('rmfull'); if (fe) fe.remove(); document.body.classList.remove('rmfulling'); }
-  rmCamOff(true); Object.keys(RM.pcs).forEach(rmClosePc); RM.fails = {};
+  rmCamOff(true); Object.keys(RM.pcs).forEach(rmClosePc); RM.fails = {}; RMSV.override = null; RMSV.pick = []; RMSV.paused = '';
   if (RM.unsub){ try { RM.unsub(); } catch(e){} } if (RM.sigUnsub){ try { RM.sigUnsub(); } catch(e){} }
   clearInterval(RM.beat); clearTimeout(RM.sched);
   const wasCam = RM.room && RM.room.kind === 'cam';
@@ -351,7 +351,7 @@ function rmPlace(){
     const uid = slot.dataset.rmvid;
     let v = null;
     if (uid === 'me'){ if (RM.cam){ v = rmVideo('me'); const st = rmBlurMP() && RM.camOut ? RM.camOut : RM.cam; if (v.srcObject !== st) v.srcObject = st; } }
-    else if (RM.vids[uid] && RM.room && (RM.room.m[uid] || {}).cam && !RM.hidden[uid]) v = RM.vids[uid];
+    else if (RM.vids[uid] && RM.room && (RM.room.m[uid] || {}).cam && !RM.hidden[uid] && !rmSaverPaused(uid)) v = RM.vids[uid];
     if (v){
       if (v.parentNode !== slot){ const keep = slot.querySelector('.avatar'); slot.textContent = ''; if (keep) slot.appendChild(keep); slot.appendChild(v); }
       v.play().catch(() => {}); rmApplyView(v, uid, slot);
@@ -383,7 +383,7 @@ function rmTile(m, me){
   const cam = RM.room.kind === 'cam', owner = RM.room.owner === rmUid(), react = rmReactHtml(me ? rmMine() : m);
   const av = '<span class="avatar" aria-hidden="true" style="width:56px;height:56px;background:' + esc(/^#[0-9a-fA-F]{6}$/.test(m.c) ? m.c : '#4b5a70') + ';font-size:22px">' + esc(initials(m.n) || '?') + '</span>';
   return '<div class="rmtile st-' + esc(m.st || 'idle') + (me ? ' me' : '') + '">' +
-    (cam ? '<div class="rmcam" data-rmvid="' + (me ? 'me' : esc(m.id)) + '">' + av + '</div>' : '<div class="rmcam nocam">' + av + '</div>') +
+    (cam ? '<div class="rmcam" data-rmvid="' + (me ? 'me' : esc(m.id)) + '">' + av + (!me && rmSaverPaused(m.id) ? rmSvPausedBtn(m) : '') + '</div>' : '<div class="rmcam nocam">' + av + '</div>') +
     react +
     rmLowDot(m, me) +
     '<div class="rmmeta"><div class="t"><b>' + esc(m.n || 'A student') + '</b>' + (me ? ' <span class="small muted">(you)</span>' : '') + '</div>' +
@@ -489,6 +489,7 @@ function viewRoom(){
           '</div></div>' +
       '</div></section>' +
     (RM.camErr ? '<p class="small warnline" role="alert">' + esc(RM.camErr) + '</p>' : '') +
+    (cam ? rmSaverLine() : '') +
     (r.tm && r.owner !== me ? '<label class="row small rmfollow" style="gap:8px;align-items:center;min-height:44px"><input type="checkbox" data-act="rm-follow"' + (rmFollowOn() ? ' checked' : '') + '> <span>Follow the room timer (the person who made this room can start and pause it for everyone)</span></label>' : '') +
     (RM.camBlocked ? '<p class="small muted" role="status">The person who made this room has turned your camera off for now.</p>' : '') +
     (RM.safeMsg && !RM.cam ? '<p class="small warnline" role="status">' + esc(RM.safeMsg) + '</p>' : '') +
@@ -719,6 +720,9 @@ function rmAct(el){
     case 'rm-layout': rmvPrefs().layout = v; commit(); break;
     case 'rm-snd': if (rmxOn(v)) rmxStop(v); else rmxStart(v); render(); break;
     case 'rm-snd-off': rmxStopAll(); render(); break;
+    case 'rm-saver': RMSV.override = v === '1'; try { localStorage.setItem('ial-svask', '1'); } catch(e){} rmSaverChanged(); render(); toast(v === '1' ? 'Saver on: using less data.' : 'Saver off.'); break;
+    case 'rm-svno': try { localStorage.setItem('ial-svask', '1'); } catch(e){} render(); break;
+    case 'rm-svshow': RMSV.pick = [id].concat(RMSV.pick.filter(x => x !== id)).slice(0, RMSV.live); RMSV.paused = null; rmNvUpdate(); render(); if (RM.full) try { rmFullRender(); } catch(e){} break;
     case 'rm-retry': if (RM.fails) RM.fails[v] = 0; rmReconnect(v, true); render(); toast('Trying again…'); break;
     case 'rm-invpick': RM.pick = RM.pick ? null : {}; render(); break;
     case 'rm-invsel': if (RM.pick){ if (el.checked) RM.pick[v] = 1; else delete RM.pick[v]; rmInvPickSync(); } break;
@@ -789,7 +793,7 @@ function rmFullRender(){
   const card = (m, isMe) => {
     const av = '<span class="avatar" aria-hidden="true" style="background:' + esc(/^#[0-9a-fA-F]{6}$/.test(m.c) ? m.c : '#4b5a70') + '">' + esc(initials(m.n) || '?') + '</span>';
     const react = rmReactHtml(m);
-    return (cam ? '<div class="rmcam" data-rmvid="' + (isMe ? 'me' : esc(m.id)) + '">' + av + '</div>' : '<div class="rmcam nocam">' + av + '</div>') + react + rmLowDot(m, isMe) +
+    return (cam ? '<div class="rmcam" data-rmvid="' + (isMe ? 'me' : esc(m.id)) + '">' + av + (!isMe && rmSaverPaused(m.id) ? rmSvPausedBtn(m) : '') + '</div>' : '<div class="rmcam nocam">' + av + '</div>') + react + rmLowDot(m, isMe) +
       '<div class="rmfname"><b>' + esc(m.n || 'A student') + '</b>' + (isMe ? ' <span>(you)</span>' : '') + ' <span class="rmfst">' + rmStatus(m) + ' ' + rmClock(m) + '</span>' + rmGoalLine(m) + '</div>';
   };
   const html = '<div class="rmscene-slot" data-rmscene="' + sc + '"></div><div class="rmshade"></div>' +
@@ -898,7 +902,7 @@ async function rmTune(uid){
   const p = RM.pcs[uid]; if (!p || !p.tx || !RM.room) return;
   const s = p.tx.sender, me = rmUid(), them = RM.room.m[uid] || {};
   const active = !!RM.cam && !((them.nv || []).includes(me));
-  const lvl = Math.max(p.q ? p.q.lvl : 0, RM.cpuQ ? RM.cpuQ.lvl : 0, p.relay ? 2 : 0);   // relayed video is sent smaller, to save the relay allowance
+  const lvl = Math.max(p.q ? p.q.lvl : 0, RM.cpuQ ? RM.cpuQ.lvl : 0, p.relay || rmSaver() ? 2 : 0);   // relayed video is sent smaller, to save the relay allowance
   const e = rmEnc(Math.max(1, rmWatchers()), lvl);
   const key = active + '|' + e.maxBitrate + '|' + e.scaleResolutionDownBy + '|' + e.maxFramerate;
   if (p.encKey === key) return;
@@ -925,8 +929,10 @@ function rmWatchSlots(){
 }
 function rmNvUpdate(){
   if (!RM.room || RM.room.kind !== 'cam') return;
-  const me = rmUid(), away = document.hidden || route() !== 'rooms';
-  const nv = rmMembers(RM.room).filter(m => m.id !== me && (away || RM.hidden[m.id] || RM.vis[m.id] === false)).map(m => m.id).sort().slice(0, 12);
+  const me = rmUid(), away = document.hidden || route() !== 'rooms', live = rmSaverLive();
+  const nv = rmMembers(RM.room).filter(m => m.id !== me && (away || RM.hidden[m.id] || RM.vis[m.id] === false || (live && m.cam && !live.includes(m.id)))).map(m => m.id).sort().slice(0, 12);
+  const paused = live ? rmMembers(RM.room).filter(m => m.id !== me && m.cam && !RM.hidden[m.id] && !live.includes(m.id)).map(m => m.id).sort().join() : '';
+  if (paused !== RMSV.paused){ RMSV.paused = paused; setTimeout(rmRefresh, 0); }
   if (nv.join() === RM.nv.join()) return;
   RM.nv = nv; clearTimeout(RM.nvT); RM.nvT = setTimeout(rmBeat, 1200);
 }
@@ -1131,7 +1137,7 @@ RM.facing = 'user';
 async function rmCamDevices(){
   try { const d = await navigator.mediaDevices.enumerateDevices(); RM.multiCam = d.filter(x => x.kind === 'videoinput').length > 1; } catch(e){ RM.multiCam = false; }
 }
-function rmCamOpts(facing, exact){ return { video: { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 24, max: 30 }, facingMode: exact ? { exact: facing } : facing }, audio: false }; }
+function rmCamOpts(facing, exact){ const sv = rmSaver(); return { video: { width: { ideal: sv ? 320 : 480 }, height: { ideal: sv ? 240 : 360 }, frameRate: { ideal: sv ? 12 : 24, max: sv ? 15 : 30 }, facingMode: exact ? { exact: facing } : facing }, audio: false }; }
 async function rmCamFlip(){
   if (!RM.cam || RM.flipping) return;
   RM.flipping = true; render();
@@ -1779,3 +1785,65 @@ setInterval(() => { rmOwnedSweep(); }, 120000);
 window.addEventListener('pagehide', () => {
   try { if (RM.rid && RM.room && RM.room.owner === rmUid() && !rmPlanned(RM.rid)){ state.rmOwned = state.rmOwned || {}; if (!state.rmOwned[RM.rid]) state.rmOwned[RM.rid] = Date.now(); saveLocal(); } } catch(e){}
 });
+/* ---------- Saver mode (camera rooms) ----------
+   Uses far less mobile data and battery: my video is sent small (lowest quality step), my camera captures
+   less, and I watch at most 2 live cameras; everyone else's phone stops sending me video (through the same
+   "not watching" list rooms already use, so no new rules). Auto: on with mobile data, Data Saver or a low
+   battery where the browser tells us (Android, Chrome); iPhone/iPad Safari doesn't, so we ask once. */
+const RMSV = { live: 2, batt: null, pick: [], paused: [], override: null };
+function rmSaverPref(){ const v = prefs().rmsaver; return v === 'on' || v === 'off' ? v : 'auto'; }
+function rmSaverAuto(){
+  try {
+    const c = navigator.connection;
+    if (c && (c.saveData || c.type === 'cellular' || /(^|-)2g$/.test(c.effectiveType || ''))) return true;
+  } catch(e){}
+  const b = RMSV.batt; return !!(b && !b.charging && b.level <= 0.2);
+}
+function rmSaver(){ if (RMSV.override !== null) return RMSV.override; const p = rmSaverPref(); return p === 'on' ? true : p === 'off' ? false : rmSaverAuto(); }
+function rmIsIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+try {
+  if (navigator.getBattery) navigator.getBattery().then(b => {
+    const up = () => { RMSV.batt = { level: b.level, charging: b.charging }; rmSaverChanged(); };
+    up(); b.addEventListener('levelchange', up); b.addEventListener('chargingchange', up);
+  }).catch(() => {});
+  if (navigator.connection) navigator.connection.addEventListener('change', () => rmSaverChanged());
+} catch(e){}
+// whose cameras I watch live in Saver: the ones I picked, then the first others in the room
+function rmSaverLive(){
+  if (!RM.room || RM.room.kind !== 'cam' || !rmSaver()) return null;
+  const me = rmUid(), cams = rmMembers(RM.room).filter(m => m.id !== me && m.cam && !RM.hidden[m.id]).map(m => m.id);
+  const live = RMSV.pick.filter(id => cams.includes(id));
+  cams.forEach(id => { if (live.length < RMSV.live && !live.includes(id)) live.push(id); });
+  return live.slice(0, RMSV.live);
+}
+function rmSaverPaused(uid){ const live = rmSaverLive(); return !!live && !!RM.room && (RM.room.m[uid] || {}).cam && !RM.hidden[uid] && uid !== rmUid() && !live.includes(uid); }
+let RMSV_ON = null;
+function rmSaverChanged(){
+  const on = rmSaver();
+  if (on === RMSV_ON) return;
+  RMSV_ON = on;
+  try {
+    const t = RM.cam && RM.cam.getVideoTracks()[0];
+    if (t) t.applyConstraints(on ? { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 12, max: 15 } } : { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 24, max: 30 } }).catch(() => {});
+  } catch(e){}
+  if (RM.rid){ Object.values(RM.pcs).forEach(p => { if (p) p.encKey = ''; }); rmTuneAll(); rmNvUpdate(); rmRefresh(); }
+}
+// rough data use for the room, per hour, as it is now and with Saver (kbps → MB an hour)
+function rmSaverEstimate(){
+  const me = rmUid(), n = RM.room ? rmMembers(RM.room).filter(m => m.id !== me).length : 0;
+  if (!n) return null;
+  const full = rmEnc(n, 0).maxBitrate / 1000, low = rmEnc(n, 2).maxBitrate / 1000;
+  const mb = k => Math.round(k * 3600 / 8 / 1000 / 10) * 10;
+  return { normal: mb(n * full * 2), saver: mb(n * low + Math.min(RMSV.live, n) * full) };
+}
+function rmSaverLine(){
+  if (!RM.room || RM.room.kind !== 'cam') return '';
+  const on = rmSaver(), est = rmSaverEstimate(), ask = !on && rmIsIOS() && rmSaverPref() === 'auto' && RMSV.override === null && !localStorage.getItem('ial-svask');
+  if (ask) return '<div class="card row rmsvask" role="status"><div class="grow small"><b>On mobile data?</b> Turn on Saver to use about half the data in this room.</div>' +
+    '<button class="btn sm primary" data-act="rm-saver" data-v="1">Turn on Saver</button><button class="btn sm ghost" data-act="rm-svno">No thanks</button></div>';
+  const why = on && RMSV.override === null && rmSaverPref() === 'auto' ? ' <span class="muted">(turned on for mobile data or low battery)</span>' : '';
+  return '<div class="row small rmsvline">' + (on
+    ? '<span class="rmsvchip">Saver on</span><span class="grow">' + (est ? 'About ' + est.saver + ' MB an hour instead of ' + est.normal + ' MB. You see 2 live cameras; tap a paused one to swap.' : 'Your video is sent small to save data.') + why + '</span><button class="linkbtn small" data-act="rm-saver" data-v="0">Turn off</button>'
+    : '<span class="grow muted">' + (est ? 'Video in this room uses about ' + est.normal + ' MB an hour.' : '') + '</span><button class="linkbtn small" data-act="rm-saver" data-v="1">Use Saver</button>') + '</div>';
+}
+function rmSvPausedBtn(m){ return '<button class="rmsvpaused" data-act="rm-svshow" data-id="' + esc(m.id) + '" aria-label="Show ' + esc(m.n || 'this person') + '’s camera (paused to save data)"><span>Paused to save data</span><b>Show</b></button>'; }
