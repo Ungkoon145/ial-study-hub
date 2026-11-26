@@ -79,7 +79,7 @@ function beeTex(n){
 /* right / wrong for one question. Returns { ok, dec, msg } */
 function beeCheck(q, typed){
   let tree; try { tree = beeParse(typed); } catch(err){ return { ok:false, msg:String(err) }; }
-  const close = (a, b) => isFinite(a) && Math.abs(a - b) <= 1e-7 * Math.max(1, Math.abs(b));
+  const close = (a, b) => isFinite(a) && Math.abs(a - b) <= (q.tol || 1e-7) * Math.max(1, Math.abs(b));
   if (q.v != null){
     if (hasX(tree)) return { ok:false, msg:L('This is a definite integral, so the answer is a number: there should be no $x$ in it.', 'นี่คืออินทิกรัลจำกัดเขต คำตอบเป็นตัวเลข ไม่ควรมี x') };
     return { ok:close(beeEval(tree, 0), q.v), dec:hasDec(tree) };
@@ -95,7 +95,12 @@ const qid = (lv, i) => 'b' + lv + '-' + i;
 function bs(){ if (!state.bee || typeof state.bee !== 'object') state.bee = { s:{}, best:{}, pts:0 }; const b = state.bee; b.s = b.s || {}; b.best = b.best || {}; b.pts = b.pts || 0; return b; }
 function lvQs(lv){ return BEE_Q.map((q, i) => Object.assign({ i, id:qid(q.l, BEE_Q.slice(0, i).filter(r => r.l === q.l).length) }, q)).filter(q => q.l === lv); }
 function solvedIn(lv){ const b = bs(); return lvQs(lv).filter(q => b.s[q.id] && b.s[q.id].ok).length; }
-function unlocked(lv){ return lv === 1 || bs().all || solvedIn(lv - 1) >= 5; }
+const GATE = { 1:'fpow', 2:'red', 3:'esym', 4:'feyn', 5:'series', 6:'gamma' };
+function lesDone(id){ const r = (bs().les || {})[id]; return !!(r && r.done); }
+function lesIdx(id){ return LEARN.findIndex(x => x.id === id); }
+function lesName(l){ return th() ? l.nt : l.n; }
+function unlocked(lv){ return typeof LEARN === 'undefined' || lesDone(GATE[lv]); }
+function gateText(lv){ const l = LEARN[lesIdx(GATE[lv])]; return L('Finish lesson ' + (lesIdx(GATE[lv]) + 1) + ' (' + lesName(l) + ') in Learn to open', 'เรียนบทที่ ' + (lesIdx(GATE[lv]) + 1) + ' (' + lesName(l) + ') ในส่วนเรียนให้จบเพื่อเปิด'); }
 function U(){ if (!ui.bee) ui.bee = { mode:'ladder' }; return ui.bee; }
 const fmtT = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 const D = t => '$\\displaystyle ' + t + '$';
@@ -112,9 +117,8 @@ function viewLadder(){
       return '<li class="card bee-lv' + (open ? '' : ' locked') + '"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px"><div class="grow"><h2><span class="bee-n">' + lv + '</span>' + esc(lvName(lv)) + '</h2><p class="small">' + (th() && v.dt ? v.dt : v.d) + '</p>' +
         '<div class="small muted">' + s + ' / ' + n + ' ' + L('solved', 'ข้อที่ทำได้') + ' · ' + fmtT(v.t * 1000) + ' ' + L('each', 'ต่อข้อ') + (best ? ' · ' + L('best round', 'รอบที่ดีที่สุด') + ' ' + best : '') + '</div>' +
         '<div class="meter"><i style="width:' + Math.round(s / n * 100) + '%;background:var(--math)"></i></div></div>' +
-        (open ? '<button class="btn primary" data-bee="play" data-v="' + lv + '">' + L('Play', 'เล่น') + '</button>' : '<span class="small muted bee-lock">' + L('Solve 5 in ' + lvName(lv - 1) + ' to open', 'ทำให้ได้ 5 ข้อใน ' + lvName(lv - 1) + ' เพื่อเปิด') + '</span>') + '</div>' +
+        (open ? '<button class="btn primary" data-bee="play" data-v="' + lv + '">' + L('Play', 'เล่น') + '</button>' : '<span class="small muted bee-lock">' + esc(gateText(lv)) + '</span>') + '</div>' +
         '<details class="bee-tech"><summary>' + L('Technique card', 'การ์ดเทคนิค') + '</summary>' + techCard(lv) + '</details></li>'; }).join('') + '</ol>' +
-    (BEE_LV.some((v, k) => !unlocked(k + 1)) ? '<p class="small"><button class="linkbtn" data-bee="all">' + L('Open every level now', 'เปิดทุกระดับเลย') + '</button></p>' : '') +
     '<details class="card bee-help"><summary><b>' + L('How to type answers', 'วิธีพิมพ์คำตอบ') + '</b></summary><ul class="small">' +
       '<li>' + L('Fractions and powers: ', 'เศษส่วนและเลขยกกำลัง: ') + K('3/4', '\\dfrac{3}{4}') + ', ' + K('x^6', 'x^{6}') + ', ' + K('(e^2-1)/2', '\\dfrac{e^{2}-1}{2}') + '</li>' +
       '<li>' + L('Constants and roots: ', 'ค่าคงที่และรากที่สอง: ') + K('pi', '\\pi') + L(' (or π), ', ' (หรือ π), ') + K('e', 'e') + ', ' + K('sqrt(2)', '\\sqrt{2}') + '</li>' +
@@ -159,18 +163,22 @@ function prevHtml(s){
 function viewDone(){
   const u = U(), b = bs(), ok = u.res.filter(r => r.ok).length, nb = u.newBest;
   return '<div class="card stack bee-done"><h1>' + L('Round complete', 'จบรอบแล้ว') + '</h1><div class="bee-pts">' + u.score + ' <span class="small muted">' + L('points', 'คะแนน') + '</span></div><p>' + ok + ' / ' + u.res.length + ' ' + L('correct in ', 'ข้อถูกใน ') + esc(lvName(u.lv)) + (nb ? ' · <b>' + L('New best round!', 'สถิติใหม่!') + '</b>' : '') + '</p>' +
-    (u.lv < 6 && !unlocked(u.lv + 1) ? '<p class="small muted">' + L('Solve ' + Math.max(0, 5 - solvedIn(u.lv)) + ' more here to open ' + lvName(u.lv + 1) + '.', 'ทำอีก ' + Math.max(0, 5 - solvedIn(u.lv)) + ' ข้อเพื่อเปิด ' + lvName(u.lv + 1)) + '</p>' : u.lv < 6 && solvedIn(u.lv) >= 5 && unlocked(u.lv + 1) && u.opened ? '<p><b>' + L(lvName(u.lv + 1) + ' is now open.', lvName(u.lv + 1) + ' เปิดแล้ว') + '</b></p>' : '') +
+    (u.lv < 6 && !unlocked(u.lv + 1) ? '<p class="small muted">' + esc(gateText(u.lv + 1)) + ' ' + esc(lvName(u.lv + 1)) + '.</p>' : '') +
     '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" data-bee="play" data-v="' + u.lv + '">' + L('Play again', 'เล่นอีกครั้ง') + '</button>' + (u.lv < 6 && unlocked(u.lv + 1) ? '<button class="btn" data-bee="play" data-v="' + (u.lv + 1) + '">' + L('Next level', 'ระดับถัดไป') + '</button>' : '') + '<button class="btn" data-bee="quit">' + L('All levels', 'ทุกระดับ') + '</button></div></div>';
 }
 window.viewBee = function(){
   const u = U(); clockOn();
-  return '<div class="stack bee subjtint" style="--sc:var(--math)">' + strSeg('bee') + '<div class="stack notr">' + (u.mode === 'play' ? viewPlay() : u.mode === 'done' ? viewDone() : viewLadder()) + '</div></div>';
+  if (!u.part) u.part = (typeof LEARN !== 'undefined' && LEARN.every(l => lesDone(l.id))) ? 'bee' : 'learn';
+  const learn = u.part === 'learn' && typeof LEARN !== 'undefined';
+  const tabs = '<div class="seg2" role="tablist" aria-label="' + L('Integration Bee', 'Integration Bee') + '"><button role="tab" data-bee="part" data-v="learn" aria-selected="' + learn + '">' + L('Learn', 'เรียน') + '</button><button role="tab" data-bee="part" data-v="bee" aria-selected="' + !learn + '">' + L('Compete', 'แข่ง') + '</button></div>';
+  const busy = (u.mode === 'play' && !learn) || (learn && LU().open && LU().step === 3 && (!LU().pr || LU().pr.st !== 'end'));
+  return '<div class="stack bee subjtint" style="--sc:var(--math)">' + strSeg('bee') + '<div class="stack notr">' + (busy ? '' : tabs) + (learn ? viewLearn() : u.mode === 'play' ? viewPlay() : u.mode === 'done' ? viewDone() : viewLadder()) + '</div></div>';
 };
 function finish(r){
   const u = U(), q = cur(), b = bs(), ms = Date.now() - u.t0;
   r.ms = ms;
   if (r.ok){ u.streak++; const base = 10 * u.lv, sp = Math.round(base * Math.max(0, limit() - ms) / limit()); r.pts = r.dec ? Math.round(base / 2) : base + sp; if (!r.dec && u.streak >= 3){ r.pts += 5 * u.lv; r.bonus = 1; } u.score += r.pts;
-    const was = solvedIn(u.lv); const o = b.s[q.id] || {}; b.s[q.id] = { ok:1, ms:Math.min(o.ms || 1e9, ms) }; b.pts += r.pts; if (was < 5 && solvedIn(u.lv) >= 5) u.opened = 1; }
+    const was = solvedIn(u.lv); const o = b.s[q.id] || {}; b.s[q.id] = { ok:1, ms:Math.min(o.ms || 1e9, ms) }; b.pts += r.pts; }
   else { u.streak = 0; if (!b.s[q.id]) b.s[q.id] = { ok:0 }; }
   u.res[u.k] = r; u.st = 'show'; commit();
 }
@@ -201,9 +209,110 @@ document.addEventListener('click', e => {
     case 'give': { const el = document.getElementById('bee-in'); if (el) u.typed = el.value; finish({ ok:false }); break; }
     case 'next': if (u.k + 1 < u.list.length){ Object.assign(u, { k:u.k + 1, typed:'', msg:'', st:'ask', t0:Date.now(), hint:false }); render(); window.scrollTo({ top:0 }); focusIn(); }
       else { const bb = bs(); u.newBest = u.score > (bb.best[u.lv] || 0) && u.score > 0; if (u.newBest) bb.best[u.lv] = u.score; u.mode = 'done'; commit(); window.scrollTo({ top:0 }); } break;
-    case 'all': bs().all = 1; commit(); break;
   }
 });
 document.addEventListener('submit', e => { if (e.target && e.target.id === 'bee-form'){ e.preventDefault(); check(); } });
-document.addEventListener('input', e => { if (e.target && e.target.id === 'bee-in'){ const u = U(); u.typed = e.target.value; const p = document.getElementById('bee-prev'); if (p) p.innerHTML = prevHtml(u.typed); } });
+document.addEventListener('input', e => { if (e.target && e.target.id === 'bee-in'){ const u = U(); if (u.part === 'learn' && u.learn && u.learn.pr) u.learn.pr.typed = e.target.value; else u.typed = e.target.value; const p = document.getElementById('bee-prev'); if (p) p.innerHTML = prevHtml(e.target.value); } });
+
+/* ---------- Learn: one technique at a time (theorem → proof → examples → practice) ---------- */
+const UNITS = { A:['Foundations', 'พื้นฐาน'], B:['Spot the derivative', 'มองหาอนุพันธ์'], C:['Core methods', 'วิธีหลัก'], D:['Further methods', 'วิธีขั้นสูง'], E:['Bee tricks', 'ทริคของ Bee'], F:['Advanced', 'ขั้นสูงพิเศษ'] };
+const STEPS = () => [L('Theorem', 'ทฤษฎีบท'), L('Proof', 'บทพิสูจน์'), L('Examples', 'ตัวอย่าง'), L('Practice', 'แบบฝึกหัด')];
+function LU(){ const u = U(); if (!u.learn) u.learn = { open:null, step:0, pv:1, ex:{} }; return u.learn; }
+function lesOpen(i){ return i === 0 || lesDone(LEARN[i - 1].id); }
+const P2 = x => th() ? x.th : x.en;
+const MD = m => m ? '<div class="mdisp">' + D(m) + '</div>' : '';
+function gateFor(id){ const k = Object.keys(GATE).find(lv => GATE[lv] === id); return k ? +k : 0; }
+function viewLearn(){ const lu = LU(); return lu.open ? viewLesson(LEARN[lesIdx(lu.open)]) : viewPath(); }
+function viewPath(){
+  const b = bs(), done = LEARN.filter(l => lesDone(l.id)).length, nextI = LEARN.findIndex(l => !lesDone(l.id));
+  let html = '<div><h1>' + L('Learn integration', 'เรียนการอินทิเกรต') + '</h1><p class="muted">' + L('Every technique, one at a time: the theorem, a full proof, worked examples, then 5 practice questions. Get 4 right to finish a lesson and open the next one. Lessons also open the timed Bee levels.', 'ทุกเทคนิค ทีละเรื่อง: ทฤษฎีบท บทพิสูจน์เต็ม ตัวอย่าง แล้วแบบฝึกหัด 5 ข้อ ทำถูก 4 ข้อเพื่อจบบทและเปิดบทถัดไป บทเรียนยังเปิดระดับแข่งของ Bee ด้วย') + '</p></div>' +
+    '<div class="card row" style="justify-content:space-between;gap:16px"><div><div class="bee-pts">' + done + '<span class="small muted"> / ' + LEARN.length + '</span></div><div class="small muted">' + L('lessons finished', 'บทที่เรียนจบ') + '</div></div>' +
+    (nextI >= 0 ? '<button class="btn primary" data-bee="les" data-v="' + LEARN[nextI].id + '">' + (done ? L('Continue', 'เรียนต่อ') : L('Start', 'เริ่ม')) + ': ' + esc(lesName(LEARN[nextI])) + '</button>' : '<span class="small"><b>' + L('All lessons finished!', 'เรียนครบทุกบทแล้ว!') + '</b></span>') + '</div>' +
+    '<div class="meter"><i style="width:' + Math.round(done / LEARN.length * 100) + '%;background:var(--math)"></i></div>';
+  Object.keys(UNITS).forEach(uk => {
+    const ls = LEARN.map((l, i) => [l, i]).filter(([l]) => l.u === uk);
+    html += '<section class="card les-unit"><h2>' + L('Unit ', 'หน่วย ') + uk + ': ' + esc(L(UNITS[uk][0], UNITS[uk][1])) + '</h2><ol class="les-list">' + ls.map(([l, i]) => {
+      const d = lesDone(l.id), open = lesOpen(i), r = (b.les || {})[l.id], g = gateFor(l.id);
+      return '<li class="les-row' + (d ? ' done' : open ? ' next' : ' locked') + '"><span class="bee-n">' + (d ? '✓' : i + 1) + '</span><div class="grow"><div><b>' + esc(lesName(l)) + '</b></div><div class="small muted">' +
+        (d ? L('Finished', 'จบแล้ว') + ' · ' + L('best', 'ดีที่สุด') + ' ' + r.best + '/5' : open ? L('Ready', 'พร้อมเรียน') : L('Finish the lesson before to open', 'เรียนบทก่อนหน้าให้จบเพื่อเปิด')) +
+        (g ? ' · ' + L('opens Bee level ', 'เปิด Bee ระดับ ') + g + ' (' + esc(lvName(g)) + ')' : '') + '</div></div>' +
+        (open ? '<button class="btn sm' + (d ? '' : ' primary') + '" data-bee="les" data-v="' + l.id + '">' + (d ? L('Review', 'ทบทวน') : L('Start', 'เริ่ม')) + '</button>' : '') + '</li>';
+    }).join('') + '</ol></section>';
+  });
+  return html;
+}
+function viewLesson(l){
+  const lu = LU(), i = lesIdx(l.id), st = lu.step;
+  const nav = '<div class="les-steps" role="tablist">' + STEPS().map((n, k) => '<button role="tab" data-bee="step" data-v="' + k + '" aria-selected="' + (k === st) + '"><span>' + (k + 1) + '</span>' + esc(n) + '</button>').join('') + '</div>';
+  let body = '';
+  if (st === 0) body = '<div class="card thm">' + l.thm.map(t => '<p>' + P2(t) + '</p>').join('') + '</div><div class="row"><button class="btn primary" data-bee="step" data-v="1">' + L('Next: the proof', 'ต่อไป: บทพิสูจน์') + '</button></div>';
+  if (st === 1){
+    const n = Math.min(lu.pv, l.proof.length), all = n >= l.proof.length;
+    body = '<div class="card"><h2>' + L('Proof', 'บทพิสูจน์') + '</h2><ol class="les-proof">' + l.proof.slice(0, n).map(p => '<li><p>' + P2(p) + '</p>' + MD(p.m) + '</li>').join('') + '</ol>' +
+      '<div class="row" style="gap:8px;flex-wrap:wrap">' + (all ? '<button class="btn primary" data-bee="step" data-v="2">' + L('Next: examples', 'ต่อไป: ตัวอย่าง') + '</button>' : '<button class="btn primary" data-bee="pv">' + L('Next step', 'ขั้นต่อไป') + ' (' + n + '/' + l.proof.length + ')</button><button class="btn" data-bee="pvall">' + L('Show the whole proof', 'แสดงบทพิสูจน์ทั้งหมด') + '</button>') + '</div></div>';
+  }
+  if (st === 2) body = l.ex.map((x, k) => { const o = lu.ex[k];
+      return '<div class="card stack"><div class="small muted">' + L('Example ', 'ตัวอย่างที่ ') + (k + 1) + '</div><div class="bee-int sm">' + D(x.q) + '</div>' +
+        (o ? '<ol class="bee-steps">' + x.s.map(z => '<li>' + D(z) + '</li>').join('') + '</ol><div><span class="small muted">' + L('Answer', 'คำตอบ') + '</span> ' + D(x.al) + '</div>' : '<div class="row"><button class="btn" data-bee="ex" data-v="' + k + '">' + L('Try it first, then show the solution', 'ลองทำก่อน แล้วดูเฉลย') + '</button></div>') + '</div>'; }).join('') +
+      '<div class="row"><button class="btn primary" data-bee="step" data-v="3">' + L('Next: practice', 'ต่อไป: แบบฝึกหัด') + '</button></div>';
+  if (st === 3) body = viewPrac(l);
+  return '<div class="row bee-top" style="justify-content:space-between"><button class="btn sm" data-bee="lesback">' + L('← All lessons', '← บทเรียนทั้งหมด') + '</button><span class="small muted">' + L('Lesson ', 'บทที่ ') + (i + 1) + ' / ' + LEARN.length + ' · ' + L('Unit ', 'หน่วย ') + l.u + '</span></div>' +
+    '<h1 class="les-h">' + esc(lesName(l)) + '</h1>' + nav + body;
+}
+function viewPrac(l){
+  const lu = LU(); if (!lu.pr || lu.pr.id !== l.id) lu.pr = { id:l.id, k:0, res:[], typed:'', msg:'', tries:0, st:'ask' };
+  const p = lu.pr, q = l.pr[p.k];
+  const dots = '<div class="les-dots" aria-label="' + L('Progress', 'ความคืบหน้า') + '">' + l.pr.map((z, k) => '<span class="' + (p.res[k] == null ? (k === p.k && p.st !== 'end' ? 'cur' : '') : p.res[k] ? 'ok' : 'no') + '"></span>').join('') + '</div>';
+  if (p.st === 'end'){
+    const n = p.res.filter(Boolean).length, pass = n >= 4, nx = LEARN[lesIdx(l.id) + 1], g = gateFor(l.id);
+    return dots + '<div class="card stack bee-done"><h2>' + (pass ? L('Lesson complete!', 'จบบทเรียนแล้ว!') : L('Not yet', 'ยังไม่ผ่าน')) + '</h2><div class="bee-pts">' + n + ' / 5</div><p>' + (pass ? L('You got 4 or more right.', 'คุณทำถูก 4 ข้อขึ้นไป') + (g ? ' <b>' + L('Bee level ' + g + ' (' + lvName(g) + ') is open in Compete.', 'Bee ระดับ ' + g + ' (' + lvName(g) + ') เปิดแล้วในส่วนแข่ง') + '</b>' : '') : L('You need 4 out of 5. Look back at the examples, then try again.', 'ต้องได้ 4 จาก 5 ข้อ ดูตัวอย่างอีกครั้งแล้วลองใหม่')) + '</p>' +
+      '<div class="row" style="gap:8px;flex-wrap:wrap">' + (pass && nx ? '<button class="btn primary" data-bee="les" data-v="' + nx.id + '">' + L('Next lesson: ', 'บทถัดไป: ') + esc(lesName(nx)) + '</button>' : '') + (!pass ? '<button class="btn primary" data-bee="prretry">' + L('Try again', 'ลองใหม่') + '</button><button class="btn" data-bee="step" data-v="2">' + L('See the examples', 'ดูตัวอย่าง') + '</button>' : '') + (g && pass ? '<button class="btn" data-bee="part" data-v="bee">' + L('Go to Compete', 'ไปที่ส่วนแข่ง') + '</button>' : '') + '<button class="btn" data-bee="lesback">' + L('All lessons', 'บทเรียนทั้งหมด') + '</button></div></div>';
+  }
+  const qbox = '<div class="card bee-q"><div class="small muted">' + L('Question ', 'ข้อ ') + (p.k + 1) + ' / 5</div><div class="bee-int sm">' + D(q.q) + '</div></div>';
+  if (p.st === 'ask') return dots + qbox +
+    '<form id="les-form" class="card stack bee-ans" autocomplete="off"><label for="bee-in" class="small"><b>' + (q.c ? L('Your answer $F(x)$', 'คำตอบของคุณ $F(x)$') : L('Your answer', 'คำตอบของคุณ')) + '</b></label>' +
+    '<input id="bee-in" class="bee-in" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" value="' + esc(p.typed) + '" placeholder="' + (q.c ? 'e.g. x^2 ln(x)' : q.tol ? 'e.g. 6.5216' : 'e.g. pi/4') + '">' +
+    '<div class="bee-prev small" id="bee-prev" aria-live="polite">' + prevHtml(p.typed) + '</div>' +
+    (p.msg ? '<div class="bee-msg bad" role="alert">' + p.msg + '</div>' : '') +
+    (p.tries ? '<div class="small bee-hint"><b>' + L('Hint: ', 'คำใบ้: ') + '</b>' + (th() ? q.ht : q.h) + '</div>' : '') +
+    '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit">' + L('Check', 'ตรวจ') + '</button><button class="btn" type="button" data-bee="prgive">' + L('Show solution', 'ดูเฉลย') + '</button></div>' +
+    '<p class="small muted" style="margin:0">' + L('A wrong answer shows a hint; a second wrong answer shows the solution.', 'ตอบผิดครั้งแรกจะมีคำใบ้ ผิดครั้งที่สองจะแสดงเฉลย') + '</p></form>';
+  const ok = p.res[p.k];
+  return dots + qbox + '<div class="card stack bee-sol"><div class="bee-msg ' + (ok ? 'good' : 'bad') + '" role="status">' + (ok ? L('Correct!', 'ถูกต้อง!') : L('Here’s the solution.', 'นี่คือเฉลย')) + '</div>' +
+    '<div><span class="small muted">' + L('Answer', 'คำตอบ') + '</span> ' + D(q.al) + '</div><ol class="bee-steps">' + q.s.map(z => '<li>' + D(z) + '</li>').join('') + '</ol>' +
+    '<div class="row"><button class="btn primary" data-bee="prnext">' + (p.k < 4 ? L('Next question', 'ข้อต่อไป') : L('See my result', 'ดูผล')) + '</button></div></div>';
+}
+function prCheck(){
+  const lu = LU(), p = lu.pr, l = LEARN[lesIdx(p.id)], q = l.pr[p.k], el = document.getElementById('bee-in'); if (el) p.typed = el.value;
+  const c = beeCheck(q, p.typed);
+  if (c.msg){ p.msg = esc(c.msg).replace(/\$x\$/g, '$x$'); render(); focusIn(); return; }
+  if (c.ok && c.dec && !q.tol){ p.msg = esc(L('That’s the right value as a decimal. Now give it exactly, e.g. with pi, sqrt or ln.', 'ค่าทศนิยมถูกแล้ว ตอนนี้ให้คำตอบแบบค่าแม่นตรง เช่นใช้ pi, sqrt หรือ ln')); render(); focusIn(); return; }
+  if (c.ok){ p.res[p.k] = true; p.st = 'show'; p.msg = ''; render(); return; }
+  p.tries++;
+  if (p.tries >= 2){ p.res[p.k] = false; p.st = 'show'; p.msg = ''; render(); return; }
+  p.msg = esc(L('Not quite. Here’s a hint.', 'ยังไม่ถูก นี่คือคำใบ้')); render(); focusIn();
+}
+function prEnd(){
+  const lu = LU(), p = lu.pr, b = bs(); b.les = b.les || {};
+  const n = p.res.filter(Boolean).length, o = b.les[p.id] || {};
+  b.les[p.id] = { best:Math.max(o.best || 0, n), done:o.done || n >= 4 ? 1 : 0 };
+  p.st = 'end'; commit();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-bee]'); if (!b) return;
+  const u = U(), lu = LU(), v = b.dataset.v;
+  switch (b.dataset.bee){
+    case 'part': u.part = v; if (v === 'bee') u.mode = u.mode === 'play' ? 'ladder' : u.mode; render(); window.scrollTo({ top:0 }); break;
+    case 'les': Object.assign(lu, { open:v, step:0, pv:1, ex:{}, pr:null }); u.part = 'learn'; render(); window.scrollTo({ top:0 }); break;
+    case 'lesback': lu.open = null; lu.pr = null; render(); window.scrollTo({ top:0 }); break;
+    case 'step': lu.step = +v; if (+v === 1 && !lu.pv) lu.pv = 1; render(); window.scrollTo({ top:0 }); if (+v === 3) focusIn(); break;
+    case 'pv': lu.pv++; render(); break;
+    case 'pvall': lu.pv = 99; render(); break;
+    case 'ex': lu.ex[+v] = 1; render(); break;
+    case 'prgive': { const el = document.getElementById('bee-in'); if (el) lu.pr.typed = el.value; lu.pr.res[lu.pr.k] = false; lu.pr.st = 'show'; render(); break; }
+    case 'prnext': { const p = lu.pr; if (p.k < 4){ Object.assign(p, { k:p.k + 1, typed:'', msg:'', tries:0, st:'ask' }); render(); window.scrollTo({ top:0 }); focusIn(); } else { prEnd(); window.scrollTo({ top:0 }); } break; }
+    case 'prretry': lu.pr = null; render(); window.scrollTo({ top:0 }); focusIn(); break;
+  }
+});
+document.addEventListener('submit', e => { if (e.target && e.target.id === 'les-form'){ e.preventDefault(); prCheck(); } });
 })();

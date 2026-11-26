@@ -36,6 +36,29 @@ for q, v in zip(Q, V):
     if chk is None: d["v"] = v["v"]
     else: d["c"] = 1; d["p"] = v["pts"]
     qs.append(d)
-data = "var BEE_LV = " + json.dumps(lv, ensure_ascii=False) + ";\nvar BEE_Q = " + json.dumps(qs, ensure_ascii=False) + ";\n"
+import re, importlib
+def mesc(t): return t.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+def prose(t):
+    t = re.sub(r'\$\$(.+?)\$\$', lambda m: '<span class="mdisp">$\\displaystyle ' + m.group(1) + '$</span>', t, flags=re.S)
+    return re.sub(r'\$([^$]+)\$', lambda m: '$' + mesc(m.group(1)) + '$', t)
+for q in qs:
+    q['q'] = mesc(q['q']); q['al'] = mesc(q['al']); q['s'] = [mesc(z) for z in q['s']]
+for l in lv: l['card'] = [prose(z) for z in l['card']]; l['ct'] = [prose(z) for z in l['ct']]; l['d'] = prose(l['d']); l['dt'] = prose(l['dt'])
+LV = json.load(open('/tmp/lesvals.json')); VI = {(v['id'], v['k'], v['j']): v for v in LV}
+LEARN = []
+for m in ['les_a', 'les_b', 'les_c', 'les_d', 'les_e', 'les_f']:
+    for l in importlib.import_module(m).LES:
+        o = {'id': l['id'], 'u': l['u'], 'n': l['n'], 'nt': l['nt'],
+             'thm': [{'en': prose(t['en']), 'th': prose(t['th'])} for t in l['thm']],
+             'proof': [{'en': prose(t['en']), 'th': prose(t['th']), 'm': mesc(t['m'])} for t in l['proof']],
+             'ex': [{'q': mesc(x['q']), 'al': mesc(x['al']), 's': [mesc(z) for z in x['s']]} for x in l['ex']], 'pr': []}
+        for j, x in enumerate(l['pr']):
+            v = VI[(l['id'], 'pr', j)]; d = {'q': mesc(x['q']), 'al': mesc(x['al']), 's': [mesc(z) for z in x['s']], 'h': prose(x['h']), 'ht': prose(x['ht'])}
+            if 'p' in v: d['c'] = 1; d['p'] = v['p']
+            else: d['v'] = v['v']
+            if 'tol' in v: d['tol'] = v['tol']
+            o['pr'].append(d)
+        LEARN.append(o)
+data = "var LEARN = " + json.dumps(LEARN, ensure_ascii=False) + ";\nvar BEE_LV = " + json.dumps(lv, ensure_ascii=False) + ";\nvar BEE_Q = " + json.dumps(qs, ensure_ascii=False) + ";\n"
 open('/home/claude/ial-study-hub/bee.js', 'w').write("/* Integration Bee: integrals and solutions written for IAL Revise. Answers checked with mpmath (build/bee/check.py). */\n" + data + open('/home/claude/build/bee/engine.js').read())
 print(len(qs), 'questions')
