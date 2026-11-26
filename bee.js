@@ -156,7 +156,7 @@ function viewPlay(){
 }
 function prevHtml(s){
   if (!String(s || '').trim()) return '<span class="muted">' + L('Your answer will show here as maths.', 'คำตอบจะแสดงเป็นสูตรตรงนี้') + '</span>';
-  try { const t = beeTex(beeParse(s)); return '<span class="muted">' + L('Reads as ', 'อ่านว่า ') + '</span>' + (window.katex ? katex.renderToString(t, { throwOnError:false }) : esc(s)); }
+  try { const t = beeTex(beeParse(s)); return '<span class="muted">' + L('Reads as ', 'อ่านว่า ') + '</span>' + (window.katex ? katex.renderToString(t, { throwOnError:false, output:window.KATEX_MML ? 'mathml' : 'htmlAndMathml' }) : esc(s)); }
   catch(err){ return '<span class="muted">' + esc(String(err)) + '</span>'; }
 }
 function viewDone(){

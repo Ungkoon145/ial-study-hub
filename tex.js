@@ -84,7 +84,7 @@
           const src = x.slice(1, -1);
           if (window.katex){
             const sp = document.createElement('span'); sp.className = 'tex';
-            try { window.katex.render(src, sp, { throwOnError: false, output: 'htmlAndMathml', strict: 'ignore' }); } catch(e){ sp.textContent = plain(src); }
+            try { window.katex.render(src, sp, { throwOnError: false, output: window.KATEX_MML ? 'mathml' : 'htmlAndMathml', strict: 'ignore' }); } catch(e){ sp.textContent = plain(src); }
             frag.appendChild(sp); lastMath = sp;
           } else { lastMath = document.createTextNode(plain(src)); frag.appendChild(lastMath); }
         } else if (x) frag.appendChild(document.createTextNode(x));
