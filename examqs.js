@@ -613,6 +613,282 @@ var TQ_EXAM = (function(){
 "(b) $1.0\\%$",
 "(c) Use more strips (smaller $h$)"
 ]
+],
+[
+"w",
+"WMA13",
+0,
+4,
+"(a) Simplify fully $\\dfrac{2x^{2}+5x-3}{x^{2}-9}$. [3]\n(b) Hence solve $\\dfrac{2x^{2}+5x-3}{x^{2}-9}=3$. [2]\n(c) Write $\\dfrac{2}{x-3}-\\dfrac{1}{x+3}$ as a single fraction in its simplest form. [2] [7 marks]",
+[
+"(a) Numerator: $(2x-1)(x+3)$",
+"(a) Denominator: $(x-3)(x+3)$",
+"(a) $\\dfrac{2x-1}{x-3}$",
+"(b) $2x-1=3(x-3)$",
+"(b) $x=8$ (allowed, since $x\\neq\\pm3$)",
+"(c) $\\dfrac{2(x+3)-(x-3)}{(x-3)(x+3)}$",
+"(c) $\\dfrac{x+9}{x^{2}-9}$"
+]
+],
+[
+"w",
+"WMA13",
+0,
+4,
+"$f(x)=1-\\dfrac{3}{x+2}+\\dfrac{6}{(x+2)^{2}}$, $x\\neq-2$\n(a) Show that $f(x)=\\dfrac{x^{2}+x+4}{(x+2)^{2}}$. [3]\n(b) Hence show that $f(x)>0$ for all $x\\neq-2$. [3]\n(c) Solve $f(x)=1$. [2] [8 marks]",
+[
+"(a) Common denominator $(x+2)^{2}$",
+"(a) $(x+2)^{2}-3(x+2)+6$",
+"(a) $=x^{2}+4x+4-3x-6+6=x^{2}+x+4$",
+"(b) Discriminant of $x^{2}+x+4$: $1-16=-15<0$ (or completes the square: $\\left(x+\\frac{1}{2}\\right)^{2}+\\frac{15}{4}$)",
+"(b) So the numerator is always positive",
+"(b) and $(x+2)^{2}>0$ for $x\\neq-2$, so $f(x)>0$",
+"(c) $x^{2}+x+4=x^{2}+4x+4$",
+"(c) $x=0$"
+]
+],
+[
+"w",
+"WMA13",
+1,
+4,
+"$f(x)=2x+3$, $x\\in\\mathbb{R}$ and $g(x)=\\dfrac{4}{x-1}$, $x>1$\n(a) Find $fg(3)$. [2]\n(b) Find $g^{-1}(x)$ and state its domain. [4]\n(c) Solve $fg(x)=11$. [2] [8 marks]",
+[
+"(a) $g(3)=2$",
+"(a) $f(2)=7$",
+"(b) $y=\\dfrac{4}{x-1}$, so $x-1=\\dfrac{4}{y}$",
+"(b) $x=1+\\dfrac{4}{y}$",
+"(b) $g^{-1}(x)=1+\\dfrac{4}{x}$",
+"(b) Domain $x>0$ (the range of $g$)",
+"(c) $\\dfrac{8}{x-1}+3=11$",
+"(c) $x-1=1$, so $x=2$"
+]
+],
+[
+"w",
+"WMA13",
+1,
+4,
+"(a) Sketch the graph of $y=|2x-5|$, showing the coordinates of the points where it meets the axes. [2]\n(b) Solve $|2x-5|=x+1$. [4]\n(c) Hence find the set of values of $x$ for which $|2x-5|<x+1$. [2] [8 marks]",
+[
+"(a) V shape with vertex at $\\left(\\dfrac{5}{2},0\\right)$",
+"(a) Meets the $y$-axis at $(0,5)$",
+"(b) $2x-5=x+1$",
+"(b) $x=6$",
+"(b) $-(2x-5)=x+1$",
+"(b) $x=\\dfrac{4}{3}$",
+"(c) The line is above the V between the two solutions",
+"(c) $\\dfrac{4}{3}<x<6$"
+]
+],
+[
+"w",
+"WMA13",
+2,
+4,
+"The population $P$ of a colony of bacteria after $t$ hours is modelled by $P=200e^{0.3t}$.\n(a) State the initial population. [1]\n(b) Find the population after $5$ hours, to the nearest whole number. [1]\n(c) Find the time when the population reaches $1000$, to 3 significant figures. [3]\n(d) Find the rate at which the population is growing when $t=5$. [2] [7 marks]",
+[
+"(a) $200$",
+"(b) $200e^{1.5}=896$",
+"(c) $e^{0.3t}=5$",
+"(c) $0.3t=\\ln5$",
+"(c) $t=5.36$ hours",
+"(d) $\\dfrac{dP}{dt}=60e^{0.3t}$",
+"(d) $60e^{1.5}=269$ bacteria per hour"
+]
+],
+[
+"w",
+"WMA13",
+2,
+4,
+"(a) Solve $e^{2x}-5e^{x}+6=0$, giving exact answers. [4]\n(b) Solve $2\\ln x-\\ln(x+2)=\\ln3$, giving your answer in exact form. [4] [8 marks]",
+[
+"(a) $(e^{x}-2)(e^{x}-3)=0$",
+"(a) $e^{x}=2$ or $e^{x}=3$",
+"(a) $x=\\ln2$",
+"(a) $x=\\ln3$",
+"(b) $\\ln\\dfrac{x^{2}}{x+2}=\\ln3$",
+"(b) $x^{2}-3x-6=0$",
+"(b) $x=\\dfrac{3\\pm\\sqrt{33}}{2}$",
+"(b) $x=\\dfrac{3+\\sqrt{33}}{2}$ only (since $x>0$)"
+]
+],
+[
+"w",
+"WMA13",
+3,
+4,
+"(a) Solve, for $0\\le\\theta<360^{\\circ}$, $\\sec^{2}\\theta-3\\tan\\theta+1=0$, giving answers to one decimal place where appropriate. [6]\n(b) Prove that $\\sec\\theta-\\cos\\theta\\equiv\\sin\\theta\\tan\\theta$. [2] [8 marks]",
+[
+"(a) Uses $\\sec^{2}\\theta=1+\\tan^{2}\\theta$",
+"(a) $\\tan^{2}\\theta-3\\tan\\theta+2=0$",
+"(a) $(\\tan\\theta-1)(\\tan\\theta-2)=0$",
+"(a) $\\tan\\theta=1$: $\\theta=45^{\\circ},\\ 225^{\\circ}$",
+"(a) $\\tan\\theta=2$: $\\theta=63.4^{\\circ}$",
+"(a) and $243.4^{\\circ}$",
+"(b) $\\dfrac{1}{\\cos\\theta}-\\cos\\theta=\\dfrac{1-\\cos^{2}\\theta}{\\cos\\theta}$",
+"(b) $=\\dfrac{\\sin^{2}\\theta}{\\cos\\theta}=\\sin\\theta\\tan\\theta$"
+]
+],
+[
+"w",
+"WMA13",
+3,
+4,
+"(a) Given that $\\theta=\\arcsin\\dfrac{1}{3}$, find the exact values of $\\cot\\theta$ and $\\sec\\theta$. [4]\n(b) Solve, for $0\\le x<2\\pi$, $3\\operatorname{cosec}^{2}x-5\\cot x-5=0$, giving answers to 3 significant figures. [5] [9 marks]",
+[
+"(a) $\\cos\\theta=\\sqrt{1-\\frac{1}{9}}=\\dfrac{2\\sqrt{2}}{3}$ ($\\theta$ is acute)",
+"(a) $\\cot\\theta=2\\sqrt{2}$",
+"(a) $\\sec\\theta=\\dfrac{3}{2\\sqrt{2}}$",
+"(a) $=\\dfrac{3\\sqrt{2}}{4}$",
+"(b) Uses $\\operatorname{cosec}^{2}x=1+\\cot^{2}x$: $3\\cot^{2}x-5\\cot x-2=0$",
+"(b) $(3\\cot x+1)(\\cot x-2)=0$",
+"(b) $\\tan x=\\dfrac{1}{2}$: $x=0.464,\\ 3.61$",
+"(b) $\\tan x=-3$: $x=1.89$",
+"(b) and $5.03$"
+]
+],
+[
+"w",
+"WMA13",
+4,
+4,
+"(a) Write $3\\cos\\theta+4\\sin\\theta$ in the form $R\\cos(\\theta-\\alpha)$, where $R>0$ and $0<\\alpha<90^{\\circ}$. Give $\\alpha$ to 2 decimal places. [4]\n(b) Hence solve, for $0\\le\\theta<360^{\\circ}$, $3\\cos\\theta+4\\sin\\theta=2.5$, to one decimal place. [4]\n(c) Find the maximum value of $\\dfrac{12}{7+3\\cos\\theta+4\\sin\\theta}$. [2] [10 marks]",
+[
+"(a) $R\\cos\\alpha=3$ and $R\\sin\\alpha=4$",
+"(a) $R=5$",
+"(a) $\\tan\\alpha=\\dfrac{4}{3}$",
+"(a) $\\alpha=53.13^{\\circ}$",
+"(b) $\\cos(\\theta-53.13^{\\circ})=0.5$",
+"(b) $\\theta-53.13^{\\circ}=60^{\\circ}$ or $300^{\\circ}$",
+"(b) $\\theta=113.1^{\\circ}$",
+"(b) $\\theta=353.1^{\\circ}$",
+"(c) Uses the minimum of the denominator: $7-5=2$",
+"(c) Maximum $=6$"
+]
+],
+[
+"w",
+"WMA13",
+4,
+4,
+"(a) Show that $\\sin(x+30^{\\circ})+\\cos(x+60^{\\circ})\\equiv\\cos x$. [3]\n(b) Solve, for $0\\le x<360^{\\circ}$, $\\cos2x=3\\sin x-1$. [4]\n(c) Given that $\\tan A=\\dfrac{1}{2}$ and $\\tan B=\\dfrac{1}{3}$, find the exact value of $\\tan(A+B)$. [2] [9 marks]",
+[
+"(a) Expands $\\sin(x+30^{\\circ})=\\dfrac{\\sqrt{3}}{2}\\sin x+\\dfrac{1}{2}\\cos x$",
+"(a) Expands $\\cos(x+60^{\\circ})=\\dfrac{1}{2}\\cos x-\\dfrac{\\sqrt{3}}{2}\\sin x$",
+"(a) Adds to get $\\cos x$",
+"(b) Uses $\\cos2x=1-2\\sin^{2}x$",
+"(b) $2\\sin^{2}x+3\\sin x-2=0$",
+"(b) $(2\\sin x-1)(\\sin x+2)=0$, so $\\sin x=\\dfrac{1}{2}$",
+"(b) $x=30^{\\circ},\\ 150^{\\circ}$",
+"(c) $\\dfrac{\\frac{1}{2}+\\frac{1}{3}}{1-\\frac{1}{2}\\times\\frac{1}{3}}$",
+"(c) $=1$"
+]
+],
+[
+"w",
+"WMA13",
+5,
+4,
+"The curve $C$ has equation $y=x^{2}e^{3x}$.\n(a) Show that $\\dfrac{dy}{dx}=xe^{3x}(2+3x)$. [3]\n(b) Find the exact coordinates of the stationary points of $C$. [3]\n(c) Differentiate $\\dfrac{\\ln(x^{2}+1)}{x}$ with respect to $x$. [3] [9 marks]",
+[
+"(a) Uses the product rule",
+"(a) $2xe^{3x}+3x^{2}e^{3x}$",
+"(a) $=xe^{3x}(2+3x)$",
+"(b) $e^{3x}>0$, so $x=0$ or $x=-\\dfrac{2}{3}$",
+"(b) $(0,0)$",
+"(b) $\\left(-\\dfrac{2}{3},\\ \\dfrac{4}{9}e^{-2}\\right)$",
+"(c) Uses the quotient rule",
+"(c) Derivative of $\\ln(x^{2}+1)$ is $\\dfrac{2x}{x^{2}+1}$",
+"(c) $\\dfrac{\\frac{2x^{2}}{x^{2}+1}-\\ln(x^{2}+1)}{x^{2}}$"
+]
+],
+[
+"w",
+"WMA13",
+5,
+4,
+"(a) Differentiate $y=\\sqrt{4x+1}$. [2]\n(b) A curve has equation $x=3\\sin2y$. Find $\\dfrac{dy}{dx}$ in terms of $y$. [3]\n(c) Find an equation of the tangent to this curve at the point where $y=\\dfrac{\\pi}{12}$. [3] [8 marks]",
+[
+"(a) Uses the chain rule: $\\dfrac{1}{2}(4x+1)^{-\\frac{1}{2}}\\times4$",
+"(a) $\\dfrac{2}{\\sqrt{4x+1}}$",
+"(b) $\\dfrac{dx}{dy}=6\\cos2y$",
+"(b) Uses $\\dfrac{dy}{dx}=1\\Big/\\dfrac{dx}{dy}$",
+"(b) $\\dfrac{dy}{dx}=\\dfrac{1}{6\\cos2y}$",
+"(c) $x=3\\sin\\dfrac{\\pi}{6}=\\dfrac{3}{2}$",
+"(c) $\\dfrac{dy}{dx}=\\dfrac{1}{6\\times\\frac{\\sqrt{3}}{2}}=\\dfrac{\\sqrt{3}}{9}$",
+"(c) $y-\\dfrac{\\pi}{12}=\\dfrac{\\sqrt{3}}{9}\\left(x-\\dfrac{3}{2}\\right)$"
+]
+],
+[
+"w",
+"WMA13",
+6,
+4,
+"$f(x)=x^{3}-3x-5$\n(a) Show that $f(x)=0$ has a root $\\alpha$ between $x=2$ and $x=3$. [2]\n(b) Show that $f(x)=0$ can be written as $x=\\sqrt[3]{3x+5}$. [1]\n(c) Using $x_{n+1}=\\sqrt[3]{3x_{n}+5}$ with $x_{0}=2$, find $x_{1}$, $x_{2}$ and $x_{3}$ to 4 decimal places. [3]\n(d) Show that $\\alpha=2.279$ to 3 decimal places. [3] [9 marks]",
+[
+"(a) $f(2)=-3$ and $f(3)=13$",
+"(a) Sign change and $f$ is continuous, so a root lies between",
+"(b) $x^{3}=3x+5$, so $x=\\sqrt[3]{3x+5}$",
+"(c) $x_{1}=2.2240$",
+"(c) $x_{2}=2.2684$",
+"(c) $x_{3}=2.2770$",
+"(d) Chooses the interval $[2.2785,\\ 2.2795]$",
+"(d) $f(2.2785)<0$ and $f(2.2795)>0$",
+"(d) Sign change, so $\\alpha=2.279$ to 3 d.p."
+]
+],
+[
+"w",
+"WMA13",
+6,
+4,
+"$g(x)=e^{x}-4x$\n(a) Show that $g(x)=0$ has a root $\\beta$ in the interval $[0,1]$. [2]\n(b) Using $x_{n+1}=\\dfrac{e^{x_{n}}}{4}$ with $x_{0}=0.3$, find $x_{1}$, $x_{2}$ and $x_{3}$ to 4 decimal places. [3]\n(c) Show that $\\beta=0.3574$ to 4 decimal places. [3] [8 marks]",
+[
+"(a) $g(0)=1>0$ and $g(1)=e-4<0$",
+"(a) Sign change and $g$ is continuous, so a root lies in $[0,1]$",
+"(b) $x_{1}=0.3375$",
+"(b) $x_{2}=0.3503$",
+"(b) $x_{3}=0.3549$",
+"(c) Chooses the interval $[0.35735,\\ 0.35745]$",
+"(c) $g(0.35735)>0$ and $g(0.35745)<0$",
+"(c) Sign change, so $\\beta=0.3574$ to 4 d.p."
+]
+],
+[
+"w",
+"WMA13",
+7,
+4,
+"(a) Find $\\displaystyle\\int\\left(e^{2x}+\\frac{3}{x}\\right)dx$. [3]\n(b) Find the exact value of $\\displaystyle\\int_{0}^{\\frac{\\pi}{4}}\\left(\\sec^{2}x+\\sin2x\\right)dx$. [4] [7 marks]",
+[
+"(a) $\\dfrac{1}{2}e^{2x}$",
+"(a) $+3\\ln|x|$",
+"(a) $+c$",
+"(b) $\\tan x$",
+"(b) $-\\dfrac{1}{2}\\cos2x$",
+"(b) $\\left(1-0\\right)-\\left(0-\\dfrac{1}{2}\\right)$",
+"(b) $=\\dfrac{3}{2}$"
+]
+],
+[
+"w",
+"WMA13",
+7,
+4,
+"(a) Find $\\displaystyle\\int\\left(\\frac{4}{2x+1}+\\cos3x\\right)dx$. [3]\n(b) Find the exact value of $\\displaystyle\\int_{1}^{e}\\left(2x-\\frac{3}{x}\\right)dx$. [3]\n(c) Evaluate $\\displaystyle\\int_{0}^{1}(2x+1)^{4}\\,dx$. [3] [9 marks]",
+[
+"(a) $2\\ln|2x+1|$",
+"(a) $+\\dfrac{1}{3}\\sin3x$",
+"(a) $+c$",
+"(b) $\\left[x^{2}-3\\ln x\\right]_{1}^{e}$",
+"(b) $(e^{2}-3)-(1-0)$",
+"(b) $=e^{2}-4$",
+"(c) $\\left[\\dfrac{(2x+1)^{5}}{10}\\right]_{0}^{1}$",
+"(c) $\\dfrac{243-1}{10}$",
+"(c) $=24.2$"
+]
 ]
 ];
   D.forEach(r => out.push({ id: id(r[1], r[2]), u: r[1], t: r[2], d: r[3], type: "w", q: r[4], ms: r[5], m: r[5].length }));

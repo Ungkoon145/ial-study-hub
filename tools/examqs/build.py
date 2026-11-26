@@ -8,7 +8,7 @@ for name in order:
     spec = importlib.util.spec_from_file_location(name, f); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
     for t, q, ms in m.Q:
         tot = int(re.search(r'\[(\d+) marks\]\s*$', q).group(1))
-        parts = sum(int(x) for x in re.findall(r'\[(\d+)\](?!\s*marks)', q.replace('[%d marks]' % tot, '')))
+        parts = sum(int(x) for x in re.findall(r'(?<!sqrt)\[(\d+)\](?!\s*marks)', q.replace('[%d marks]' % tot, '')))
         assert tot == len(ms), (m.U, t, q[:50], tot, len(ms))
         assert parts in (0, tot), (m.U, t, q[:50], 'parts', parts, tot)
         rows.append(['w', m.U, t, 4, q, ms])
