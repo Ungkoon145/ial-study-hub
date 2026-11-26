@@ -70,7 +70,7 @@ const COMPS = [
     tl: [{ d: '2027-03', e: 'Competition opens' }, { d: '2027-04', e: 'Entry deadline' }] },
   { id: 'ipsc', th: 1, n: 'ESU International Public Speaking Competition', org: 'English-Speaking Union', url: 'https://www.esu.org/', t: 'speak', subj: ['eng', 'hum'], sk: ['speak'],
     where: 'Thailand national round, final in London', cost: 'Check the national round', elig: 'Ages 16–20. Thailand’s national round has been run by ESU Thailand with the Ministry of Education.',
-    tl: [{ d: '2027-02', e: 'Thailand national round (usual timing)' }, { d: '2027-07-09', e: 'International final in London' }] },
+    tl: [{ d: '2027-02', e: 'Thailand national round (usual timing)' }, { d: '2027-05', e: 'International final in London' }] },
   { id: 'wsc', th: 1, n: 'World Scholar’s Cup', org: 'World Scholar’s Cup', url: 'https://scholarscup.org/', t: 'speak', subj: ['hum', 'eng'], sk: ['speak', 'write', 'team'],
     where: 'Bangkok regional and global rounds', cost: 'Fee per student', elig: 'Teams of three; debate, collaborative writing and a quiz.',
     tl: [{ d: '2027-05', e: 'Bangkok regional round' }, { d: '2027-08', e: 'Bangkok global round' }] },
@@ -238,7 +238,6 @@ const COMP_PREP = {
 /* Day each competition's dates were last checked on its own website. */
 const COMP_CK = {};
 'iymc iaac opho pumac smt im2c hmmt purple pico vex earth genius diamond nyt ocean bennington hir hmun himcm wdsc blueocean lsesu trinity sthughs wtw immerse visionaries cmkl euth timo sft munth asc pbowl acsl ccc uwchem c3l6 ino minds cefc hcbc yis bpho rsi amc ukmt cemc posn ukcho bbo usaco spaceapps'.split(' ').forEach(id => COMP_CK[id] = '2026-11-25');
-'conrad yygs ssp mega ysc locke ipsc isef wharton btjc'.split(' ').forEach(id => COMP_CK[id] = '2026-11-26');
 /* Level and time: a rough guide written for this site, not the organisers' wording.
    start = a good first competition; mid = needs solid preparation; adv = for students already strong in the subject
    (often national-team level). Time is the usual preparation for a student new to the competition. */

@@ -21,7 +21,14 @@ function rmReactHtml(m){
   return RM_REACT_OLD.includes(m.r) && age < 8000 ? '<span class="rmreact" aria-label="Reaction">' + esc(m.r) + '</span>' : '';
 }
 const RM_PUB_NAMES = ['Quiet library', 'Exam season focus', 'Past paper practice', 'Morning focus', 'Night owls', 'Weekend revision', 'Maths', 'Further Maths', 'Physics', 'Chemistry', 'Biology', 'Economics', 'Psychology', 'Computer Science', 'Geography', 'History', 'English'];
-const RM_ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+// Direct connections first (STUN). When a network blocks those (school Wi-Fi, mobile data), video goes
+// through Metered's relay (TURN): free trial plan, 500 MB a month, which simply stops at the limit (never billed).
+// Port 443 over TCP/TLS gets through strict firewalls that only allow web traffic.
+const RM_TURN = { username: 'c47e249d6fd007ee0d1416da', credential: 't8s5yLjVB9q1DoE/' };
+const RM_ICE = [
+  { urls: ['stun:stun.l.google.com:19302', 'stun:stun.relay.metered.ca:80'] },
+  Object.assign({ urls: ['turn:global.relay.metered.ca:80', 'turn:global.relay.metered.ca:80?transport=tcp', 'turn:global.relay.metered.ca:443', 'turns:global.relay.metered.ca:443?transport=tcp'] }, RM_TURN)
+];
 const RM = { db: null, room: null, rid: null, unsub: null, sigUnsub: null, list: [], listUnsub: null, listStatus: 'idle', err: '', beat: null, cam: null, camErr: '', pcs: {}, vids: {}, hidden: {}, hello: {}, react: null, busy: false, joinErr: '', create: null, sched: null, noRules: false, leaving: false };
 
 function rmAvailable(){ return typeof ACCT !== 'undefined' && ACCT && FB.user && FB.F; }
@@ -133,7 +140,7 @@ async function rmLeave(quiet){
   try { rmRecapMake(); } catch(e){}
   try { rmxStopAll(); } catch(e){} RM.panel = null;
   if (RM.full){ RM.full = false; try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e){} const fe = document.getElementById('rmfull'); if (fe) fe.remove(); document.body.classList.remove('rmfulling'); }
-  rmCamOff(true); Object.keys(RM.pcs).forEach(rmClosePc);
+  rmCamOff(true); Object.keys(RM.pcs).forEach(rmClosePc); RM.fails = {};
   if (RM.unsub){ try { RM.unsub(); } catch(e){} } if (RM.sigUnsub){ try { RM.sigUnsub(); } catch(e){} }
   clearInterval(RM.beat); clearTimeout(RM.sched);
   const wasCam = RM.room && RM.room.kind === 'cam';
@@ -225,7 +232,7 @@ function rmCamOff(quiet){
 }
 
 /* ---------- WebRTC: one connection per pair; the lower uid makes the offer ---------- */
-function rmClosePc(uid){ const p = RM.pcs[uid]; if (!p) return; try { p.pc.close(); } catch(e){} delete RM.pcs[uid]; delete RM.vids[uid]; }
+function rmClosePc(uid){ const p = RM.pcs[uid]; if (!p) return; clearTimeout(p.reT); clearTimeout(p.dropT); try { p.pc.close(); } catch(e){} delete RM.pcs[uid]; delete RM.vids[uid]; }
 function rmNewPc(uid, sess){
   rmClosePc(uid);
   const pc = new RTCPeerConnection({ iceServers: RM_ICE });
@@ -233,12 +240,39 @@ function rmNewPc(uid, sess){
   pc.ontrack = ev => { const v = rmVideo(uid); v.srcObject = ev.streams[0] || new MediaStream([ev.track]); v.play().catch(() => {}); RM.lastFrame[uid] = performance.now(); rmFrameWatch(uid, v); rmPlace(); };
   pc.onconnectionstatechange = () => {
     p.state = pc.connectionState;
-    if (pc.connectionState === 'connected'){ p.encKey = ''; rmTune(uid); }
-    if (pc.connectionState === 'failed' && rmUid() < uid && p.tries < 3 && RM.pcs[uid] === p){ p.tries++; setTimeout(() => { if (RM.pcs[uid] === p) rmOffer(uid, p.tries); }, 3000); }
+    clearTimeout(p.dropT);
+    if (pc.connectionState === 'connected'){ p.encKey = ''; RM.fails = RM.fails || {}; const gaveUp = RM.fails[uid] >= 3; RM.fails[uid] = 0; rmTune(uid); if (gaveUp) render(); }
+    // a short drop (Wi-Fi ↔ 4G, phone waking up) often heals itself; if not within 5 s, reconnect
+    if (pc.connectionState === 'disconnected') p.dropT = setTimeout(() => { if (RM.pcs[uid] === p && pc.connectionState !== 'connected') rmReconnect(uid); }, 5000);
+    if (pc.connectionState === 'failed') rmReconnect(uid);
     rmRefresh();
   };
   return p;
 }
+// Reconnect one camera, waiting longer after each failure (2 s, 4 s, 8 s … up to 30 s). It never gives up;
+// after 3 failures the tile says so and offers Retry. The lower uid makes the new offer; the other side asks for one.
+function rmReconnect(uid, now){
+  const p = RM.pcs[uid]; if (!p || p.reT || !RM.rid) return;
+  RM.fails = RM.fails || {};
+  const n = RM.fails[uid] = now ? 0 : (RM.fails[uid] || 0) + 1, wait = now ? 0 : Math.min(30000, 2000 * Math.pow(2, n - 1));
+  if (n >= 3) rmRefresh();
+  p.reT = setTimeout(() => {
+    p.reT = null;
+    if (RM.pcs[uid] !== p || !RM.rid || !RM.room || !rmFresh((RM.room.m || {})[uid])) return;
+    if (rmUid() < uid) rmOffer(uid, n);
+    else { rmClosePc(uid); RM.hello[uid] = 0; rmSyncPeers(); }
+  }, wait);
+}
+function rmGiveUpShown(uid){ return (RM.fails || {})[uid] >= 3 && RM.pcs[uid] && RM.pcs[uid].pc.connectionState !== 'connected'; }
+// back online, network changed, or the tab is shown again: retry anything not connected straight away
+function rmKickAll(){
+  if (!RM.rid || !RM.room || RM.room.kind !== 'cam') return;
+  Object.keys(RM.pcs).forEach(uid => { const p = RM.pcs[uid]; if (p && p.pc.connectionState !== 'connected' && p.pc.connectionState !== 'new'){ clearTimeout(p.reT); p.reT = null; rmReconnect(uid, true); } });
+  rmSyncPeers();
+}
+window.addEventListener('online', () => setTimeout(rmKickAll, 800));
+try { if (navigator.connection) navigator.connection.addEventListener('change', () => setTimeout(rmKickAll, 1500)); } catch(e){}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(rmKickAll, 500); });
 function rmGather(pc){
   return new Promise(res => {
     if (pc.iceGatheringState === 'complete') return res();
@@ -336,7 +370,7 @@ function rmTile(m, me){
     '<div class="rmmeta"><div class="t"><b>' + esc(m.n || 'A student') + '</b>' + (me ? ' <span class="small muted">(you)</span>' : '') + '</div>' +
       '<div class="small rmst"><span>' + rmStatus(m) + '</span> ' + rmClock(m) + '</div>' + rmGoalLine(m) +
       '<div class="small muted">' + (m.sub ? esc(m.sub) + ' · ' : '') + '<span>' + fmtMin(+m.min || 0) + ' today</span></div>' +
-      (!me && cam && m.cam && RM.pcs[m.id] && RM.pcs[m.id].state === 'failed' ? '<div class="small muted">Video couldn’t connect on this network.</div>' : '') +
+      (!me && cam && m.cam && rmGiveUpShown(m.id) ? '<div class="small rmfail" role="status">Couldn’t connect to ' + esc(m.n || 'this person') + '’s video. Still trying… <button class="linkbtn small" data-act="rm-retry" data-v="' + esc(m.id) + '">Retry now</button></div>' : '') +
       (me && cam && RM.cam ? '<div class="row rmown"><button class="linkbtn small" data-act="rm-adjust" data-id="me">Adjust my camera</button></div>' : '') +
       (!me && (cam || owner) ? '<div class="row rmown">' + (cam && m.cam && !RM.hidden[m.id] ? '<button class="linkbtn small" data-act="rm-adjust" data-id="' + esc(m.id) + '">Adjust view</button>' : '') + (cam && m.cam ? '<button class="linkbtn small" data-act="rm-hide" data-id="' + esc(m.id) + '">' + (RM.hidden[m.id] ? 'Show video' : 'Hide video') + '</button>' : '') + (owner ? '<button class="linkbtn small" data-act="rm-kick" data-id="' + esc(m.id) + '">Remove</button>' : '') + (cam ? '<button class="linkbtn small" data-act="rm-report" data-id="' + esc(m.id) + '">Report</button>' : '') + '</div>' : '') +
     '</div></div>';
@@ -666,6 +700,7 @@ function rmAct(el){
     case 'rm-layout': rmvPrefs().layout = v; commit(); break;
     case 'rm-snd': if (rmxOn(v)) rmxStop(v); else rmxStart(v); render(); break;
     case 'rm-snd-off': rmxStopAll(); render(); break;
+    case 'rm-retry': if (RM.fails) RM.fails[v] = 0; rmReconnect(v, true); render(); toast('Trying again…'); break;
     case 'rm-invpick': RM.pick = RM.pick ? null : {}; render(); break;
     case 'rm-invsel': if (RM.pick){ if (el.checked) RM.pick[v] = 1; else delete RM.pick[v]; rmInvPickSync(); } break;
     case 'rm-invall': if (RM.pick){ rmInvFriends().forEach(f => { const m = rmInvMine(); if (!m || !m.to[f.id]) RM.pick[f.id] = 1; }); render(); } break;
@@ -844,7 +879,7 @@ async function rmTune(uid){
   const p = RM.pcs[uid]; if (!p || !p.tx || !RM.room) return;
   const s = p.tx.sender, me = rmUid(), them = RM.room.m[uid] || {};
   const active = !!RM.cam && !((them.nv || []).includes(me));
-  const lvl = Math.max(p.q ? p.q.lvl : 0, RM.cpuQ ? RM.cpuQ.lvl : 0);
+  const lvl = Math.max(p.q ? p.q.lvl : 0, RM.cpuQ ? RM.cpuQ.lvl : 0, p.relay ? 2 : 0);   // relayed video is sent smaller, to save the relay allowance
   const e = rmEnc(Math.max(1, rmWatchers()), lvl);
   const key = active + '|' + e.maxBitrate + '|' + e.scaleResolutionDownBy + '|' + e.maxFramerate;
   if (p.encKey === key) return;
@@ -892,6 +927,7 @@ async function rmQCheck(){
       else if (r.type === 'inbound-rtp' && r.kind === 'video') inb = r;
       else if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') pair = r;
     });
+    if (pair){ const lc = st.get(pair.localCandidateId), rc = st.get(pair.remoteCandidateId); p.relay = !!((lc && lc.candidateType === 'relay') || (rc && rc.candidateType === 'relay')); }
     if (!s.rtt && pair && typeof pair.currentRoundTripTime === 'number') s.rtt = pair.currentRoundTripTime;
     if (s.limit === 'cpu'){ cpu = true; s.limit = 'none'; }
     const sending = RM.cam && p.encKey && p.encKey.indexOf('true') === 0;
