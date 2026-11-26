@@ -428,10 +428,10 @@ function viewLobby(){
         : '<label class="f">Room name<select name="name">' + RM_PUB_NAMES.map(n => '<option>' + esc(n) + '</option>').join('') + '</select></label><p class="small muted">Anyone signed in can join. People see your first name, your focus timer and subject. No video, no chat.</p>') +
       '<div class="row"><button class="btn primary" type="submit"' + (RM.busy ? ' disabled' : '') + '>Create and join</button><button class="btn ghost" type="button" data-act="rm-new" data-v="">Cancel</button></div></form>';
   return '<div class="stack">' +
+    rmStudyingNow(inv) +
     rmLobbyStage() +
     rmRecapCard() +
     (RM.noRules ? '<div class="card warnline" role="alert"><p>Study rooms aren’t switched on for this site yet.</p></div>' : '') +
-    (inv.length ? '<div class="card stack"><h2>Invitations from friends</h2>' + inv.map(x => '<div class="li"><div class="grow"><div class="t"><b>' + esc(x.from) + '</b></div><div class="small muted">' + esc(x.name) + ' · <span>camera room</span></div></div><div class="row"><button class="btn sm primary" data-act="rm-join" data-v="' + esc(x.id) + '">Join</button><button class="btn sm ghost" data-act="rm-invno" data-v="' + esc(x.key) + '">Not now</button></div></div>').join('') + '</div>' : '') +
     '<div class="card stack"><h2>Join with a code</h2><form class="row" data-form="rm-join" style="align-items:flex-end"><label class="f" style="flex:1;min-width:160px">Room code<input name="code" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. K7QM 2XPA"></label><button class="btn primary" type="submit"' + (RM.busy ? ' disabled' : '') + '>Join</button></form>' +
       (RM.joinErr ? '<p class="small warnline" role="alert">' + esc(RM.joinErr) + '</p>' : '') + '</div>' +
     (c ? createCard : '') +
@@ -575,7 +575,7 @@ function rmInvLive(fid, rid){
   RMI.chk[k] = { t: c ? c.t : 0, ok: c ? c.ok : undefined, busy: true };
   rmDb().get(rid).then(d => {
     const ok = !!d && d.kind === 'cam' && !rmExpired(d) && !(d.ban || []).includes(rmUid()) && rmFresh((d.m || {})[fid]);
-    const was = RMI.chk[k] && RMI.chk[k].ok; RMI.chk[k] = { t: Date.now(), ok };
+    const was = RMI.chk[k] && RMI.chk[k].ok; RMI.chk[k] = { t: Date.now(), ok, n: ok ? rmMembers(d).length : 0 };
     if (was !== ok) rmInvChanged();
   }).catch(() => { RMI.chk[k] = { t: Date.now(), ok: false }; });
   return c ? c.ok : undefined;
@@ -588,7 +588,7 @@ function rmInvites(){
     if (!f.friends[id] || f.ignored.includes(id) || !r || !r.id || r.id === RM.rid || !r.at || Math.abs(now - r.at) > RMI_FRESH) return;
     const key = id + ':' + r.id + ':' + (r.s || 0);
     if (no[key] || rmInvLive(id, r.id) !== true) return;
-    out.push({ from: p.n || 'A friend', id: r.id, name: r.n || 'Study room', key });
+    out.push({ from: p.n || 'A friend', id: r.id, name: r.n || 'Study room', key, n: (RMI.chk[id + ':' + r.id] || {}).n || 1 });
   });
   return out;
 }
@@ -1847,3 +1847,13 @@ function rmSaverLine(){
     : '<span class="grow muted">' + (est ? 'Video in this room uses about ' + est.normal + ' MB an hour.' : '') + '</span><button class="linkbtn small" data-act="rm-saver" data-v="1">Use Saver</button>') + '</div>';
 }
 function rmSvPausedBtn(m){ return '<button class="rmsvpaused" data-act="rm-svshow" data-id="' + esc(m.id) + '" aria-label="Show ' + esc(m.n || 'this person') + '’s camera (paused to save data)"><span>Paused to save data</span><b>Show</b></button>'; }
+/* friends studying right now in rooms they've invited you to: top of the Rooms page, one tap to join */
+function rmStudyingNow(inv){
+  if (!inv.length) return '';
+  const ini = n => esc(String(n || '?').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase());
+  return '<section class="card stack rmnow2" aria-labelledby="rmnowh"><h2 id="rmnowh"><span class="rmlive" aria-hidden="true"></span>Studying now</h2>' +
+    inv.map(x => '<div class="li rmnowrow"><span class="rmnowav" aria-hidden="true">' + ini(x.from) + '</span><div class="grow"><div class="t"><b>' + esc(x.from) + '</b> <span class="muted">invited you to</span> <b>' + esc(x.name) + '</b></div>' +
+      '<div class="small muted">' + (isTH() ? 'มี ' + x.n + ' คนกำลังอ่านหนังสือ · ห้องเปิดกล้อง' : (x.n > 1 ? x.n + ' people studying' : '1 person studying') + ' · camera room') + '</div></div>' +
+      '<div class="row"><button class="btn sm primary" data-act="rm-join" data-v="' + esc(x.id) + '">Join</button><button class="btn sm ghost" data-act="rm-invno" data-v="' + esc(x.key) + '">Not now</button></div></div>').join('') +
+  '</section>';
+}

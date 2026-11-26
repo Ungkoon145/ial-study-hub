@@ -20,7 +20,7 @@ function musEl(){
   if (MUS.a) return MUS.a;
   const a = new Audio(); a.preload = 'none'; a.volume = musPrefs().vol;
   a.addEventListener('ended', musEnded);
-  a.addEventListener('play', () => { MUS.err = ''; musUi(); });
+  a.addEventListener('play', () => { MUS.err = ''; musUi(); try { musOffWarm(); } catch(e){} });
   a.addEventListener('pause', musUi);
   a.addEventListener('error', () => { if (!a.src) return; MUS.err = 'Couldn’t load this track. Check your connection and try again.'; musUi(); });
   a.addEventListener('timeupdate', musTime);
@@ -33,18 +33,24 @@ function musOrder(){
   MUS.order = idx;
 }
 function musFmt(s){ s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
-function musLoad(i, at){
+async function musLoad(i, at){
   const a = musEl(), x = MUSIC[i]; if (!x) return;
-  const want = 'music/' + x.f;
-  if (!a.src || !a.src.endsWith(want)){ a.src = want; a.preload = 'auto'; }
+  if (a.dataset.f !== x.f || !a.src){
+    // a track saved on this device plays from there (works offline and uses no data); otherwise it streams
+    const local = MUSOFF.urls[x.f] || await musOffUrl(x.f);
+    if (!local && musOffline()){ MUS.err = isTHm() ? 'เพลงนี้ยังไม่ได้บันทึกไว้ใช้ตอนออฟไลน์' : 'This track isn’t saved for offline listening.'; musUi(); return false; }
+    a.src = local || ('music/' + x.f); a.dataset.f = x.f; a.preload = 'auto';
+  }
   MUS.p.i = i; musSave();
   if (at > 0){ const seek = () => { try { a.currentTime = Math.min(at, Math.max(0, x.d - 1)); } catch(e){} };
     if (a.readyState >= 1) seek(); else a.addEventListener('loadedmetadata', seek, { once: true }); }
   musMeta();
+  return true;
 }
-function musPlay(i, at){
+async function musPlay(i, at){
   if (i == null) i = musPrefs().i;
-  musLoad(i, at || 0);
+  if (musOffline() && !MUSOFF.saved.has((MUSIC[i] || {}).f)){ const j = musOffNextSaved(i, 1); if (j < 0){ MUS.err = isTHm() ? 'ยังไม่มีเพลงที่บันทึกไว้ใช้ตอนออฟไลน์ บันทึกเพลงตอนออนไลน์ก่อน' : 'You’re offline and no tracks are saved yet. Save tracks while you’re online.'; musUi(); return; } i = j; at = 0; }
+  if ((await musLoad(i, at || 0)) === false) return;
   try { if (typeof rmxStopAll === 'function' && typeof rmxAny === 'function' && rmxAny()){ rmxStopAll(); toast('Room sounds turned off while music plays.'); } } catch(e){}
   const pr = musEl().play(); if (pr && pr.catch) pr.catch(() => { MUS.err = 'Tap Play to start the music.'; musUi(); });
   musUi();
@@ -55,6 +61,7 @@ function musStep(d){
   if (MUS.room){ MUS.room = null; }   // skipping a track means leaving the room's music
   if (!MUS.order.length) musOrder();
   let k = MUS.order.indexOf(musPrefs().i); k = (k + d + MUSIC.length) % MUSIC.length;
+  if (musOffline()){ for (let n = 0; n < MUSIC.length && !MUSOFF.saved.has(MUSIC[MUS.order[k]].f); n++) k = (k + d + MUSIC.length) % MUSIC.length; }
   musPlay(MUS.order[k], 0);
 }
 function musEnded(){
@@ -140,9 +147,10 @@ function musUi(){
     (MUS.err ? '<p class="small warnline" role="alert" style="margin:0">' + esc(MUS.err) + '</p>' : '') +
     musRoomHtml() +
     '<label class="toggle mus-brk"><input type="checkbox" id="mus-brk"' + (P.brk ? ' checked' : '') + '><span>Pause during timer breaks</span></label>' +
-    '<details class="mus-list"><summary>All tracks (' + MUSIC.length + ', ' + Math.round(MUS_TOTAL / 60) + ' min)</summary><ol>' +
-      MUSIC.map((t, i) => '<li><button type="button" data-mus="track" data-i="' + i + '"' + (i === P.i ? ' aria-current="true"' : '') + '><span class="notr">' + esc(t.t) + '</span><span class="small muted">' + musFmt(t.d) + '</span></button></li>').join('') + '</ol></details>' +
-    '<p class="small muted mus-cred">Free music in the public domain (CC0), stored with the site: lo-fi by <a href="https://freemusicarchive.org/music/holiznacc0/" target="_blank" rel="noopener">HoliznaCC0</a> and Chopin recorded by <a href="https://musopen.org/" target="_blank" rel="noopener">Musopen</a>. Uses mobile data when it plays.</p>';
+    musOffHtml() +
+    '<details class="mus-list"' + (MUSOFF.open ? ' open' : '') + '><summary>All tracks (' + MUSIC.length + ', ' + Math.round(MUS_TOTAL / 60) + ' min)</summary><ol>' +
+      MUSIC.map((t, i) => '<li class="mus-li"><button type="button" data-mus="track" data-i="' + i + '"' + (i === P.i ? ' aria-current="true"' : '') + (musOffline() && !MUSOFF.saved.has(t.f) ? ' disabled' : '') + '><span class="notr">' + esc(t.t) + '</span><span class="small muted">' + musFmt(t.d) + '</span></button>' + musOffBtn(t, i) + '</li>').join('') + '</ol></details>' +
+    '<p class="small muted mus-cred">Free music in the public domain (CC0), stored with the site: lo-fi by <a href="https://freemusicarchive.org/music/holiznacc0/" target="_blank" rel="noopener">HoliznaCC0</a> and Chopin recorded by <a href="https://musopen.org/" target="_blank" rel="noopener">Musopen</a>. Streaming uses mobile data; saved tracks don’t.</p>';
   if (typeof isTH === 'function' && isTH()) try { thApply(box); } catch(e){}
 }
 function musOpen(){
@@ -164,6 +172,10 @@ function musInit(){
     else if (k === 'toggle') musToggle(); else if (k === 'next') musStep(1); else if (k === 'prev') musStep(-1);
     else if (k === 'shuf'){ MUS.p.shuf = !MUS.p.shuf; musSave(); musOrder(); musUi(); }
     else if (k === 'track'){ MUS.room = null; musPlay(+b.dataset.i, 0); }
+    else if (k === 'off'){ const i = +b.dataset.i; if (MUSOFF.saved.has(MUSIC[i].f)) musOffRemove([MUSIC[i].f]); else musOffSave([i]); }
+    else if (k === 'off-all') musOffSave(MUSIC.map((x, i) => i).filter(i => !MUSOFF.saved.has(MUSIC[i].f)));
+    else if (k === 'off-stop') MUSOFF.stop = true;
+    else if (k === 'off-none') musOffRemove([...MUSOFF.saved]);
     else if (k === 'room-start') musRoomStart(); else if (k === 'room-stop') musRoomStop();
     else if (k === 'room-listen') musRoomListen(); else if (k === 'room-leave'){ MUS.room = null; musPause(); }
   });
@@ -172,6 +184,87 @@ function musInit(){
     else if (e.target.id === 'mus-pos' && MUS.a && !MUS.room){ if (!MUS.a.src) musLoad(musPrefs().i, 0); try { MUS.a.currentTime = +e.target.value; } catch(err){} }
   });
   document.addEventListener('change', e => { if (e.target.id === 'mus-brk'){ MUS.p.brk = e.target.checked; musSave(); } });
+  document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('mus-list')) MUSOFF.open = e.target.open; }, true);
+  window.addEventListener('online', musUi); window.addEventListener('offline', musUi);
+  musOffInit();
   document.addEventListener('keydown', e => { if (e.key === 'Escape'){ const box = document.getElementById('mus'); if (box && !box.hidden) musClose(); } });
   musOrder(); musUi();
+}
+/* ---- Saved for offline ----
+   Tracks the student chooses are kept on this device (in the browser's storage, about 2 MB each, 54 MB for all).
+   Saved tracks play from the device even when online, so they use no data; offline, only saved tracks play. */
+const MUSOFF = { cache: 'ial-music-v1', saved: new Set(), busy: null, stop: false, open: false, ok: typeof caches !== 'undefined', urls: {}, lru: [] };
+const MUS_MB = 54;
+function isTHm(){ return typeof isTH === 'function' && isTH(); }
+function musOffline(){ return typeof navigator !== 'undefined' && navigator.onLine === false; }
+async function musOffInit(){
+  if (!MUSOFF.ok) return;
+  try { const c = await caches.open(MUSOFF.cache); (await c.keys()).forEach(r => { const f = decodeURIComponent(r.url.split('/').pop()); if (MUSIC.some(x => x.f === f)) MUSOFF.saved.add(f); }); } catch(e){ MUSOFF.ok = false; }
+  musOffWarm(); musUi();
+}
+// ready-to-play copies of a few saved tracks (current and next), so a tap starts music at once (iPhone needs that)
+async function musOffUrl(f){
+  if (!MUSOFF.ok || !MUSOFF.saved.has(f)) return null;
+  if (MUSOFF.urls[f]) return MUSOFF.urls[f];
+  try {
+    const c = await caches.open(MUSOFF.cache), r = await c.match('music/' + f); if (!r){ MUSOFF.saved.delete(f); return null; }
+    const u = URL.createObjectURL(await r.blob()); MUSOFF.urls[f] = u; MUSOFF.lru = (MUSOFF.lru || []).filter(x => x !== f).concat(f);
+    while (MUSOFF.lru.length > 3){ const old = MUSOFF.lru.shift(); if (MUS.a && MUS.a.dataset.f === old){ MUSOFF.lru.push(old); break; } try { URL.revokeObjectURL(MUSOFF.urls[old]); } catch(e){} delete MUSOFF.urls[old]; }
+    return u;
+  } catch(e){ return null; }
+}
+function musOffWarm(){
+  const i = musPrefs().i; if (!MUSIC[i]) return;
+  musOffUrl(MUSIC[i].f);
+  if (!MUS.order.length) musOrder();
+  const k = MUS.order.indexOf(i), nx = MUS.order[(k + 1) % MUSIC.length]; if (MUSIC[nx]) musOffUrl(MUSIC[nx].f);
+}
+function musOffNextSaved(i, d){ for (let n = 1; n <= MUSIC.length; n++){ const j = ((i + d * n) % MUSIC.length + MUSIC.length) % MUSIC.length; if (MUSOFF.saved.has(MUSIC[j].f)) return j; } return -1; }
+async function musOffSave(list){
+  if (!MUSOFF.ok || MUSOFF.busy || !list.length) return;
+  if (musOffline()){ MUS.err = isTHm() ? 'ต้องเชื่อมต่ออินเทอร์เน็ตเพื่อบันทึกเพลง' : 'Connect to the internet to save tracks.'; musUi(); return; }
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+  MUSOFF.busy = { done: 0, n: list.length }; MUSOFF.stop = false; MUS.err = ''; musUi();
+  let fail = 0;
+  try {
+    const c = await caches.open(MUSOFF.cache);
+    for (const i of list){
+      if (MUSOFF.stop) break;
+      const f = MUSIC[i].f;
+      try { const r = await fetch('music/' + f, { cache: 'no-store' }); if (!r.ok || r.status !== 200) throw 0; await c.put('music/' + f, r); MUSOFF.saved.add(f); }
+      catch(e){ fail++; }
+      MUSOFF.busy.done++; musUi();
+    }
+  } catch(e){ fail = list.length; }
+  MUSOFF.busy = null;
+  if (fail) MUS.err = isTHm() ? 'บันทึกไม่สำเร็จ ' + fail + ' เพลง พื้นที่ในเครื่องอาจเต็ม หรือการเชื่อมต่อขาดหาย' : fail + (fail === 1 ? ' track' : ' tracks') + ' couldn’t be saved. Your device may be out of space, or the connection dropped.';
+  musUi();
+  if (!fail && list.length > 1 && typeof toast === 'function') toast(isTHm() ? 'บันทึกเพลงไว้ฟังออฟไลน์แล้ว' : 'Music saved for offline listening.');
+}
+async function musOffRemove(fs){
+  if (!MUSOFF.ok) return;
+  try { const c = await caches.open(MUSOFF.cache); for (const f of fs){ await c.delete('music/' + f); MUSOFF.saved.delete(f); } } catch(e){}
+  musUi();
+}
+function musOffHtml(){
+  if (!MUSOFF.ok) return '';
+  const n = MUSOFF.saved.size, all = n === MUSIC.length, mb = Math.round(MUS_MB * n / MUSIC.length), b = MUSOFF.busy;
+  const th = isTHm();
+  let line, btns;
+  if (b){ line = th ? 'กำลังบันทึก ' + b.done + ' จาก ' + b.n + ' เพลง…' : 'Saving ' + b.done + ' of ' + b.n + '…'; btns = '<button class="linkbtn small" type="button" data-mus="off-stop">' + (th ? 'หยุด' : 'Stop') + '</button>'; }
+  else {
+    line = musOffline() ? (th ? 'ออฟไลน์: เล่นได้เฉพาะ ' + n + ' เพลงที่บันทึกไว้' : 'Offline: only your ' + n + ' saved ' + (n === 1 ? 'track plays' : 'tracks play'))
+      : n ? (th ? 'บันทึกไว้ในเครื่อง ' + n + ' จาก ' + MUSIC.length + ' เพลง (' + mb + ' MB) เล่นได้แม้ไม่มีเน็ต' : n + ' of ' + MUSIC.length + ' tracks saved on this device (' + mb + ' MB). They play without internet.')
+      : (th ? 'บันทึกเพลงไว้ในเครื่องเพื่อฟังตอนไม่มีเน็ต' : 'Save music on this device to listen without internet.');
+    btns = musOffline() ? '' : (all ? '' : '<button class="btn sm" type="button" data-mus="off-all">' + (th ? 'บันทึกทั้งหมด' : 'Save all') + ' (' + (MUS_MB - mb) + ' MB)</button>') +
+      (n ? '<button class="linkbtn small" type="button" data-mus="off-none">' + (th ? 'ลบที่บันทึกไว้' : 'Remove saved') + '</button>' : '');
+  }
+  return '<div class="mus-off" role="status"><span class="small">' + line + '</span>' + (btns ? '<div class="row">' + btns + '</div>' : '') + '</div>';
+}
+function musOffBtn(t, i){
+  if (!MUSOFF.ok) return '';
+  const on = MUSOFF.saved.has(t.f), th = isTHm();
+  if (musOffline() && !on) return '';
+  return '<button type="button" class="mus-offb' + (on ? ' on' : '') + '" data-mus="off" data-i="' + i + '" aria-pressed="' + on + '" aria-label="' + (on ? (th ? 'ลบ ' : 'Remove ') + esc(t.t) + (th ? ' ออกจากเครื่อง' : ' from this device') : (th ? 'บันทึก ' : 'Save ') + esc(t.t) + (th ? ' ไว้ฟังออฟไลน์' : ' for offline')) + '"' + (MUSOFF.busy ? ' disabled' : '') + '>' +
+    (on ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>' : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2"/></svg>') + '</button>';
 }
