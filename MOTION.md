@@ -155,6 +155,19 @@ All of it is under `prefers-reduced-motion: no-preference`, and the Settings swi
 | Welcome screen | the blocks ease up in turn, first visit only | 450 ms, staggered |
 | Loading | a soft shimmer on placeholder blocks | 1.3 s loop |
 
+### Sound effects (added November 2026)
+Made in the browser with the Web Audio API (`sfx()` in `index.html`): soft bell tones (a sine with two quiet overtones), no audio files. Off until the student turns them on; one offer appears after the first right answer (`sfxOffer()`).
+| Sound | When | Group |
+|---|---|---|
+| `ok` two rising notes | right answer (Bee, Learn, topic multiple choice) | rewards |
+| `no` one soft falling note | wrong answer | rewards |
+| `win` four-note sparkle | any confetti burst; streak and paper moments | rewards |
+| `ding` | topic marked Confident | rewards |
+| `goal` three-note chord | daily goal reached | rewards |
+| `flip` filtered noise | flashcard turned over | all |
+| `tick`, `gong` | Bee timer, last 5 seconds and time up | all |
+Volume is the student's setting × 0.35, halved while the study music plays; silent inside a camera room. The same sound can't repeat within 250 ms (3 s for `win`).
+
 ---
 
 ### Licence for Part 1

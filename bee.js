@@ -97,6 +97,8 @@ window.beeParse = beeParse; window.beeCheck = beeCheck; window.beeTex = beeTex; 
 /* --- game --- */
 const TICK = '<span class="mo-tick" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>';
 const MOK = () => (typeof MO !== 'undefined' ? MO : {});
+const SND = k => { try { if (typeof sfx === 'function') sfx(k); } catch(e){} };
+const OFFER = () => (typeof sfxOffer === 'function' ? sfxOffer() : '');
 const BURST = c => (typeof confetti === 'function' ? confetti(c) : '');
 const ROUND = 5;
 const qid = (lv, i) => 'b' + lv + '-' + i;
@@ -161,7 +163,7 @@ function viewPlay(){
   return head + qbox + '<div class="card stack bee-sol notr"><div class="bee-msg ' + (r.ok ? 'good' : 'bad') + '" role="status">' + (r.ok ? TICK + L('Correct! ', 'ถูกต้อง! ') + '+<span data-count="' + r.pts + '" data-ck="bee' + u.t0 + '">' + r.pts + '</span>' + (r.dec ? L(' (half points for a decimal)', ' (ทศนิยมได้ครึ่งคะแนน)') : '') + (r.bonus ? L(' including a streak bonus', ' รวมโบนัสต่อเนื่อง') : '') : r.late ? L('Time’s up.', 'หมดเวลา') : L('Here’s the solution.', 'นี่คือเฉลย')) + '</div>' +
     '<div><span class="small muted">' + L('Answer', 'คำตอบ') + '</span> ' + D(q.al) + (r.ok ? ' <span class="small muted">· ' + (r.ms < 60000 ? Math.max(1, Math.round(r.ms / 1000)) + ' s' : fmtT(r.ms)) + '</span>' : '') + '</div>' +
     '<div class="small"><span class="pill">' + esc(q.h) + '</span></div><ol class="bee-steps">' + q.s.map(x => '<li>' + D(x) + '</li>').join('') + '</ol>' +
-    '<div class="row"><button class="btn primary" data-bee="next">' + (u.k + 1 < u.list.length ? L('Next integral', 'ข้อต่อไป') : L('See my round', 'ดูผลรอบนี้')) + '</button></div></div>';
+    (r.ok ? OFFER() : '') + '<div class="row"><button class="btn primary" data-bee="next">' + (u.k + 1 < u.list.length ? L('Next integral', 'ข้อต่อไป') : L('See my round', 'ดูผลรอบนี้')) + '</button></div></div>';
 }
 function prevHtml(s){
   s = String(s || '');
@@ -226,6 +228,7 @@ function finish(r){
   if (r.ok){ u.streak++; const base = 10 * u.lv, sp = Math.round(base * Math.max(0, limit() - ms) / limit()); r.pts = r.dec ? Math.round(base / 2) : base + sp; if (!r.dec && u.streak >= 3){ r.pts += 5 * u.lv; r.bonus = 1; } u.score += r.pts;
     const was = solvedIn(u.lv); const o = b.s[q.id] || {}; b.s[q.id] = { ok:1, ms:Math.min(o.ms || 1e9, ms) }; b.pts += r.pts; }
   else { u.streak = 0; if (!b.s[q.id]) b.s[q.id] = { ok:0 }; }
+  SND(r.ok ? 'ok' : r.late ? 'gong' : 'no');
   u.res[u.k] = r; u.st = 'show'; commit();
 }
 function check(){
@@ -233,7 +236,7 @@ function check(){
   if (Date.now() - u.t0 > limit()){ finish({ ok:false, late:1 }); return; }
   const c = beeCheck(q, u.typed);
   if (c.msg){ u.msg = c.msg; render(); focusIn(); return; }
-  if (!c.ok){ u.msg = L('Not quite. Check your working and try again.', 'ยังไม่ถูก ลองตรวจวิธีทำแล้วลองใหม่'); MOK().shake = true; render(); focusIn(); return; }
+  if (!c.ok){ u.msg = L('Not quite. Check your working and try again.', 'ยังไม่ถูก ลองตรวจวิธีทำแล้วลองใหม่'); MOK().shake = true; SND('no'); render(); focusIn(); return; }
   u.msg = ''; finish({ ok:true, dec:c.dec });
 }
 function focusIn(){ setTimeout(() => { const el = document.getElementById('bee-in'); if (el){ el.focus({ preventScroll:true }); try { el.setSelectionRange(el.value.length, el.value.length); } catch(e){} } }, 0); }
@@ -243,7 +246,7 @@ function clockOn(){ if (CLK) return; CLK = setInterval(() => {
   if (!u || u.mode !== 'play' || u.st !== 'ask' || !el){ clearInterval(CLK); CLK = null; return; }
   const left = limit() - (Date.now() - u.t0);
   if (left <= 0){ const i = document.getElementById('bee-in'); if (i) u.typed = i.value; finish({ ok:false, late:1 }); return; }
-  el.textContent = fmtT(left); el.classList.toggle('low', left < 15000); el.classList.toggle('last', left < 10000);
+  el.textContent = fmtT(left); el.classList.toggle('low', left < 15000); el.classList.toggle('last', left < 10000); { const sec = Math.ceil(left / 1000); if (sec <= 5 && sec !== u.tk){ u.tk = sec; SND('tick'); } }
 }, 250); }
 document.addEventListener('click', e => {
   const b = e.target.closest && e.target.closest('[data-bee]'); if (!b) return;
@@ -327,17 +330,17 @@ function viewPrac(l){
   const ok = p.res[p.k];
   return dots + qbox + '<div class="card stack bee-sol"><div class="bee-msg ' + (ok ? 'good' : 'bad') + '" role="status">' + (ok ? TICK + L('Correct!', 'ถูกต้อง!') : L('Here’s the solution.', 'นี่คือเฉลย')) + '</div>' +
     '<div><span class="small muted">' + L('Answer', 'คำตอบ') + '</span> ' + D(q.al) + '</div><ol class="bee-steps">' + q.s.map(z => '<li>' + D(z) + '</li>').join('') + '</ol>' +
-    '<div class="row"><button class="btn primary" data-bee="prnext">' + (p.k < 4 ? L('Next question', 'ข้อต่อไป') : L('See my result', 'ดูผล')) + '</button></div></div>';
+    (ok ? OFFER() : '') + '<div class="row"><button class="btn primary" data-bee="prnext">' + (p.k < 4 ? L('Next question', 'ข้อต่อไป') : L('See my result', 'ดูผล')) + '</button></div></div>';
 }
 function prCheck(){
   const lu = LU(), p = lu.pr, l = LEARN[lesIdx(p.id)], q = l.pr[p.k], el = document.getElementById('bee-in'); if (el) p.typed = el.value;
   const c = beeCheck(q, p.typed);
   if (c.msg){ p.msg = esc(c.msg).replace(/\$x\$/g, '$x$'); render(); focusIn(); return; }
   if (c.ok && c.dec && !q.tol){ p.msg = esc(L('That’s the right value as a decimal. Now give it exactly, e.g. with pi, sqrt or ln.', 'ค่าทศนิยมถูกแล้ว ตอนนี้ให้คำตอบแบบค่าแม่นตรง เช่นใช้ pi, sqrt หรือ ln')); render(); focusIn(); return; }
-  if (c.ok){ p.res[p.k] = true; p.st = 'show'; p.msg = ''; render(); return; }
+  if (c.ok){ p.res[p.k] = true; p.st = 'show'; p.msg = ''; SND('ok'); render(); return; }
   p.tries++;
-  if (p.tries >= 2){ p.res[p.k] = false; p.st = 'show'; p.msg = ''; render(); return; }
-  p.msg = esc(L('Not quite. Here’s a hint.', 'ยังไม่ถูก นี่คือคำใบ้')); MOK().shake = true; render(); focusIn();
+  if (p.tries >= 2){ p.res[p.k] = false; p.st = 'show'; p.msg = ''; SND('no'); render(); return; }
+  p.msg = esc(L('Not quite. Here’s a hint.', 'ยังไม่ถูก นี่คือคำใบ้')); MOK().shake = true; SND('no'); render(); focusIn();
 }
 function prEnd(){
   const lu = LU(), p = lu.pr, b = bs(); b.les = b.les || {};
