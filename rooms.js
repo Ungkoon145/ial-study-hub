@@ -398,7 +398,14 @@ function viewRooms(){
   if (!(typeof ACCT !== 'undefined' && ACCT)){
     return '<div class="stack">' + '<div><h1>Study rooms</h1></div><div class="card stack"><p>Study rooms work on the main IAL Revise site, where you sign in.</p><div class="row"><a class="btn primary" href="https://ungkoon145.github.io/ial-study-hub/#rooms" target="_blank" rel="noopener">Open the main site ↗</a></div></div></div>';
   }
-  if (!FB.user) return '<div class="stack">' + '<div><h1>Study rooms</h1></div><div class="card"><p>Sign in to join study rooms.</p></div></div>';
+  if (!FB.user){ const th = typeof isTH === 'function' && isTH(), L = (a, b) => th ? b : a;
+    return '<div class="stack"><div><h1>' + L('Study rooms', 'ห้องอ่านหนังสือ') + '</h1><p class="muted">' + L('Study alongside friends on camera, with a shared timer and quiet breaks. Like a library table, but online.', 'อ่านหนังสือไปพร้อมเพื่อนผ่านกล้อง มีตัวจับเวลาร่วมกันและพักพร้อมกัน เหมือนโต๊ะในห้องสมุดแต่ออนไลน์') + '</p></div>' +
+      '<div class="card stack"><ul class="rm-why">' +
+        '<li><b>' + L('Friends only', 'เฉพาะเพื่อน') + '</b><span class="small muted">' + L('Only people you add as friends can see or join your room.', 'เฉพาะคนที่คุณเพิ่มเป็นเพื่อนเท่านั้นที่เห็นหรือเข้าห้องได้') + '</span></li>' +
+        '<li><b>' + L('You choose what to share', 'คุณเลือกเองว่าจะแชร์อะไร') + '</b><span class="small muted">' + L('Camera and microphone are off until you turn them on. Marks and notes are never shared.', 'กล้องและไมค์ปิดอยู่จนกว่าคุณจะเปิด คะแนนและโน้ตไม่ถูกแชร์') + '</span></li>' +
+        '<li><b>' + L('Stay focused together', 'โฟกัสไปด้วยกัน') + '</b><span class="small muted">' + L('A shared focus timer keeps everyone on the same study and break times.', 'ตัวจับเวลาร่วมทำให้ทุกคนอ่านและพักพร้อมกัน') + '</span></li></ul>' +
+        '<p class="small" style="margin:0">' + L('Rooms need an account so friends can find you.', 'ห้องอ่านหนังสือต้องใช้บัญชีเพื่อให้เพื่อนหาคุณเจอ') + '</p>' +
+        '<div class="row" style="gap:8px;flex-wrap:wrap">' + (typeof gButton === 'function' ? gButton(L('Sign in with Google', 'ลงชื่อเข้าใช้ด้วย Google')) : '') + '<button class="btn ghost" data-act="fb-gate">' + L('Other ways to sign in', 'ลงชื่อเข้าใช้วิธีอื่น') + '</button></div></div></div>'; }
   return RM.rid && RM.room ? viewRoom() : viewLobby();
 }
 function rmTools(){
