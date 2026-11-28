@@ -193,7 +193,7 @@ const COMPS = [
     tl: [{ d: '2027-01', e: 'Preliminary round opens' }] },
   { id: 'yis', n: 'YIS Global Stock Pitch Competition', org: 'Young Investors Society', url: 'https://yis.org/', t: 'biz', subj: ['econ', 'math'], sk: ['enterprise', 'research', 'video'],
     where: 'Online; top teams invited to a summit in New York', cost: 'About $30 per student', elig: 'High school students, alone or in pairs: pick a listed company, then submit a report, slides and a video with a buy or sell call. Students outside the US enter the International OPEN.',
-    tl: [{ d: '2026-12-15', e: 'Registration opens' }, { d: '2027-02-19', e: 'Submission deadline' }, { d: '2027-05', e: 'Global Youth Investment Summit, New York' }] }
+    tl: [{ d: '2026-12-15', e: 'Registration opens' }, { d: '2027-02-19', e: 'Submission deadline' }, { d: '2027-05-25', e: 'Global Youth Investment Summit, New York' }] }
 ,
   { id: 'iymc', n: 'International Youth Math Challenge (IYMC)', org: 'International Youth Math Challenge', url: 'https://iymc.info/', t: 'olymp', subj: ['math'], sk: ['solve', 'research'], sch: 1,
     where: 'Online', cost: 'Free first round; €13 for the pre-final (aid available)', elig: 'High school and university students in any country. Five problems in the qualification round, then a timed pre-final and final; awards and a small cash prize pool. Independent: not part of the official olympiads.',
@@ -237,8 +237,9 @@ const COMP_PREP = {
 };
 /* Day each competition's dates were last checked on its own website. */
 const COMP_CK = {};
-'iymc iaac opho pumac smt im2c hmmt purple pico vex earth genius diamond nyt ocean bennington hir hmun himcm wdsc blueocean lsesu trinity sthughs wtw immerse visionaries cmkl euth timo sft munth asc pbowl acsl ccc uwchem c3l6 ino minds cefc hcbc yis bpho rsi amc ukmt cemc posn ukcho bbo usaco spaceapps'.split(' ').forEach(id => COMP_CK[id] = '2026-11-25');
+'iymc iaac opho pumac smt im2c hmmt purple pico earth genius diamond nyt ocean bennington hir hmun himcm blueocean lsesu trinity sthughs wtw immerse visionaries cmkl euth timo sft munth asc pbowl acsl ccc uwchem ino minds cefc hcbc bpho amc ukmt cemc posn ukcho bbo usaco spaceapps'.split(' ').forEach(id => COMP_CK[id] = '2026-11-25');
 'conrad yygs ssp mega ysc locke ipsc isef wharton btjc'.split(' ').forEach(id => COMP_CK[id] = '2026-11-26');
+'rsi yis wdsc c3l6 vex butler qcwc wsc'.split(' ').forEach(id => COMP_CK[id] = '2026-11-28');
 /* Level and time: a rough guide written for this site, not the organisers' wording.
    start = a good first competition; mid = needs solid preparation; adv = for students already strong in the subject
    (often national-team level). Time is the usual preparation for a student new to the competition. */
