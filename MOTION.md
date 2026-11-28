@@ -140,34 +140,6 @@
 - The two-tab room test (`rmtest.py`) after any change to the room page.
 - Not yet seen on a real phone at 60 fps: check the rain and the lamp on an iPhone and an Android phone.
 
-### Interface motion (added November 2026)
-All of it is under `prefers-reduced-motion: no-preference`, and the Settings switch "Reduce motion" (`prefs().motion`, the `.rm` class) stops it, including the count-ups driven by script (`reduceMotion()`).
-| Where | What | Timing |
-|---|---|---|
-| Buttons, chips, icon buttons | press in to 97% | 90 ms |
-| A tapped chip, toggle or topic status | settles from 93% to full size after the redraw (`MO.pop`) | 240 ms |
-| Bottom bar | the brass marker grows in on the new tab, its icon settles | 280 ms, on page change only |
-| Bars (`.meter i`) | grow from the left when a page opens (`.v-fresh`) | 700 ms ease-out |
-| Right answer (Bee, Learn) | a tick draws in; points count up | 300 ms + 600 ms |
-| Wrong answer | the answer box shakes | 320 ms |
-| Bee timer | soft pulse in the last 10 seconds | 1 s loop |
-| Lesson passed, new best Bee round, streak of 3, 7, 14, 30… days | one confetti burst, behind the text, once | 1.6 s |
-| Welcome screen | the blocks ease up in turn, first visit only | 450 ms, staggered |
-| Loading | a soft shimmer on placeholder blocks | 1.3 s loop |
-
-### Sound effects (added November 2026)
-Made in the browser with the Web Audio API (`sfx()` in `index.html`): soft bell tones (a sine with two quiet overtones), no audio files. Off until the student turns them on; one offer appears after the first right answer (`sfxOffer()`).
-| Sound | When | Group |
-|---|---|---|
-| `ok` two rising notes | right answer (Bee, Learn, topic multiple choice) | rewards |
-| `no` one soft falling note | wrong answer | rewards |
-| `win` four-note sparkle | any confetti burst; streak and paper moments | rewards |
-| `ding` | topic marked Confident | rewards |
-| `goal` three-note chord | daily goal reached | rewards |
-| `flip` filtered noise | flashcard turned over | all |
-| `tick`, `gong` | Bee timer, last 5 seconds and time up | all |
-Volume is the student's setting × 0.35, halved while the study music plays; silent inside a camera room. The same sound can't repeat within 250 ms (3 s for `win`).
-
 ---
 
 ### Licence for Part 1
